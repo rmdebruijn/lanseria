@@ -4,17 +4,62 @@ cookie:
   name: sclca_fm_auth
 credentials:
   usernames:
+    Robbert:
+      email: r.zappeij@zencustomerfinance.nl
+      first_name: Robbert
+      last_name: Zappeij
+      password: $2b$12$TS4iMkXMx0oP49kQr64oMOYGD84mQA4RkcQspmLT3w5tfdjXwIuiu
+      permissions:
+        can_manage_users: false
+        entities:
+        - '*'
+        mgmt_pages:
+        - '*'
+        tabs:
+        - '*'
+      roles:
+      - promotor_opco
+    mark:
+      email: m.vanhouten@nexusnovus.com
+      first_name: Mark
+      last_name: van Houten
+      password: $2b$12$8VClwb2bGd5nyW3yUW3afOGxJVBFqCQbNN03lV9RBhuHHeIcnuNh2
+      permissions:
+        can_manage_users: false
+        entities:
+        - '*'
+        mgmt_pages:
+        - '*'
+        tabs:
+        - '*'
+      roles:
+      - promotor_opco
     rmdebruijn@nexusnovus.com:
       email: rmdebruijn@nexusnovus.com
       first_name: Rutger
       last_name: de Bruijn
-      password: $2b$12$qI8GeiloVsBXqAzARxJTm.MfjyN86TLzognFgIcoVPkAUmpG/lk1a
+      password: $2b$12$wOuXzxmw8WSpP8WX5rsUg.HhJ5UCY0B7CtEZ82o3ZqYEcnrEFxnQu
       roles:
       - admin
     rutger:
       email: rutger@nexusnovus.com
       first_name: Rutger
       last_name: Admin
-      password: $2b$12$CNzigKxJLc5vsA6rVLif0ehcUGtCMUS8C5CI9UFx7MI0Kv.VBvG0.
+      password: $2b$12$wOuXzxmw8WSpP8WX5rsUg.HhJ5UCY0B7CtEZ82o3ZqYEcnrEFxnQu
       roles:
       - admin
+    siza:
+      email: sizakelem@crosspointproperty.co.za
+      first_name: Sizakele
+      last_name: Mabuza
+      password: $2b$12$cfGkTS01dCymNpwxMXQ21eerq577rZBJmHGQyd5Fi/Il8vpodXJI2
+      permissions:
+        can_manage_users: false
+        entities:
+        - '*'
+        mgmt_pages:
+        - '*'
+        tabs:
+        - '*'
+      roles:
+      - promotor_opco
