@@ -1,8 +1,6 @@
 [server]
-port = 8502
 enableXsrfProtection = true
 enableCORS = false
-runOnSave = true
 
 [client]
 toolbarMode = "developer"
