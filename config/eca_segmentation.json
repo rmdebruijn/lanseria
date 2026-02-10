@@ -1,0 +1,110 @@
+{
+  "description": "ECA segmentation for three-asset structure instead of umbrella guarantee",
+  "current_structure": {
+    "approach": "Single umbrella guarantee from sponsor",
+    "eca_provider": "Atradius",
+    "total_exposure": 8300000,
+    "issues": [
+      "Large single guarantee requirement",
+      "All assets bundled together",
+      "Single point of failure for ECA approval"
+    ]
+  },
+  "proposed_structure": {
+    "approach": "Separate ECA covers per asset segment",
+    "benefits": [
+      "Smaller individual exposures",
+      "Asset-specific risk pricing",
+      "Multiple ECA jurisdictions possible",
+      "Cash flows directly associated with assets",
+      "Easier approval path"
+    ]
+  },
+  "segments": {
+    "segment_1_water": {
+      "name": "Water Infrastructure",
+      "total_budget": 8169648,
+      "eca_eligible_content": {
+        "Atradius": {
+          "items": ["Colubris Balance of Plant"],
+          "amount": 1721925,
+          "country": "Netherlands",
+          "fees_dutch": {
+            "facility_fee": 122719,
+            "integration_fee": 721878,
+            "atradius_premium": 539964,
+            "exporter_premium": 57750,
+            "total_fees": 1442311
+          },
+          "idc_dutch": 818536,
+          "preop_finance_dutch": 120000,
+          "total_dutch_ecv": 4117276,
+          "note": "All fees paid to Dutch entities (IIC, Colubris, Atradius) + IDC count as Dutch content"
+        },
+        "note": "Ireland (Oxymem) would need separate ECA or inclusion in Dutch cover"
+      },
+      "local_content": {
+        "South Africa": 3996392,
+        "items": ["NWL Local Civil (3,746,392)", "WSP Owners Engineer (250,000)"],
+        "note": "WSP is South African. Local costs coverable up to 50% of Dutch ECV under OECD 2021 amendment"
+      },
+      "cash_flows_assigned": {
+        "greenfield_sewage": true,
+        "greenfield_reuse": true,
+        "brownfield_sewage": true,
+        "construction_reuse": true
+      }
+    },
+    "segment_2_coe": {
+      "name": "Centre of Excellence + Panel Equipment",
+      "total_budget": 1862124,
+      "eca_eligible_content": {
+        "Atradius": {
+          "items": ["Panel Equipment (100% Dutch)"],
+          "amount": 200000,
+          "country": "Netherlands"
+        }
+      },
+      "content_breakdown": {
+        "Finland": {"amount": 997274, "pct": 0.60, "item": "CoE building (60%)"},
+        "France": {"amount": 498637, "pct": 0.30, "item": "CoE building (30%)"},
+        "South Africa": {"amount": 166213, "pct": 0.10, "item": "CoE building (10%)"},
+        "Netherlands": {"amount": 200000, "pct": 1.00, "item": "Panel Equipment (100%)"}
+      },
+      "cash_flows_assigned": {
+        "training_fees": true,
+        "demonstration_income": true
+      }
+    },
+    "segment_3_solar": {
+      "name": "Solar Plant",
+      "total_budget": 2908809,
+      "carve_out": true,
+      "eca_eligible_content": {
+        "note": "Independently underwritten within IIC risk envelope"
+      },
+      "cash_flows_assigned": {
+        "grid_savings": true,
+        "excess_power_sales": true
+      }
+    }
+  },
+  "eca_agencies": {
+    "Atradius": {
+      "country": "Netherlands",
+      "coverage": "Dutch content (NWL + TWX Panel Equipment)",
+      "min_content_requirement": 0.20,
+      "nwl_dutch_ecv": 4117276,
+      "twx_dutch_ecv": 200000,
+      "total_dutch_ecv": 4317276,
+      "items_included": ["Colubris BoP", "Facility Fee (IIC)", "Integration Fee (Colubris)", "Atradius Premium (2x)", "IDC (IIC)", "Pre-op finance (IIC)", "Panel Equipment"],
+      "dutch_content_pct": 0.249,
+      "note": "Fees + IDC paid to Dutch entities count as Dutch content — confirmed in financial model"
+    },
+    "ECIC": {
+      "country": "South Africa",
+      "coverage": "Export credit for SA exports",
+      "note": "Not applicable - SA is destination country"
+    }
+  }
+}

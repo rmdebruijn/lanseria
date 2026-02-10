@@ -1,0 +1,36 @@
+section,parameter,value,unit,note
+greenfield,annual_growth_pct_default,7.7,%,Default annual growth rate
+greenfield,brine_pct_default,10.0,%,Brine rejection percentage
+greenfield,sewage_rate_2025_r_per_kl,46.40,R/kl,2025 sewage tariff rate
+greenfield,water_rate_2025_r_per_kl,62.05,R/kl,2025 water tariff rate
+greenfield,reuse_ratio_default,0.80,ratio,Water reuse ratio (80%)
+greenfield,piped_sewage_topcos_mld,"0.00|0.10|0.50|0.80|0.92|1.06|1.20|1.38|1.60|1.82",MLD,10-year piped sewage demand (TopCos)
+greenfield,construction_water_demand_topcos_mld,"0.38|1.25|0.97|0.73|0.63|0.52|0.41|0.26|0.09|0.00",MLD,10-year construction water demand (TopCos)
+brownfield,latent_potential_mld,50.0,MLD,Latent wastewater demand potential
+brownfield,latent_demand_quantified,"50|55|61|67|73|81|89|97|107|118",MLD,10-year latent demand growth (7.7% escalation)
+brownfield,honeysucker_base_2025_r_per_kl,100.80,R/kl,2025 honeysucker (tanker) base rate
+brownfield,agri_base_2025_r_per_kl,37.70,R/kl,2025 agricultural water base rate
+sewerage_revenue_sharing,joburg_price_r_per_kl_default,46.40,R/kl,Joburg municipal sewerage tariff
+sewerage_revenue_sharing,growth_pct_default,7.70,%,Annual tariff escalation
+sewerage_revenue_sharing,transport_r_per_km_default,28.0,R/km,Honeysucker transport cost per km
+sewerage_revenue_sharing,truck_capacity_m3_default,10.0,m3,Tanker truck capacity
+sewerage_revenue_sharing,nwl_roundtrip_km_default,10.0,km,NWL plant roundtrip distance
+sewerage_revenue_sharing,gov_roundtrip_km_default,100.0,km,Government WWTW roundtrip distance
+sewerage_revenue_sharing,saving_to_market_pct_default,40.0,%,Market saving passed to customer
+om,flat_fee_per_month_zar,1000000,ZAR/month,O&M flat monthly fee
+om,annual_indexation_pa,5.0,%,Annual O&M escalation
+om,opex_start_month,12,month,O&M start month
+om,awarded_contract,true,boolean,O&M contract awarded
+om,equity_issued,true,boolean,Equity has been issued
+om,equity_value_prepayment_zar,44720857,ZAR,Equity value prepayment
+om,epc_contract_issued,false,boolean,EPC contract not yet issued
+power,kwh_per_m3,0.4,kWh/m3,MABR energy consumption per cubic metre
+power,cas_benchmark_kwh_per_m3,1.2,kWh/m3,Conventional Activated Sludge benchmark
+power,eskom_base_rate_r_per_kwh,2.81,R/kWh,Eskom business tariff (2024/25)
+power,ic_discount_pct,10.0,%,Inter-company electricity discount from LanRED
+power,annual_escalation_pct,10.0,%,Annual electricity escalation
+power,start_month,18,month,Power supply start month
+coe_rent,method,capital_recovery,,Rent = CoE CapEx x (WACC + O&M overhead)
+coe_rent,om_overhead_pct,2.0,%,O&M overhead percentage on capital recovery
+coe_rent,annual_escalation_pct,5.0,%,Annual rent escalation
+coe_rent,start_month,24,month,CoE rent start month

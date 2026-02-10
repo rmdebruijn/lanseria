@@ -1,0 +1,17 @@
+section,parameter,value,unit,note
+solar_capacity,derive_from_budget,true,boolean,Capacity derived from assets.json solar_001 budget / cost_per_kWp
+solar_capacity,cost_per_kwp_eur,728,EUR/kWp,SA C&I benchmark R15000/kWp = EUR 728/kWp (mid-range R12k-18k). At EUR 728/kWp -> ~3.2 MWp.
+solar_capacity,capacity_factor_pct,21.5,%,Gauteng fixed-tilt solar capacity factor
+solar_capacity,degradation_pa_pct,0.5,%/year,Annual solar panel degradation
+solar_capacity,cod_month,18,month,Commercial operation date
+battery_storage,derive_from_budget,true,boolean,BESS capacity derived from assets.json solar_002 budget / cost_per_kWh
+battery_storage,cost_per_kwh_eur,364,EUR/kWh,SA C&I benchmark R7500/kWh = EUR 364/kWh (mid-range R6k-10k). At EUR 364/kWh -> ~1.7 MWh.
+battery_storage,usable_capacity_pct,90.0,%,Usable battery capacity (depth of discharge)
+battery_storage,roundtrip_efficiency_pct,85.0,%,Battery round-trip efficiency
+battery_storage,degradation_pa_pct,3.0,%/year,Annual battery degradation at 456 cycles (benchmark: 2% at 260 / 4% at 730)
+battery_storage,cycles_per_year,456,cycles/year,Total annual cycles: HD 182 + LD 274 (2-cycle seasonal model)
+smart_city_power_demand,kva_per_house,6.0,kVA,Standard municipal allocation per house
+smart_city_power_demand,diversity_factor,0.7,ratio,Electrical diversity factor
+smart_city_power_demand,commercial_multiplier,1.5,multiplier,Commercial/institutional load multiplier
+smart_city_power_demand,infrastructure_report_mva,"28|6.5|21|34",MVA,4 phases from Lanseria Infrastructure Funding Report (March 2020)
+smart_city_power_demand,ultimate_mva,90,MVA,Ultimate demand: 15000 houses x 6kVA x 0.7 x 1.5 = 94.5 MW

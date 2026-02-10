@@ -1,0 +1,90 @@
+{
+  "description": "Key contractors and suppliers in the delivery chain",
+  "_dev_note": "BG&E details to be confirmed — company not found in public searches, may be internal reference or small Finnish firm",
+  "contractors": {
+    "colubris": {
+      "name": "Colubris Water Solutions",
+      "legal_name": "Colubris Cleantech B.V.",
+      "country": "Netherlands",
+      "hq": "Winterswijk, Netherlands",
+      "founded": 1984,
+      "website": "https://www.colubriscleantech.com",
+      "logo": "colubris-logo.svg",
+      "role": "Project Integrator & EPC Contractor (NWL scope)",
+      "overview": "Colubris Cleantech is a Dutch family-owned company with over 40 years of experience in separation and purifying technologies. They design, manufacture, construct, and commission complete wastewater treatment, water reuse, waste recycling, and biorefinery systems. All equipment is fabricated in their own production facility in the Netherlands.",
+      "capabilities": [
+        "Design and construction of industrial and decentralised municipal wastewater treatment plants",
+        "Single EPC contractor for water treatment scope",
+        "Integration of advanced membrane technologies including MABR",
+        "Balance of plant equipment manufacturing",
+        "International project delivery across Africa, Middle East, Asia, Europe, Latin America"
+      ],
+      "project_role": "Integrator and wrapper across all three delivery scopes; single EPC contractor for NWL water treatment plant. Also provides water pre-cleaning and water polishing for re-use as a water expert.",
+      "subsidiaries_involved": ["nwl", "lanred", "timberworx"],
+      "eca_relevance": "Dutch content — covered by Atradius ECA"
+    },
+    "bge": {
+      "name": "BG&E",
+      "legal_name": "BG&E Pty Ltd",
+      "country": "Australia",
+      "hq": "Perth, Western Australia",
+      "founded": 1970,
+      "website": "https://bgeeng.com",
+      "logo": "bge-logo.svg",
+      "role": "EPC Contractor (Timberworx Centre of Excellence)",
+      "overview": "BG&E is an employee-owned consulting engineering practice founded in 1970 in Perth. Over 53 years they have expanded across Australia, New Zealand, South East Asia, the UK, and the Middle East. Their services encompass structural and building physics engineering, manufacturing design, facade and fire engineering, procurement, project management, and cost planning. They have deep expertise in timber and mass-timber construction.",
+      "capabilities": [
+        "Structural and building physics engineering",
+        "Timber and mass-timber construction expertise",
+        "Manufacturing design and facade engineering",
+        "Procurement, project management and cost planning",
+        "International project delivery"
+      ],
+      "project_role": "Single EPC contractor for the Timberworx Centre of Excellence scope",
+      "subsidiaries_involved": ["timberworx"],
+      "eca_relevance": "Australian content"
+    },
+    "oxymem": {
+      "name": "OxyMem",
+      "legal_name": "OxyMem Limited (a DuPont brand)",
+      "country": "Ireland",
+      "hq": "Athlone, Ireland",
+      "founded": 2013,
+      "website": "https://www.oxymem.com",
+      "logo": "oxymem-logo.png",
+      "role": "MABR Membrane Supplier (NWL scope)",
+      "overview": "OxyMem is the first company to make Membrane Aerated Biofilm Reactor (MABR) technology commercially available. Originally a University College Dublin spin-out, acquired by DuPont in December 2019. Their MABR system uses dense hollow-fibre silicone membranes to supply oxygen directly to a biofilm that grows on the membranes and treats wastewater.",
+      "capabilities": [
+        "MABR membrane manufacturing and supply",
+        "Up to 50% additional biological treatment capacity in existing aeration basins",
+        "Up to 85% reduction in energy consumption vs conventional aeration",
+        "Total nitrogen removal to less than 5 mg/L without recirculation pumps",
+        "Drop-in capacity upgrades without draining tanks"
+      ],
+      "project_role": "Supplies MABR membranes to NWL via Colubris integration",
+      "subsidiaries_involved": ["nwl"],
+      "eca_relevance": "Irish content — not covered by Atradius (Dutch ECA)"
+    },
+    "optimat": {
+      "name": "Optimat",
+      "legal_name": "Optimat Group",
+      "country": "Netherlands",
+      "hq": "Etten-Leur, Netherlands",
+      "founded": 1951,
+      "website": "https://www.optimat-group.com",
+      "logo": "optimat-logo.jpg",
+      "role": "Timber Machinery Supplier (Timberworx scope)",
+      "overview": "Optimat Group is a Dutch company originating from Klingelnberg-Klauss (founded 1951) and Belgian company Vens & Thiers (founded 1990). They are the exclusive distributor of HOMAG in the Benelux and a leading supplier of woodworking machinery. With over 75 staff, they deliver total solutions from advice to complete service — from standard machines for small workshops to automated production lines for major players in furniture, kitchen, and yacht building industries.",
+      "capabilities": [
+        "Woodworking and timber machinery supply and integration",
+        "Exclusive HOMAG distributor in the Benelux",
+        "Automated production line design and commissioning",
+        "Installation, commissioning and maintenance of timber processing equipment",
+        "Total workflow optimisation for wood processing"
+      ],
+      "project_role": "Timber machinery and equipment supplier for the Timberworx Centre of Excellence",
+      "subsidiaries_involved": ["timberworx"],
+      "eca_relevance": "Dutch content — covered by Atradius ECA"
+    }
+  }
+}

@@ -1,0 +1,74 @@
+{
+  "senior_debt": {
+    "name": "Senior Debt Facility",
+    "provider": "Invest International",
+    "currency": "EUR",
+    "loan_amount": {
+      "percentage_of_project": 0.86,
+      "amount": 13597304
+    },
+    "timeline": {
+      "loan_start_cod_months": 18,
+      "moratorium_months": 6,
+      "loan_holiday_months": 24,
+      "loan_holiday_years": 2,
+      "repayment_months": 84,
+      "repayment_years": 7,
+      "settlement_months": 108,
+      "settlement_years": 9
+    },
+    "interest": {
+      "total_rate": 0.047,
+      "euribor": 0.0275,
+      "bank_margin": 0.0195,
+      "note": "Euribor 2.75% + Margin 1.95% = 4.70%"
+    },
+    "interest_roll_up": {
+      "capitalize": true,
+      "roll_up_months": 18,
+      "note": "Must be minimum of 24 months"
+    },
+    "repayment": {
+      "profile": "P_Constant",
+      "frequency": "semi-annual",
+      "number_of_payments": 14
+    },
+    "hedge": {
+      "hedged": true,
+      "hedge_periods": 4,
+      "note": "Impact in Line 295"
+    }
+  },
+  "loan_detail": {
+    "drawdown_total": 13597304,
+    "prepayments": {
+      "grant_proceeds": {
+        "description": "% of Grant Proceeds to Early Senior Debt Repayment",
+        "amount": -1159313
+      },
+      "gepf_bulk_proceeds": {
+        "description": "GEPF Bulk Services Proceeds to Early Senior Debt Repayment",
+        "amount": -2076691
+      }
+    },
+    "rolled_up_interest": {
+      "description": "Rolled up interest financed over balance of loan period",
+      "amount": 1077634
+    },
+    "balance_for_repayment": {
+      "amount": 11438934,
+      "instalments": 14,
+      "frequency": "semi-annual",
+      "principal_per_period": 817067
+    }
+  },
+  "waterfall": {
+    "steps": [
+      {"item": "Loan Drawdown Total", "amount": 13597304},
+      {"item": "Less: Grant Proceeds Allocated", "amount": -1159313},
+      {"item": "Less: GEPF Bulk Proceeds", "amount": -2076691},
+      {"item": "Plus: Rolled-up Interest", "amount": 1077634},
+      {"item": "Balance to be Repaid", "amount": 11438934}
+    ]
+  }
+}

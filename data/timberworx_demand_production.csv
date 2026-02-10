@@ -1,0 +1,11 @@
+year,houses_cumulative,units_produced,students_trained,coe_occupancy_pct,piped_sewage_topcos_mld,construction_water_mld,latent_demand_mld,note
+1,1500,20,12,30,0.00,0.38,50,"Phase 1: 1 house/week (JV Greenblocks). CoE COD at M18. R130k/month labor."
+2,3500,80,24,50,0.10,1.25,55,"Phase 2 ramp-up: 3 houses/week (Optimat panel machines). EUR 200k investment."
+3,6500,130,36,65,0.50,0.97,61,"Phase 2 full production. Smart City offtake begins."
+4,10000,156,46,75,0.80,0.73,67,"Phase 2 steady state (156/yr = 3/week). CoE sold to LLC at 10% premium."
+5,15000,156,50,80,0.92,0.63,73,"Training stops after CoE sale to LLC."
+6,20000,156,56,85,1.06,0.52,81,"Phase 3 feasibility study (EUR 500k Finnvera). 13 houses/week capacity."
+7,25500,156,60,90,1.20,0.41,89,"Phase 3 fully automated production."
+8,31500,156,60,90,1.38,0.26,97,Steady state production
+9,38000,156,66,95,1.60,0.09,107,Steady state production
+10,45000,156,66,95,1.82,0.00,118,"45000 houses = full Lanseria Smart City buildout"

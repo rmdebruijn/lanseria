@@ -1,0 +1,82 @@
+{
+  "eca_constraints": {
+    "atradius": {
+      "name": "Atradius Dutch State Business",
+      "min_dutch_content": 0.20,
+      "max_local_content": 0.33,
+      "local_country": "South Africa",
+      "notes": "Min 20% Netherlands content required, Max 33% South Africa content allowed"
+    }
+  },
+  "idc_treatment": {
+    "include_in_netherlands": true,
+    "idc_amount": 818536,
+    "rationale": "Interest During Construction capitalizes into loan, counts as Netherlands content"
+  },
+  "country_allocation": {
+    "with_idc": {
+      "Netherlands": {
+        "base_amount": 3298740,
+        "idc_amount": 818536,
+        "total": 4117276,
+        "allocation_pct": 0.249,
+        "min_max_limit": 0.20,
+        "constraint_type": "min",
+        "status": "Requirement achieved"
+      },
+      "Ireland": {
+        "total": 2451331,
+        "allocation_pct": 0.15,
+        "min_max_limit": null,
+        "constraint_type": null,
+        "status": null
+      },
+      "Finland": {
+        "total": 997274,
+        "allocation_pct": 0.060,
+        "min_max_limit": null,
+        "constraint_type": null,
+        "status": null
+      },
+      "Other": {
+        "total": 2908809,
+        "allocation_pct": 0.18,
+        "min_max_limit": null,
+        "constraint_type": null,
+        "status": null,
+        "note": "Solar plant - independently underwritten"
+      },
+      "South Africa": {
+        "total": 5373384,
+        "allocation_pct": 0.325,
+        "min_max_limit": 0.33,
+        "constraint_type": "max",
+        "status": "Acceptable"
+      }
+    },
+    "total_project_cost_with_idc": 16512924
+  },
+  "by_asset_and_country": {
+    "water": {
+      "Ireland": {"amount": 2451331, "item": "Oxymem MABR"},
+      "Netherlands": {"amount": 1721925, "items": ["Colubris Balance of Plant"]},
+      "South Africa": {"amount": 3996392, "items": ["NWL Local Civil", "WSP Owners Engineer"]}
+    },
+    "coe": {
+      "Finland": {"amount": 997274, "item": "Timberworx CoE building (60%)"},
+      "France": {"amount": 498637, "item": "Timberworx CoE building (30%)"},
+      "South Africa": {"amount": 166213, "item": "Timberworx CoE building (10%)"},
+      "Netherlands": {"amount": 200000, "item": "Panel Equipment (100% Dutch)"}
+    },
+    "solar": {
+      "Other": {"amount": 2908809, "items": ["Solar and batteries", "Extension budget"]}
+    },
+    "esg": {
+      "South Africa": {"amount": 1376992, "items": ["ESG", "Project Management"]},
+      "Netherlands": {"amount": 120000, "item": "Pre-op finance costs"}
+    },
+    "fees": {
+      "Netherlands": {"amount": 1442311, "items": ["Facility Fee", "Integration Fee", "Atradius Premium", "Exporter Premium"]}
+    }
+  }
+}

@@ -1,0 +1,37 @@
+{
+  "entity_dsra": {
+    "coverage_periods": 1,
+    "note": "Each entity maintains DSRA = 1x next IC (P+I)"
+  },
+  "holding_priority": [
+    {"step": 1, "name": "iic_p_plus_i", "desc": "IIC Senior scheduled P+I"},
+    {"step": 2, "name": "ic_mz_rebalance", "desc": "IC Mezz proportional prepayment (cash)"},
+    {"step": 3, "name": "cc_interest", "desc": "CC interest (14.75%)"},
+    {"step": 4, "name": "cc_principal", "desc": "CC principal (accelerated)"},
+    {"step": 5, "name": "cc_irr_slug", "desc": "CC 20% IRR slug settlement (one-time, when CC=0)"},
+    {"step": 6, "name": "iic_prepay", "desc": "IIC voluntary prepayment"}
+  ],
+  "ic_overdraft": {
+    "rate": 0.10,
+    "priority": "junior_to_all",
+    "note": "Auto when entity deficit, repaid from entity surplus"
+  },
+  "cc_irr": {
+    "target": 0.20,
+    "contractual": 0.1475,
+    "gap": 0.0525,
+    "note": "Track per year: CC_balance x 5.25% = accruing liability. Also verify via IRR solver."
+  },
+  "nwl_swap": {
+    "amount_min_eur": 3000000,
+    "amount_max_eur": 5000000,
+    "amount_default_eur": 3000000,
+    "zar_rate": 0.1175,
+    "zar_tenor_semi_annual": 11,
+    "zar_start_month": 42
+  },
+  "lanred_swap": {
+    "extended_repayments_sr": 28,
+    "extended_repayments_mz": 20
+  }
+}

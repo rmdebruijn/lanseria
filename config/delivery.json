@@ -1,0 +1,41 @@
+{
+  "description": "Delivery structure — Colubris Water Solutions as integrator/wrapper across all 3 scopes",
+  "integrator": {
+    "name": "Colubris Water Solutions",
+    "country": "Netherlands",
+    "role": "Integrator for all three delivery scopes"
+  },
+  "scopes": {
+    "nwl": {
+      "name": "New Water Lanseria",
+      "epc_model": "Single EPC",
+      "epc_contractor": "Colubris Water Solutions",
+      "epc_country": "Netherlands",
+      "total_eur": 10632337,
+      "_deprecated_content": {"dutch": 0.60, "finnish": 0.00, "other": 0.40},
+      "note": "Colubris is single EPC contractor for the full NWL water treatment scope",
+      "key_vendors": ["colubris", "oxymem", "wsp"]
+    },
+    "lanred": {
+      "name": "LanRED",
+      "epc_model": "Single EPC",
+      "epc_contractor": "DG&E (parent company in Europe)",
+      "epc_country": "Europe",
+      "total_eur": 3199398,
+      "_deprecated_content": {"dutch": 0.00, "finnish": 0.00, "other": 1.00},
+      "note": "DG&E parent company in Europe (specific entity to be confirmed)",
+      "key_vendors": []
+    },
+    "timberworx": {
+      "name": "Timberworx",
+      "epc_model": "Single EPC",
+      "epc_contractor": "BG&E",
+      "epc_country": "Australia",
+      "total_eur": 2048149,
+      "_deprecated_content": {"dutch": 0.20, "finnish": 0.50, "other": 0.30},
+      "note": "BG&E is the EPC contractor for the Centre of Excellence",
+      "key_vendors": ["bge", "optimat"]
+    }
+  },
+  "_dev_note_epc": "LanRED EPC is DG&E parent company in Europe (specific entity to be confirmed)"
+}

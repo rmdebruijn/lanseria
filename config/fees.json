@@ -1,0 +1,54 @@
+{
+  "fees": [
+    {
+      "id": "fee_001",
+      "company": "Invest International",
+      "description": "Facility Fee",
+      "rate": 0.01,
+      "rate_basis": "debt",
+      "basis_key": "debt",
+      "status": "Final",
+      "country": "Netherlands",
+      "funding": "senior_only",
+      "eca_eligible": false
+    },
+    {
+      "id": "fee_002",
+      "company": "Colubris",
+      "description": "Integration Fee",
+      "rate": 0.05,
+      "rate_basis": "capex",
+      "basis_key": "capex",
+      "status": "Final",
+      "country": "Netherlands",
+      "funding": "mezz_senior",
+      "eca_eligible": true,
+      "eca_jurisdiction": "Atradius"
+    },
+    {
+      "id": "fee_003",
+      "company": "Atradius",
+      "description": "Premium",
+      "rate": 0.044,
+      "rate_basis": "debt",
+      "basis_key": "debt",
+      "status": "Final",
+      "country": "Netherlands",
+      "funding": "senior_only",
+      "eca_eligible": false,
+      "note": "ECA premium - paid to ECA, not ECA-eligible content"
+    },
+    {
+      "id": "fee_004",
+      "company": "Atradius",
+      "description": "Exporter Premium",
+      "rate": 0.004,
+      "rate_basis": "capex",
+      "basis_key": "capex",
+      "status": "Final",
+      "country": "Netherlands",
+      "funding": "mezz_senior",
+      "eca_eligible": false
+    }
+  ]
+}

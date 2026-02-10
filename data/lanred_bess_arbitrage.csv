@@ -1,0 +1,5 @@
+season,months,months_label,peak_rate_r_per_kwh,offpeak_rate_r_per_kwh,cycles_per_day,days_per_month,spread_per_cycle_r_per_kwh,note
+high_demand,3,June-August,7.04,1.02,2,30.4,5.92,"Eskom Homeflex TOU rates 2024/25. 2 cycles/day: grid->morning peak + solar->evening peak. Spread = peak - offpeak - solar_charge_cost(R0.10)"
+low_demand,9,September-May,2.00,1.59,1,30.4,1.90,"Eskom Homeflex TOU rates 2024/25. 1 cycle/day: solar->evening peak only. Grid spread R0.11 not worth cycling (Cycle 1 skipped)"
+,,,,,,,,
+,,,,,,,,"Model: 2-cycle seasonal BESS arbitrage. Solar charge cost: R0.10/kWh. Annual escalation: 10%. Start month: 18. Must-run substation - pure arbitrage play."

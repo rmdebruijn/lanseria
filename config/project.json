@@ -1,0 +1,46 @@
+{
+  "project": {
+    "name": "New Water Lanseria",
+    "code": "NWL",
+    "version": "1.0",
+    "currency": "EUR",
+    "fx_rates": {
+      "EUR_ZAR": 20.0,
+      "EUR_ZAR_mezz_implied": 20.627,
+      "comment": "Model uses 20.0 for display; Mezz ZAR/EUR conversion implies 20.627",
+      "note": "Mezz EUR 2,281,460 / ZAR 47,059,088 = 20.627. Difference is ~3%."
+    }
+  },
+  "model_parameters": {
+    "intercompany_margin": 0.005,
+    "dsra_rate": 0.09,
+    "equity_in_subsidiaries": {
+      "nwl_pct": 0.93,
+      "nwl_base_zar": 1000000,
+      "lanred_pct": 1.00,
+      "lanred_base_zar": 1000000,
+      "timberworx_pct": 0.05,
+      "timberworx_base_zar": 1000000,
+      "note": "Equity = ownership% × R1m, converted at FX 20"
+    }
+  },
+  "timeline": {
+    "financial_close": "2026-Q1",
+    "construction_months": 12,
+    "ramp_up_months": 6,
+    "cod_month": 18,
+    "revenue_start_month": 18,
+    "moratorium_months": 6,
+    "loan_holiday_months": 24,
+    "repayment_periods": 14,
+    "repayment_frequency": "semi-annual",
+    "exit_window_start": 18,
+    "exit_window_end": 42,
+    "first_cash_exposure": 42
+  },
+  "totals": {
+    "total_capex": 14437573,
+    "total_project_cost": 15879884,
+    "land_excluded": 2206824
+  }
+}

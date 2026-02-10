@@ -1,0 +1,159 @@
+{
+  "assets": {
+    "water": {
+      "name": "Water Treatment Plant",
+      "description": "MABR wastewater treatment facility",
+      "line_items": [
+        {
+          "id": "water_001",
+          "company": "Oxymem",
+          "delivery": "MABR",
+          "budget": 2451331,
+          "status": "Final",
+          "country": "Ireland",
+          "funding": "mezz_senior",
+          "eca_eligible": true,
+          "eca_jurisdiction": "Ireland"
+        },
+        {
+          "id": "water_002",
+          "company": "Colubris - Core Supply",
+          "delivery": "Balance of Plant",
+          "budget": 1721925,
+          "status": "Final",
+          "country": "Netherlands",
+          "funding": "mezz_senior",
+          "eca_eligible": true,
+          "eca_jurisdiction": "Atradius"
+        },
+        {
+          "id": "water_003",
+          "company": "NWL - Local Civil",
+          "delivery": "Civils",
+          "budget": 3746392,
+          "status": "Final",
+          "country": "South Africa",
+          "funding": "mezz_senior",
+          "eca_eligible": false,
+          "eca_jurisdiction": null
+        },
+        {
+          "id": "water_004",
+          "company": "WSP",
+          "delivery": "Owners Engineer",
+          "budget": 250000,
+          "status": "RFQ",
+          "country": "South Africa",
+          "funding": "mezz_senior",
+          "eca_eligible": false,
+          "eca_jurisdiction": null
+        }
+      ],
+      "total": 8169648
+    },
+    "coe": {
+      "name": "Centre of Excellence",
+      "description": "Timberworx training and demonstration facility",
+      "line_items": [
+        {
+          "id": "coe_001",
+          "company": "BG&E (SYSTRA)",
+          "delivery": "Centre of Excellence",
+          "budget": 1662124,
+          "status": "Final",
+          "country": "Finland",
+          "content_split": {"Finland": 0.60, "France": 0.30, "South Africa": 0.10},
+          "funding": "mezz_senior",
+          "eca_eligible": true,
+          "eca_jurisdiction": "Atradius",
+          "note": "Timber building by BG&E (SYSTRA parent, France HQ). 60% Finnish timber, 30% French engineering, 10% SA construction."
+        },
+        {
+          "id": "coe_002",
+          "company": "Optimat",
+          "delivery": "Panel Equipment",
+          "budget": 200000,
+          "status": "Final",
+          "country": "Finland",
+          "funding": "mezz_senior",
+          "eca_eligible": true,
+          "eca_jurisdiction": "Finnvera",
+          "note": "Optimat panel-making machines (Finland). Finnvera eligible — Finnish content 49.1% qualifies."
+        }
+      ],
+      "total": 1862124
+    },
+    "solar": {
+      "name": "Solar Plant & Battery Storage",
+      "description": "Solar PV and battery energy storage - independently underwritten",
+      "carve_out": true,
+      "line_items": [
+        {
+          "id": "solar_001",
+          "company": "DG&E",
+          "delivery": "Solar PV",
+          "budget": 2508809,
+          "status": "Quote",
+          "country": "Europe",
+          "funding": "mezz_senior",
+          "eca_eligible": false,
+          "eca_jurisdiction": null,
+          "note": "Solar PV via DG&E EPC. Budget maximised — PV ROI ~23% vs BESS ~17%. SA benchmark R15,000/kWp = €728/kWp."
+        },
+        {
+          "id": "solar_002",
+          "company": "DG&E",
+          "delivery": "BESS (Li-ion)",
+          "budget": 400000,
+          "status": "Quote",
+          "country": "Europe",
+          "funding": "mezz_senior",
+          "eca_eligible": false,
+          "eca_jurisdiction": null,
+          "note": "BESS minimised — arbitrage yield ~17% vs PV ~23%. 1.1 MWh nameplate covers NWL critical load. SA benchmark R7,500/kWh = €364/kWh."
+        }
+      ],
+      "total": 2908809
+    },
+    "esg": {
+      "name": "Management and Compliance",
+      "description": "ESG, project management, and pre-op costs",
+      "line_items": [
+        {
+          "id": "esg_001",
+          "company": "NWL - ESG/Soft Costs",
+          "delivery": "ESG",
+          "budget": 327633,
+          "status": "Final",
+          "country": "South Africa",
+          "funding": "mezz_senior",
+          "eca_eligible": false,
+          "eca_jurisdiction": null
+        },
+        {
+          "id": "esg_002",
+          "company": "NWL - ESG/Soft Costs",
+          "delivery": "Project Management",
+          "budget": 1049359,
+          "status": "Final",
+          "country": "South Africa",
+          "funding": "mezz_senior",
+          "eca_eligible": false,
+          "eca_jurisdiction": null
+        },
+        {
+          "id": "esg_003",
+          "company": "NWL - ESG/Soft Costs",
+          "delivery": "Pre-op finance costs - reimbursements",
+          "budget": 120000,
+          "status": "Final",
+          "country": "Netherlands",
+          "funding": "mezz_senior",
+          "eca_eligible": true,
+          "eca_jurisdiction": "Atradius"
+        }
+      ],
+      "total": 1496992
+    }
+  }
+}

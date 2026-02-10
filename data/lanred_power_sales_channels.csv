@@ -1,0 +1,6 @@
+channel,base_rate_r_per_kwh,discount_pct,escalation_pct,start_month,enabled,demand_driven,note
+ic_nwl,2.81,10.0,10.0,18,true,true,"Inter-company power to NWL at Eskom -10%. Share from NWL water volume x kWh/m3. R2.81 = Eskom business tariff (2024/25)"
+smart_city_offtake,2.289,10.0,10.0,36,true,false,"Smart City absorbs nearly all generation (90 MW demand vs 2.4 MWp supply). Ramps 50% Y3 to 94% Y5. Joburg business tariff -10%"
+open_market,1.50,0.0,8.0,36,true,false,"Residual capacity via wheeling. Share = 100% minus NWL minus Smart City minus BESS"
+bess_arbitrage,,,10.0,18,true,false,"2-cycle seasonal BESS arbitrage using Eskom Homeflex TOU rates. See lanred_bess_arbitrage.csv for detail"
+grid_services,0.15,,5.0,,false,false,"Grid wheeling (R0.15/kWh) and capacity payments (R50/kW/month). Future revenue stream - not enabled"

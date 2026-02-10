@@ -1,0 +1,277 @@
+{
+  "nwl": {
+    "on_ramp": {
+      "max_capacity_mld": 2.0,
+      "asymptote_mld": 1.9,
+      "rows": [
+        {"period_months": 12, "ramp_up_pct_annual_avg": 0.0, "capacity_available_mld": null},
+        {"period_months": 18, "ramp_up_pct_annual_avg": 26.39, "capacity_available_mld": 0.53},
+        {"period_months": 24, "ramp_up_pct_annual_avg": 92.36, "capacity_available_mld": 1.85},
+        {"period_months": 30, "ramp_up_pct_annual_avg": 95.00, "capacity_available_mld": 1.90},
+        {"period_months": 36, "ramp_up_pct_annual_avg": 95.00, "capacity_available_mld": 1.90},
+        {"period_months": 42, "ramp_up_pct_annual_avg": 95.00, "capacity_available_mld": 1.90},
+        {"period_months": 48, "ramp_up_pct_annual_avg": 95.00, "capacity_available_mld": 1.90},
+        {"period_months": 54, "ramp_up_pct_annual_avg": 95.00, "capacity_available_mld": 1.90},
+        {"period_months": 60, "ramp_up_pct_annual_avg": 95.00, "capacity_available_mld": 1.90},
+        {"period_months": 66, "ramp_up_pct_annual_avg": 95.00, "capacity_available_mld": 1.90},
+        {"period_months": 72, "ramp_up_pct_annual_avg": 95.00, "capacity_available_mld": 1.90}
+      ]
+    },
+    "bulk_services": {
+      "rows": [
+        {
+          "bulk_service": "GEPF (PTN 39 Lindley)",
+          "applied_rate_year": 2026,
+          "applied_rate_r_per_kl": 25101,
+          "peak_volume_mld": 1.6,
+          "receipt_period": 12,
+          "price_zar": 40161600
+        },
+        {
+          "bulk_service": "Social housing (PTN 72/76)",
+          "applied_rate_year": 2025,
+          "applied_rate_r_per_kl": 11553,
+          "peak_volume_mld": 0.4,
+          "receipt_period": 12,
+          "price_zar": 4621200
+        }
+      ]
+    },
+    "greenfield": {
+      "annual_growth_pct_default": 7.7,
+      "brine_pct_default": 10.0,
+      "sewage_rate_2025_r_per_kl": 46.40,
+      "water_rate_2025_r_per_kl": 62.05,
+      "reuse_ratio_default": 0.80,
+      "piped_sewage_topcos_mld": [0.00, 0.10, 0.50, 0.80, 0.92, 1.06, 1.20, 1.38, 1.60, 1.82],
+      "construction_water_demand_topcos_mld": [0.38, 1.25, 0.97, 0.73, 0.63, 0.52, 0.41, 0.26, 0.09, 0.00]
+    },
+    "brownfield": {
+      "latent_potential_mld": 50.0,
+      "latent_demand_quantified": [50, 55, 61, 67, 73, 81, 89, 97, 107, 118],
+      "honeysucker_base_2025_r_per_kl": 100.80,
+      "agri_base_2025_r_per_kl": 37.70,
+      "rooftop_solar_bess_ppa": {
+        "enabled": true,
+        "entities": ["nwl", "timberworx"],
+        "basis": "PPA with third-party providers",
+        "note": "NWL and Timberworx will take rooftop solar and BESS on PPA basis with third parties. No capex required — power procured under Power Purchase Agreement. Reduces grid dependency and operating costs."
+      }
+    },
+    "sewerage_revenue_sharing": {
+      "joburg_price_r_per_kl_default": 46.40,
+      "growth_pct_default": 7.70,
+      "transport_r_per_km_default": 28.0,
+      "truck_capacity_m3_default": 10.0,
+      "nwl_roundtrip_km_default": 10.0,
+      "gov_roundtrip_km_default": 100.0,
+      "saving_to_market_pct_default": 40.0
+    },
+    "om": {
+      "flat_fee_per_month_zar": 1000000,
+      "annual_indexation_pa": 0.05,
+      "opex_start_month": 12,
+      "awarded_contract": true,
+      "equity_issued": true,
+      "equity_value_prepayment_zar": 44720857,
+      "epc_contract_issued": false
+    },
+    "power": {
+      "kwh_per_m3": 0.4,
+      "cas_benchmark_kwh_per_m3": 1.2,
+      "eskom_base_rate_r_per_kwh": 2.81,
+      "ic_discount_pct": 10.0,
+      "annual_escalation_pct": 10.0,
+      "start_month": 18,
+      "note": "Inter-company electricity from LanRED solar at Eskom -10%; MABR technology ~0.4 kWh/m3; CAS (Conventional Activated Sludge) benchmark ~1.2 kWh/m3"
+    },
+    "coe_rent": {
+      "method": "capital_recovery",
+      "om_overhead_pct": 2.0,
+      "annual_escalation_pct": 5.0,
+      "start_month": 24,
+      "note": "Rent = CoE CapEx × (WACC + O&M overhead). WACC = 85% Senior + 15% Mezz facility rates. Mirrors TWX coe_lease."
+    }
+  },
+  "lanred": {
+    "smart_city_power_demand": {
+      "kva_per_house": 6.0,
+      "diversity_factor": 0.7,
+      "commercial_multiplier": 1.5,
+      "infrastructure_report_mva": [28, 6.5, 21, 34],
+      "ultimate_mva": 90,
+      "note": "Lanseria Infrastructure Funding Report (March 2020): 4 phases totalling ~90 MVA. 15,000 houses × 6kVA × 0.7 diversity × 1.5 commercial = 94.5 MW. Current Phase 1 (2.4 MWp) is catalytic seed = 0.5% of ultimate demand."
+    },
+    "solar_capacity": {
+      "derive_from_budget": true,
+      "cost_per_kwp_eur": 728,
+      "capacity_factor_pct": 21.5,
+      "degradation_pa_pct": 0.5,
+      "cod_month": 18,
+      "note": "Capacity derived from assets.json solar_001 budget ÷ cost_per_kWp. SA C&I benchmark R15,000/kWp = EUR 728/kWp (mid-range R12k-18k). At EUR 728/kWp → ~3.2 MWp. 21.5% CF (Gauteng fixed-tilt)."
+    },
+    "battery_storage": {
+      "derive_from_budget": true,
+      "cost_per_kwh_eur": 364,
+      "usable_capacity_pct": 90.0,
+      "roundtrip_efficiency_pct": 85.0,
+      "degradation_pa_pct": 3.0,
+      "replacement_year": null,
+      "cycles_per_year": 456,
+      "note": "BESS capacity derived from assets.json solar_002 budget ÷ cost_per_kWh. SA C&I benchmark R7,500/kWh = EUR 364/kWh (mid-range R6k-10k). At EUR 364/kWh → ~1.7 MWh. 456 cycles/yr (2-cycle: HD 182 + LD 274). Degradation 3% at 456 cycles (benchmark: 2% at 260, 4% at 730)."
+    },
+    "power_sales": {
+      "ic_nwl": {
+        "eskom_base_rate_r_per_kwh": 2.81,
+        "ic_discount_pct": 10.0,
+        "annual_escalation_pct": 10.0,
+        "start_month": 18,
+        "demand_driven": true,
+        "note": "IC power to NWL at Eskom -10%. Share calculated from NWL water volume × kWh/m3 demand. R2.81 = Eskom business tariff (2024/25)."
+      },
+      "smart_city_offtake": {
+        "enabled": true,
+        "joburg_business_tariff_r_per_kwh": 2.289,
+        "discount_pct": 10.0,
+        "annual_escalation_pct": 10.0,
+        "start_month": 36,
+        "share_of_generation_pct_by_year": [0, 0, 50, 80, 94, 94, 94, 94, 94, 94],
+        "note": "Smart City absorbs nearly all generation (90 MW demand vs 2.4 MWp supply). Ramps from 50% in Y3 to 94% by Y5 (remaining 6% = NWL IC demand-driven share). Joburg business tariff -10%."
+      },
+      "open_market": {
+        "enabled": true,
+        "rate_r_per_kwh": 1.50,
+        "annual_escalation_pct": 8.0,
+        "start_month": 36,
+        "note": "Residual capacity sold to open market via wheeling. Share = 100% minus NWL minus Smart City minus BESS."
+      },
+      "bess_arbitrage": {
+        "enabled": true,
+        "model": "2_cycle_seasonal",
+        "high_demand_season": {
+          "months": 3,
+          "months_label": "June-August",
+          "peak_rate_r_per_kwh": 7.04,
+          "offpeak_rate_r_per_kwh": 1.02,
+          "cycles_per_day": 2,
+          "days_per_month": 30.4
+        },
+        "low_demand_season": {
+          "months": 9,
+          "months_label": "September-May",
+          "peak_rate_r_per_kwh": 2.00,
+          "offpeak_rate_r_per_kwh": 1.59,
+          "cycles_per_day": 1,
+          "days_per_month": 30.4,
+          "cycle_note": "Only Cycle 2 (solar→peak) in LD season. Cycle 1 (grid→peak) spread too thin (R0.11)."
+        },
+        "solar_charge_cost_r_per_kwh": 0.10,
+        "annual_escalation_pct": 10.0,
+        "start_month": 18,
+        "note": "2-cycle seasonal BESS arbitrage. Eskom Homeflex TOU rates (2024/25). HD: 2 cycles/day (grid→morning peak + solar→evening peak). LD: 1 cycle/day (solar→evening peak only — grid spread R0.11 not worth cycling). Must-run substation, pure arbitrage play."
+      },
+      "grid_services": {
+        "enabled": false,
+        "wheeling_fee_r_per_kwh": 0.15,
+        "capacity_payment_r_per_kw_month": 50.0,
+        "note": "Grid wheeling and capacity payments (future revenue stream)"
+      }
+    },
+    "om": {
+      "fixed_annual_zar": 120000,
+      "variable_r_per_kwh": 0.05,
+      "annual_indexation_pa": 0.05,
+      "opex_start_month": 18,
+      "note": "Solar O&M: R120k/yr fixed + R0.05/kWh variable (industry standard ~1% of capex)"
+    },
+    "grid_connection": {
+      "monthly_availability_charge_zar": 5000,
+      "annual_escalation_pct": 5.0,
+      "start_month": 18,
+      "note": "Grid connection availability charge from Eskom/City Power"
+    },
+    "brownfield_plus": {
+      "northlands_portfolio": {
+        "purchase_price_zar": 60000000,
+        "sites": [
+          {"name": "Northlands Corner", "location": "Witkoppen Rd, Northriding", "pv_kwp": 699, "bess_kwh": 1548, "monthly_income_zar": 950000, "monthly_cogs_zar": 350000, "monthly_insurance_zar": 25000, "monthly_om_zar": 30000, "monthly_net_zar": 545000, "coj_registered": true, "ppa_term_years": 20, "tech": "SolarEdge + ATESS + Freedom Won"},
+          {"name": "Deco Park 434/59", "location": "80 Design Blvd, Deco Park", "pv_kwp": 899, "bess_kwh": 1548, "monthly_income_zar": 700000, "monthly_cogs_zar": 250000, "monthly_insurance_zar": 25000, "monthly_om_zar": 30000, "monthly_net_zar": 395000, "coj_registered": false, "ppa_term_years": 20, "tech": "SolarEdge + ATESS + Freedom Won"},
+          {"name": "Commercial Park", "location": "251 Aintree Ave, Northriding", "pv_kwp": 198, "bess_kwh": 400, "monthly_income_zar": 120000, "monthly_cogs_zar": 30000, "monthly_insurance_zar": 6000, "monthly_om_zar": 9000, "monthly_net_zar": 75000, "coj_registered": true, "ppa_term_years": 20, "tech": "SolarEdge + ATESS + Freedom Won"},
+          {"name": "Verimark", "location": "74 Witkoppen Rd, Noordhang", "pv_kwp": 274, "bess_kwh": 400, "monthly_income_zar": 240000, "monthly_cogs_zar": 115000, "monthly_insurance_zar": 6000, "monthly_om_zar": 9000, "monthly_net_zar": 110000, "coj_registered": true, "ppa_term_years": 20, "tech": "SolarEdge + ATESS + Freedom Won"},
+          {"name": "Stand 199", "location": "99 on Epsom, Hoogland", "pv_kwp": 100, "bess_kwh": 120, "monthly_income_zar": 70000, "monthly_cogs_zar": 15000, "monthly_insurance_zar": 3000, "monthly_om_zar": 6000, "monthly_net_zar": 46000, "coj_registered": true, "ppa_term_years": 20, "tech": "Sunsynk + Sunsynk"}
+        ],
+        "revenue_escalation_pct": 8.0,
+        "cost_escalation_pct": 6.0,
+        "bess_replacement_year": 10,
+        "bess_replacement_cost_zar": 30000000
+      },
+      "nwl_dedicated_note": "NWL backup (118 kWp + 280 kWh, 8h BESS + 8h solar) via off-book PPA. Not in SCLCA structure.",
+      "phase2_note": "Lanseria solar expansion (1.37 MWp for Smart City) funded from Northlands retained earnings Y2-Y3."
+    }
+  },
+  "timberworx": {
+    "lanseria_demand": {
+      "houses_cumulative_by_year": [1500, 3500, 6500, 10000, 15000, 20000, 25500, 31500, 38000, 45000],
+      "people_per_house": 3.2,
+      "kva_per_stand": 6.0,
+      "diversity_factor": 0.7,
+      "commercial_multiplier": 1.5,
+      "jobs_per_1000_houses_construction": 1500,
+      "jobs_per_1000_houses_permanent": 200,
+      "note": "Lanseria Smart City housing demand (GEPF land). 15,000 in 5yr, 45,000 in 10yr. Each house = 3.2 people, 6 kVA (SA municipal standard). Commercial multiplier 1.5x for schools/shops/offices."
+    },
+    "production_phases": {
+      "phase_1": {"houses_per_week": 1, "houses_per_year": 52, "status": "operational", "note": "Current: JV with Greenblocks, renting assets + HR. R130k/month."},
+      "phase_2": {"houses_per_week": 3, "houses_per_year": 156, "investment_eur": 200000, "cod_months": 6, "status": "this_application", "note": "Optimat panel machines (Finland). COD 6 months — capacity ramp-up starts Y1. 3x Phase 1 capacity."},
+      "phase_3": {"houses_per_week": 13, "houses_per_year": 650, "investment_eur": 5000000, "feasibility_eur": 500000, "funder": "Finnvera", "status": "future", "note": "Fully automated production. Finnish Govt funding €500k feasibility study. 1yr from Phase 2."}
+    },
+    "coe_facility": {
+      "building_area_sqm": 2500,
+      "demonstration_units": 3,
+      "training_capacity_students_per_month": 6,
+      "cod_month": 18,
+      "note": "Centre of Excellence: 2,500 sqm facility. COD at M18. Dual-track training: timber + water/sanitation."
+    },
+    "coe_lease": {
+      "method": "capital_recovery",
+      "om_overhead_pct": 2.0,
+      "annual_escalation_pct": 5.0,
+      "start_month": 18,
+      "occupancy_ramp": [0.30, 0.50, 0.65, 0.75, 0.80, 0.85, 0.90, 0.90, 0.95, 0.95],
+      "note": "Rental income from CoE tenants (timber companies, training providers). Revenue = CoE CapEx × (WACC + O&M overhead) × occupancy."
+    },
+    "coe_sale_to_llc": {
+      "enabled": true,
+      "sale_year": 4,
+      "premium_pct": 10.0,
+      "note": "CoE sold to Lanseria LLC at 10% premium in Year 4. Stops rental income after sale. NWL rental obligation also stops."
+    },
+    "training_programs": {
+      "seta_accredited": true,
+      "fee_per_student_zar": 15000,
+      "throughput_students_per_year": [12, 24, 36, 46, 50, 56, 60, 60, 66, 66],
+      "seta_subsidy_per_student_zar": 8000,
+      "annual_escalation_pct": 7.0,
+      "start_month": 18,
+      "note": "SETA-accredited training: timber construction + water/sanitation (NWL synergy). 2x original capacity for dual-track. Starts at CoE COD (M18). Stops after CoE sale to LLC (Y4). SETA = Sector Education and Training Authority — government body that funds skills development via mandatory employer levies (1% of payroll). Accredited training providers receive R8k/student subsidy."
+    },
+    "timber_sales": {
+      "enabled": true,
+      "unit_type": "houses",
+      "units_per_year": [20, 80, 130, 156, 156, 156, 156, 156, 156, 156],
+      "price_per_unit_zar": 340000,
+      "labor_monthly_phase1_zar": 130000,
+      "labor_escalation_pct": 5.0,
+      "annual_price_escalation_pct": 5.0,
+      "start_month": 6,
+      "note": "SERVICE MODEL: TWX factory produces timber panels (capacity, quality, throughput). NOT an EPC — TWX Trade procures timber, Greenblocks erects on-site, EPCF finances. TWX cost = labor only. Phase 1: R130k/month (1 house/week, JV with Greenblocks) = R30k/house. Scales linearly with production. Revenue and labor both escalate 5% p.a. Pipeline: R178M across 10 projects."
+    },
+    "om": {
+      "fixed_annual_zar": 180000,
+      "variable_pct_of_revenue": 5.0,
+      "annual_indexation_pa": 0.05,
+      "opex_start_month": 24,
+      "note": "CoE O&M: R180k/yr fixed + 5% of revenue variable (facilities management, utilities, security)"
+    }
+  }
+}

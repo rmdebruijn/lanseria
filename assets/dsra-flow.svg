@@ -1,0 +1,66 @@
+<svg width="640" height="200" viewBox="0 0 640 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="640" height="200" rx="8" fill="#FAFAFA" stroke="#E5E7EB" stroke-width="1"/>
+
+  <!-- Step numbers -->
+  <circle cx="180" cy="26" r="9" fill="#7C3AED"/>
+  <text x="180" y="30" text-anchor="middle" font-family="Arial, sans-serif" font-size="9" fill="white" font-weight="bold">1</text>
+
+  <circle cx="416" cy="26" r="9" fill="#2563EB"/>
+  <text x="416" y="30" text-anchor="middle" font-family="Arial, sans-serif" font-size="9" fill="white" font-weight="bold">2</text>
+
+  <circle cx="555" cy="80" r="9" fill="#DC2626"/>
+  <text x="555" y="84" text-anchor="middle" font-family="Arial, sans-serif" font-size="9" fill="white" font-weight="bold">3</text>
+
+  <circle cx="280" cy="112" r="9" fill="#16A34A"/>
+  <text x="280" y="116" text-anchor="middle" font-family="Arial, sans-serif" font-size="9" fill="white" font-weight="bold">4</text>
+
+  <!-- Creation Capital box -->
+  <rect x="12" y="38" width="130" height="48" rx="6" fill="#F5F3FF" stroke="#7C3AED" stroke-width="1.5"/>
+  <text x="77" y="57" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="#7C3AED" font-weight="bold">Creation Capital</text>
+  <text x="77" y="72" text-anchor="middle" font-family="Arial, sans-serif" font-size="8" fill="#6B7280">DSRA Facility</text>
+
+  <!-- DSRA box (center) -->
+  <rect x="238" y="38" width="120" height="48" rx="6" fill="#F0FDF4" stroke="#16A34A" stroke-width="1.5"/>
+  <text x="298" y="57" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="#16A34A" font-weight="bold">DSRA</text>
+  <text x="298" y="72" text-anchor="middle" font-family="Arial, sans-serif" font-size="8" fill="#6B7280">Reserve Account</text>
+
+  <!-- FEC box -->
+  <rect x="460" y="38" width="120" height="48" rx="6" fill="#EFF6FF" stroke="#2563EB" stroke-width="1.5"/>
+  <text x="520" y="57" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="#2563EB" font-weight="bold">FEC / Investec</text>
+  <text x="520" y="72" text-anchor="middle" font-family="Arial, sans-serif" font-size="8" fill="#6B7280">Forex Hedge</text>
+
+  <!-- Senior Debt box (bottom right) -->
+  <rect x="460" y="105" width="120" height="48" rx="6" fill="#FEF2F2" stroke="#DC2626" stroke-width="1.5"/>
+  <text x="520" y="124" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="#DC2626" font-weight="bold">Senior Debt</text>
+  <text x="520" y="139" text-anchor="middle" font-family="Arial, sans-serif" font-size="8" fill="#6B7280">P1 + P2 prepaid</text>
+
+  <!-- IC Loans box (bottom left) -->
+  <rect x="12" y="130" width="130" height="48" rx="6" fill="#F8FAFC" stroke="#475569" stroke-width="1.5"/>
+  <text x="77" y="149" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="#475569" font-weight="bold">6 IC Loans</text>
+  <text x="77" y="164" text-anchor="middle" font-family="Arial, sans-serif" font-size="8" fill="#6B7280">3x Senior + 3x Mezz</text>
+
+  <!-- Arrow 1: CC -> DSRA (drawdown) -->
+  <path d="M142,62 L233,62" stroke="#7C3AED" stroke-width="1.5" fill="none"/>
+  <polygon points="233,62 225,57 225,67" fill="#7C3AED"/>
+  <text x="188" y="55" text-anchor="middle" font-family="Arial, sans-serif" font-size="8" fill="#7C3AED" font-weight="bold">M24 Drawdown</text>
+
+  <!-- Arrow 2: DSRA -> FEC (pass-through) -->
+  <path d="M358,62 L455,62" stroke="#2563EB" stroke-width="1.5" fill="none"/>
+  <polygon points="455,62 447,57 447,67" fill="#2563EB"/>
+  <text x="407" y="55" text-anchor="middle" font-family="Arial, sans-serif" font-size="8" fill="#2563EB" font-weight="bold">Pass-through</text>
+
+  <!-- Arrow 3: FEC -> Senior (prepays P1+P2+I) -->
+  <path d="M520,86 L520,100" stroke="#DC2626" stroke-width="1.5" fill="none"/>
+  <polygon points="520,100 515,92 525,92" fill="#DC2626"/>
+  <text x="575" y="97" text-anchor="start" font-family="Arial, sans-serif" font-size="7.5" fill="#DC2626" font-weight="bold">2×(P+I)</text>
+
+  <!-- Arrow 4: IC Loans -> DSRA (replenishment, dashed) -->
+  <path d="M142,154 L238,100" stroke="#16A34A" stroke-width="1.5" stroke-dasharray="5,3" fill="none"/>
+  <polygon points="238,100 229,100 234,108" fill="#16A34A"/>
+  <text x="200" y="112" text-anchor="middle" font-family="Arial, sans-serif" font-size="8" fill="#16A34A" font-weight="bold">Interest income</text>
+  <text x="200" y="123" text-anchor="middle" font-family="Arial, sans-serif" font-size="7.5" fill="#6B7280">replenishes FD @ 9%</text>
+
+  <!-- Footer note -->
+  <text x="320" y="192" text-anchor="middle" font-family="Arial, sans-serif" font-size="7.5" fill="#9CA3AF">DSRA sized at 2×(P + I_M24) — covers first 2 full debt service payments of Senior loan</text>
+</svg>

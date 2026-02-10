@@ -1,0 +1,171 @@
+{
+  "tranches": {
+    "tranche_a": {
+      "name": "Tranche A - Mezzanine (Quasi Equity)",
+      "type": "subordinated_debt",
+      "features": ["equity_carry", "quasi_equity"],
+      "provider": "Creation Capital",
+      "currency": "ZAR",
+      "interest": {
+        "base": "prime",
+        "margin": 0.04,
+        "prime_rate": 0.1075,
+        "total_rate": 0.1475,
+        "note": "Prime + 4% = 14.75%"
+      },
+      "capital": {
+        "initial_amount": 47082778,
+        "basis": "15% of Project Cost x FX Rate",
+        "project_cost_eur": 15879884,
+        "fx_rate_implied": 19.75
+      },
+      "roll_up": {
+        "period_months": 24,
+        "pay_catch_up": false,
+        "note": "Interest rolls up for 24 months, no cash payments during construction"
+      },
+      "novations": {
+        "solar": {
+          "amount": -4500000,
+          "timing": "Period 1",
+          "note": "Allocation of cash following Novation of Solar (carve-out)"
+        },
+        "coe": {
+          "amount": 0,
+          "timing": "TBD",
+          "note": "Allocation of cash following Novation of CoE"
+        }
+      },
+      "cash_management": {
+        "approach": "Quasi Equity - Capital balance remains same until early settlement with NOC from senior lender",
+        "final_settlement": "Cash management movement at maturity"
+      }
+    }
+  },
+  "schedule": {
+    "currency": "ZAR",
+    "period_type": "annual",
+    "periods": [
+      {
+        "period": 1,
+        "opening_balance": 0,
+        "additions_capital": 46440864,
+        "repayments_capital": -4500000,
+        "novation_solar": -4500000,
+        "novation_coe": 0,
+        "interest_accrued": 3093139,
+        "interest_paid": 0,
+        "cash_management": 0,
+        "closing_balance": 45034003,
+        "note": "Initial funding, solar novation, interest rolls up"
+      },
+      {
+        "period": 2,
+        "opening_balance": 45034003,
+        "additions_capital": 0,
+        "repayments_capital": 0,
+        "interest_accrued": 3321258,
+        "interest_paid": 0,
+        "cash_management": 0,
+        "closing_balance": 48355261,
+        "note": "Interest roll-up continues"
+      },
+      {
+        "period": 3,
+        "opening_balance": 48355261,
+        "additions_capital": 0,
+        "repayments_capital": 0,
+        "interest_accrued": 3566200,
+        "interest_paid": 0,
+        "cash_management": 0,
+        "closing_balance": 51921461,
+        "note": "Interest roll-up continues"
+      },
+      {
+        "period": 4,
+        "opening_balance": 51921461,
+        "additions_capital": 0,
+        "repayments_capital": 0,
+        "interest_accrued": 3829208,
+        "interest_paid": 0,
+        "cash_management": 0,
+        "closing_balance": 55750669,
+        "note": "Final roll-up period, balance peaks"
+      },
+      {
+        "period": 5,
+        "opening_balance": 55750669,
+        "additions_capital": 0,
+        "repayments_capital": 0,
+        "interest_accrued": 4111612,
+        "interest_paid": -4111612,
+        "cash_management": 0,
+        "closing_balance": 55750669,
+        "note": "Cash interest payments begin"
+      },
+      {
+        "period": 6,
+        "opening_balance": 55750669,
+        "additions_capital": 0,
+        "repayments_capital": 0,
+        "interest_accrued": 4111612,
+        "interest_paid": -4111612,
+        "cash_management": 0,
+        "closing_balance": 55750669,
+        "note": "Cash interest paid, capital flat"
+      },
+      {
+        "period": 7,
+        "opening_balance": 55750669,
+        "additions_capital": 0,
+        "repayments_capital": 0,
+        "interest_accrued": 4111612,
+        "interest_paid": -4111612,
+        "cash_management": 0,
+        "closing_balance": 55750669,
+        "note": "Cash interest paid, capital flat"
+      },
+      {
+        "period": 8,
+        "opening_balance": 55750669,
+        "additions_capital": 0,
+        "repayments_capital": 0,
+        "interest_accrued": 4111612,
+        "interest_paid": -4111612,
+        "cash_management": 0,
+        "closing_balance": 55750669,
+        "note": "Cash interest paid, capital flat"
+      },
+      {
+        "period": 9,
+        "opening_balance": 55750669,
+        "additions_capital": 0,
+        "repayments_capital": 0,
+        "interest_accrued": 4111612,
+        "interest_paid": -4111612,
+        "cash_management": 0,
+        "closing_balance": 55750669,
+        "note": "Cash interest paid, capital flat"
+      },
+      {
+        "period": 10,
+        "opening_balance": 55750669,
+        "additions_capital": 0,
+        "repayments_capital": 0,
+        "interest_accrued": 0,
+        "interest_paid": 0,
+        "cash_management": -55750669,
+        "closing_balance": 0,
+        "note": "Final settlement via cash management"
+      }
+    ]
+  },
+  "summary": {
+    "initial_capital": 46440864,
+    "net_after_novations": 41940864,
+    "rolled_up_interest": 13809805,
+    "peak_balance": 55750669,
+    "total_interest_paid_cash": 20558060,
+    "total_cost_of_mezz": 34367865
+  }
+}

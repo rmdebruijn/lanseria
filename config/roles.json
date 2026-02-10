@@ -1,0 +1,17 @@
+{
+  "entities": ["Catalytic Assets", "New Water Lanseria", "LanRED", "Timberworx"],
+  "tabs": ["Overview", "About", "Sources & Uses", "Facilities", "Assets", "Operations", "P&L", "Cash Flow", "Debt Sculpting", "Balance Sheet", "FX", "Graphs", "Sensitivity", "Security", "Delivery"],
+  "roles": {
+    "admin":              { "label": "Admin",              "entities": ["*"], "tabs": ["*"], "can_manage_users": true },
+    "promotor_opco":      { "label": "Promotor OpCo",      "entities": ["*"], "tabs": ["*"], "can_manage_users": false },
+    "backoffice":         { "label": "BackOffice",          "entities": ["*"], "tabs": ["*"], "can_manage_users": false },
+    "marketing":          { "label": "Marketing",           "entities": ["*"], "tabs": ["Overview", "About", "Assets", "Operations", "Graphs", "Delivery"], "can_manage_users": false },
+    "equity_investor":    { "label": "Equity Investor",     "entities": ["Catalytic Assets"], "tabs": ["Overview", "About", "Sources & Uses", "P&L", "Cash Flow", "Debt Sculpting", "Balance Sheet", "Graphs", "Sensitivity"], "can_manage_users": false },
+    "debt_funders":       { "label": "Debt Funders",        "entities": ["Catalytic Assets"], "tabs": ["Overview", "About", "Sources & Uses", "Facilities", "P&L", "Cash Flow", "Debt Sculpting", "Balance Sheet", "Graphs", "Security"], "can_manage_users": false },
+    "sponsors_insurance": { "label": "Sponsors/Insurance",  "entities": ["Catalytic Assets", "New Water Lanseria"], "tabs": ["Overview", "About", "Sources & Uses", "Assets", "Security", "Delivery"], "can_manage_users": false },
+    "agent_funding":      { "label": "Agent (Funding)",     "entities": ["Catalytic Assets"], "tabs": ["Overview", "About", "Sources & Uses", "Facilities", "Cash Flow", "Debt Sculpting", "Balance Sheet", "Security"], "can_manage_users": false },
+    "eca_manager":        { "label": "ECA Manager",         "entities": ["*"], "tabs": ["Overview", "About", "Sources & Uses", "Assets", "Security", "Delivery"], "can_manage_users": false },
+    "technology_manager": { "label": "Technology Manager",  "entities": ["New Water Lanseria", "LanRED", "Timberworx"], "tabs": ["Overview", "About", "Assets", "Operations", "Delivery"], "can_manage_users": false },
+    "subsidy_manager":    { "label": "Subsidy Manager",     "entities": ["Catalytic Assets", "New Water Lanseria"], "tabs": ["Overview", "About", "Sources & Uses", "Cash Flow", "Delivery"], "can_manage_users": false }
+  }
+}

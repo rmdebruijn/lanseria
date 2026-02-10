@@ -1,0 +1,628 @@
+{
+  "_metadata": {
+    "description": "Project intelligence: market context, subsidiary business models, energy tariff benchmarks, capex benchmarks, sales pipeline, scraping targets",
+    "last_updated": "2026-02-10",
+    "renamed_from": "research_data.json (2026-02-10)",
+    "sources": [
+      "Qdrant vector DB collection: nwl_lanseria_8433 (2066 chunks, 170+ documents)",
+      "Excel files: Bear Solar models, TWX pipeline, Phoenix guarantor summary",
+      "Chapter documents from NWL Project Details folder"
+    ],
+    "extraction_method": "Vector DB queries + direct Excel file reading via openpyxl"
+  },
+
+  "south_africa_crisis_context": {
+    "sewage_treatment": {
+      "critical_condition_pct": 39,
+      "poor_condition_pct": 25,
+      "description": "39% of SA's wastewater treatment plants in critical condition, 20-30% classified as poor",
+      "urgent_intervention_plants": 334,
+      "source": "DWS 2023 Green Drop Watch Report",
+      "reference_doc": "Chapter 1: National Blockage Premise"
+    },
+    "water_supply": {
+      "critical_condition_pct": 29,
+      "description": "29% of water supply systems in critical condition",
+      "source": "DWS reports",
+      "reference_doc": "Chapter 1: National Blockage Premise"
+    },
+    "municipal_infrastructure": {
+      "maintenance_spending_actual_pct": 2,
+      "maintenance_spending_recommended_pct": 8,
+      "description": "Municipalities spend 2% vs 8% recommended on infrastructure maintenance",
+      "reference_doc": "Chapter 1: National Blockage Premise"
+    },
+    "power_crisis": {
+      "load_shedding": "Endemic across SA",
+      "electricity_cost_ppp": "PPP-adjusted costs on par with Sweden/EU despite chronic load shedding",
+      "johannesburg_water_tariff_top_tier": "R75/kL",
+      "honeysucker_cost": "R1,000/kL (orders of magnitude higher than piped)",
+      "reference_doc": "Chapter 1: National Blockage Premise"
+    },
+    "housing": {
+      "backlog_estimate": "2.5M+ units (implied from social housing chapters)",
+      "ptg_72_76_allocation": "300 KLD sewage treatment capacity",
+      "land_prep_budget": "R8.6M for PTN 72/76",
+      "total_land_prep_budget": "R15M across 3 priority parcels",
+      "shra_subsidy": "Social Housing Regulatory Authority framework",
+      "reference_docs": [
+        "Chapter 2: Service-Linked Development Premise",
+        "Section 2.2: Social Housing nodes"
+      ]
+    }
+  },
+
+  "nwl_business_model": {
+    "technology": {
+      "mabr_energy_savings_pct": 75,
+      "mabr_vs_cas": "75% lower energy usage than conventional CAS",
+      "capacity_design": "2 MLD MABR sewage treatment plant",
+      "max_utilization": "1.9 MLD = 95% max utilization",
+      "reference_doc": "2026-01-29_NWL tech logic- MABR vs CAS.docx"
+    },
+    "revenue_model": {
+      "gepf_bulk_services_zar": 44800000,
+      "gepf_bulk_services_eur": 2076691,
+      "gepf_prepayment_zar": 40000000,
+      "third_party_zar": 4000000,
+      "timing": "COD",
+      "ptg_allocation_kld": 300,
+      "reference_doc": "financing.json"
+    }
+  },
+
+  "lanred_solar_strategy": {
+    "business_model": {
+      "description": "Solar + BESS resilience for NWL operations, novated to specialist utility LanRED",
+      "oxymem_energy_savings_pct": 75,
+      "grid_connection": "Lanseria airport substation (must-run, no load shedding)",
+      "arbitrage_strategy": "Day-night tariff arbitrage, load shedding mitigation",
+      "reference_doc": "Chapter 5.1: Solar Resilience & Arbitrage – The LanRED Strategy"
+    },
+    "eskom_connection": {
+      "total_demand_kva": 20814,
+      "supply_voltage_kv": 11,
+      "quotation_reference": "LAN310425078",
+      "quotation_date": "2020-10-23",
+      "gepf_payment_confirmed_zar": 7844826.65,
+      "gepf_acceptance_date": "2021-09-08",
+      "reference_doc": "Eskom_LAN310425078- Feasibility Quote Q Eskom.pdf"
+    },
+    "sa_solar_bess_benchmarks": {
+      "description": "South African C&I solar PV and BESS installed cost benchmarks (2024/25)",
+      "last_updated": "2026-02-09",
+      "solar_pv_ci": {
+        "range_zar_per_kwp": {"low": 12000, "mid": 15000, "high": 18000},
+        "range_eur_per_kwp": {"low": 580, "mid": 728, "high": 875},
+        "note": "C&I ground-mount/rooftop, 1-5 MWp, fully installed EPC turnkey. Includes modules, inverters, BOS, civil, commissioning.",
+        "model_value_eur": 728,
+        "model_value_zar": 15000,
+        "position": "Mid-range — conservative for European EPC (DG&E), competitive for local SA installer"
+      },
+      "bess_li_ion_ci": {
+        "range_zar_per_kwh": {"low": 6000, "mid": 7500, "high": 10000},
+        "range_eur_per_kwh": {"low": 290, "mid": 364, "high": 485},
+        "note": "C&I Li-ion BESS, 1-5 MWh, fully installed. Includes battery packs, BMS, inverter, enclosure, commissioning.",
+        "model_value_eur": 364,
+        "model_value_zar": 7500,
+        "position": "Low-mid — reflects aggressive BESS pricing trend and reduced allocation"
+      },
+      "capacity_factor_gauteng": {
+        "fixed_tilt_pct": {"low": 20.0, "mid": 21.5, "high": 22.0},
+        "tracking_pct": {"low": 24.0, "mid": 25.0, "high": 26.0},
+        "specific_yield_kwh_per_kwp": {"low": 1700, "mid": 1885, "high": 1900},
+        "note": "Gauteng GHI ~2000 kWh/m²/yr. Fixed-tilt 21.5% CF = 1,885 kWh/kWp/yr — upper-mid for region."
+      },
+      "eskom_tou_tariffs": {
+        "tariff_year": "2024/25",
+        "source": "Eskom Homeflex TOU (verified from ecoflow.com, biznews.com)",
+        "high_demand_season": {
+          "months": "June-August (3 months)",
+          "peak_r_per_kwh": 7.04,
+          "standard_r_per_kwh": 2.14,
+          "offpeak_r_per_kwh": 1.02
+        },
+        "low_demand_season": {
+          "months": "September-May (9 months)",
+          "peak_r_per_kwh": 2.00,
+          "standard_r_per_kwh": 2.30,
+          "offpeak_r_per_kwh": 1.59
+        },
+        "annual_weighted_averages": {
+          "peak_r_per_kwh": 3.26,
+          "standard_r_per_kwh": 2.26,
+          "offpeak_r_per_kwh": 1.45
+        },
+        "peak_to_offpeak_ratio": {
+          "high_demand": 6.9,
+          "low_demand": 1.3,
+          "annual_weighted": 2.2
+        },
+        "2025_26_changes": {
+          "average_increase_pct": 12.74,
+          "hd_peak_increase_pct": 9,
+          "hd_standard_decrease_pct": -11,
+          "hd_offpeak_increase_pct": 10,
+          "ld_peak_increase_pct": 38,
+          "ld_standard_increase_pct": 13,
+          "ld_offpeak_increase_pct": 27,
+          "peak_offpeak_ratio_change": "Reduced from 8:1 to 6:1",
+          "morning_peak_hours": "Reduced from 3h to 2h",
+          "evening_peak_hours": "Increased from 2h to 3h"
+        },
+        "note": "Homeflex rates used as ceiling benchmark (residential). Megaflex (C&I) energy charges typically 50-70% of Homeflex but include separate demand charges (R/kVA). Exact Megaflex rates in PDF: eskom.co.za/distribution/tariffs-and-charges/"
+      },
+      "bess_2cycle_arbitrage": {
+        "description": "2-cycle daily BESS arbitrage: Cycle 1 (grid off-peak → peak) + Cycle 2 (own solar → peak)",
+        "cycle_1_grid_to_peak": {
+          "charge_source": "Grid off-peak",
+          "discharge_period": "Morning peak",
+          "profitable_season": "High demand only (Jun-Aug)",
+          "hd_spread_r_per_kwh": 4.96,
+          "ld_spread_r_per_kwh": 0.11,
+          "hd_spread_note": "R7.04 × 85% RT eff - R1.02 = R4.96",
+          "ld_spread_note": "R2.00 × 85% - R1.59 = R0.11 (barely profitable, skip in LD)"
+        },
+        "cycle_2_solar_to_peak": {
+          "charge_source": "Own solar (marginal cost ~R0.10/kWh)",
+          "discharge_period": "Evening peak",
+          "profitable_season": "All year",
+          "hd_spread_r_per_kwh": 5.88,
+          "ld_spread_r_per_kwh": 1.60,
+          "hd_spread_note": "R7.04 × 85% - R0.10 = R5.88",
+          "ld_spread_note": "R2.00 × 85% - R0.10 = R1.60"
+        },
+        "cycle_parameters": {
+          "total_cycles_per_year": 456,
+          "breakdown": "HD: 91 days × 2 cycles = 182; LD: 274 days × 1 cycle = 274 (skip LD cycle 1)",
+          "usable_dod_pct": 90,
+          "roundtrip_efficiency_pct": 85,
+          "solar_marginal_cost_r_per_kwh": 0.10
+        },
+        "degradation_at_456_cycles": {
+          "annual_degradation_pct": 3.0,
+          "note": "Industry benchmark: 2% at 260 cycles, 3% at ~450 cycles, 4% at 730 cycles. Linear interpolation.",
+          "useful_life_years": 10,
+          "warranty_typical": "80% capacity after 10 years at 1 cycle/day"
+        },
+        "annual_revenue_y1_per_kwh_usable": {
+          "cycle_1_hd_only_r": 451,
+          "cycle_2_all_year_r": 973,
+          "total_r": 1424,
+          "calculation": "C1: R4.96 × 91 days = R451; C2: (R5.88 × 91) + (R1.60 × 274) = R535 + R438 = R973"
+        },
+        "note": "Net revenue after charging costs and RT efficiency losses. LanRED must-run substation means resilience value is lower — pure arbitrage play."
+      },
+      "ppa_rates_sa": {
+        "ci_solar_ipp_r_per_kwh": {"low": 0.85, "mid": 1.20, "high": 1.80},
+        "wheeled_power_r_per_kwh": {"low": 1.20, "mid": 1.50, "high": 2.20},
+        "eskom_business_tariff_r_per_kwh": 2.81,
+        "joburg_business_tariff_r_per_kwh": 2.289,
+        "note": "LanRED uses IC pricing (Eskom -10%) not competitive IPP rates. Premium justified by: grid resilience, firm capacity (BESS), IC transfer pricing."
+      },
+      "om_benchmarks": {
+        "fixed_annual_pct_of_capex": {"low": 0.8, "mid": 1.0, "high": 1.5},
+        "variable_r_per_kwh": {"low": 0.03, "mid": 0.05, "high": 0.08},
+        "note": "Industry standard ~1% of CapEx for fixed O&M. Variable covers cleaning, minor repairs."
+      },
+      "sources": [
+        "SAPVIA (SA PV Industry Association) market reports",
+        "GreenCape renewable energy intelligence",
+        "Eskom published tariff structures (Megaflex, Homeflex)",
+        "SA IPP Office C&I market data",
+        "Project Bear Botswana BOQ (in-house benchmark)"
+      ]
+    },
+    "bear_solar_benchmark": {
+      "description": "Project Bear BOQ - Botswana reference project for capex benchmarking",
+      "total_capex_zar": 2350000000,
+      "total_capex_with_grid_zar": 2585000000,
+      "grid_connection_zar": 90000000,
+      "infrastructure_costs_zar": 53000000,
+      "solar_capacity_mwp": 120,
+      "bess_capacity_mw": 100,
+      "bess_capacity_mwh": 100,
+      "solar_panels_qty": 196000,
+      "solar_panel_type": "JA Solar 610 - JAM72D40 LB Bi-facial",
+      "inverters_qty": 30,
+      "inverter_type": "Chint 4.2 MVA Transformer/Inverter Skid",
+      "inverter_cost_zar": 242676000,
+      "bess_units": 10,
+      "bess_type": "IONX BESS - 10 MWh",
+      "bess_cost_total_zar": 374500000,
+      "bess_cost_per_unit_zar": 37450000,
+      "capex_per_mw_solar_zar": 19583333,
+      "capex_per_kw_solar_zar": 19583,
+      "daily_generation_mwh": 657.6,
+      "ppa_rate_usd_per_kwh": 0.10,
+      "ppa_rate_peak_usd_per_kwh": 0.10,
+      "grid_purchase_offpeak_usd_per_kwh": 0.05,
+      "degradation_solar_pa_pct": 0.7,
+      "degradation_bess_pa_pct": 2.8,
+      "source_file": "context/solar inspiration/Botswana Bear Solar Farm Financial Model V1 Flat Rate PPA REV4_3.xlsm",
+      "reference_doc": "context/solar inspiration/Project Bear Prelim BOQ V3.docx"
+    }
+  },
+
+  "timberworx_business_model": {
+    "general": {
+      "description": "DFMA timber building solution provider",
+      "execution_partner": "Greenblocks (erect + finish)",
+      "technology": "Off-site manufacturing, rapid on-site assembly",
+      "lifespan_years": 100,
+      "structural_timber": "Treated for long service life (100+ years when detailed properly)",
+      "reference_doc": "Timberworx_information_sheet_v0_3 (2).docx"
+    },
+    "three_phase_evolution": {
+      "phase_1": {
+        "description": "Asset rental model with Greenblocks JV",
+        "asset_rental_zar_per_month": 50000,
+        "hr_rental_zar_per_month": 80000,
+        "production_rate": "1 house per week",
+        "status": "Operational"
+      },
+      "phase_2": {
+        "description": "Buy Optimat panel machines - THIS APPLICATION",
+        "production_rate": "3 houses per week",
+        "machine_source": "Optimat",
+        "status": "Current funding target"
+      },
+      "phase_3": {
+        "description": "Fully automated machines",
+        "production_rate": "20 houses per week",
+        "investment_eur": 5000000,
+        "feasibility_study_eur": 500000,
+        "feasibility_funder": "Finnish government",
+        "addressable_market": "15,000 houses at R1M each with 40% Finnish content",
+        "status": "Future expansion"
+      }
+    },
+    "sales_pipeline": {
+      "source_file": "context/Current TWX Sales Pipeline (1).xlsx",
+      "last_updated": "2026-02-06",
+      "projects": [
+        {
+          "phase": "Phase 2",
+          "name": "Limbro Park Development",
+          "area": "Gauteng",
+          "total_value_zar": 250000000,
+          "twx_value_zar": 87500000,
+          "gp_30pct_zar": 26250000,
+          "contractor": "Green Block Construction",
+          "client": "Akoma",
+          "funding_source": "DBSA Green Fund",
+          "notes": "Large blocks of flats, multiple modular units. DBSA financing in place but bankability work required.",
+          "estimated_takeoff": "2027-06-01"
+        },
+        {
+          "phase": "Phase 1",
+          "name": "NBI Youth Development Centres",
+          "area": "Gauteng, WC and KZN",
+          "total_value_zar": 200000000,
+          "twx_value_zar": 68000000,
+          "gp_30pct_zar": 20400000,
+          "contractor": "Green Block Construction",
+          "client": "NBI",
+          "funding_source": "KfW (German Development Bank)",
+          "notes": "5 buildings at different sites. Sole-sourced to Werner due to technical capability. KfW funding allocated.",
+          "estimated_takeoff": "2026-08-01",
+          "completion_months": 24
+        },
+        {
+          "phase": "Phase 1",
+          "name": "Peaceparks Zimbabwean Lodge",
+          "area": "Gauteng Manufacturing",
+          "total_value_zar": null,
+          "twx_value_zar": 4000000,
+          "gp_30pct_zar": 1200000,
+          "contractor": "Green Block Construction",
+          "client": "Peaceparks",
+          "funding_source": "International Funding via Peaceparks Foundation",
+          "estimated_takeoff": "2027-01-01"
+        },
+        {
+          "phase": "Phase 1",
+          "name": "B&E International – 20 Middle-Management Units",
+          "area": "Pofadder, NC",
+          "total_value_zar": 12000000,
+          "twx_value_zar": 4080000,
+          "gp_30pct_zar": 1224000,
+          "contractor": "Green Block Construction",
+          "client": "B&E International"
+        },
+        {
+          "phase": "Phase 1",
+          "name": "Giants Castle Lodge Expansion – 15 Units",
+          "area": "KZN",
+          "total_value_zar": 15000000,
+          "twx_value_zar": 5100000,
+          "gp_30pct_zar": 1530000,
+          "contractor": "Green Block Construction",
+          "client": "Devin Botha",
+          "estimated_takeoff": "2026-05-01",
+          "completion_months": 6
+        },
+        {
+          "phase": "Phase 1",
+          "name": "AQuelle HQ Expansion",
+          "area": "KZN",
+          "total_value_zar": 4000000,
+          "twx_value_zar": 1360000,
+          "gp_30pct_zar": 408000,
+          "contractor": "Green Block Construction",
+          "client": "aQuellé",
+          "estimated_takeoff": "2026-05-01",
+          "completion_months": 4
+        },
+        {
+          "phase": "Phase 1",
+          "name": "Bungani Small Church",
+          "area": "Gauteng - Vereeniging",
+          "total_value_zar": 2000000,
+          "twx_value_zar": 680000,
+          "gp_30pct_zar": 204000,
+          "contractor": "Green Block Construction",
+          "client": "Kennedy Bungani - CEO African Bank",
+          "estimated_takeoff": "2026-02-01",
+          "completion_weeks": 8
+        },
+        {
+          "phase": "Phase 1",
+          "name": "Low Cost Houses - Langa",
+          "area": "WC",
+          "total_value_zar": 600000,
+          "twx_value_zar": 204000,
+          "gp_30pct_zar": 61200,
+          "contractor": "Green Block Construction",
+          "client": "Donation by various donors",
+          "funding_source": "Donations",
+          "notes": "Project driven by University of Pretoria. Transport to Cape Town is a risk.",
+          "estimated_takeoff": "2026-02-01"
+        },
+        {
+          "phase": "Phase 1",
+          "name": "Jewish Chev - Restaurant Extension",
+          "area": "Gauteng",
+          "total_value_zar": 1000000,
+          "twx_value_zar": 340000,
+          "gp_30pct_zar": 102000,
+          "contractor": "Green Block Construction",
+          "client": "Chevrah Kadisha",
+          "funding_source": "Donations",
+          "estimated_takeoff": "2025-06-26",
+          "completion_months": 1
+        },
+        {
+          "phase": "Phase 1",
+          "name": "Garden Route Projects",
+          "area": "WC",
+          "total_value_zar": 18000000,
+          "twx_value_zar": 6120000,
+          "gp_30pct_zar": 1836000,
+          "contractor": "Green Block Construction",
+          "client": "Private Clients",
+          "notes": "Green Block secured projects with approved plans. Transport cost ~R50k per super link trip.",
+          "estimated_takeoff": "2026-01-01"
+        }
+      ],
+      "summary": {
+        "total_phase_1_twx_value_zar": 90364000,
+        "total_phase_2_twx_value_zar": 87500000,
+        "total_pipeline_twx_value_zar": 177864000,
+        "total_projects": 10,
+        "phase_1_projects": 9,
+        "phase_2_projects": 1
+      }
+    },
+    "partnerships": {
+      "greenblocks": {
+        "role": "Execution partner for erect + finish + pipeline",
+        "jv_type": "Joint venture",
+        "reference_doc": "Timberworx_information_sheet_v0_3 (2).docx"
+      },
+      "finland_timber_mills": {
+        "role": "Cost-effective strategic timber supply",
+        "rationale": "Better quality = less timber needed. Including transport still cheaper due to economies of scale SA can't compete with",
+        "finnish_content_pct": 40,
+        "addressable_market": "15,000 houses at R1M each"
+      },
+      "dge_epc": {
+        "role": "EPC JV for SA office and sales channels",
+        "jv_type": "Joint venture"
+      },
+      "smart_city_lanseria": {
+        "role": "Partnership for zoned land + turnkey houses + finance envelope",
+        "integration": "Can offer complete package to buyers"
+      },
+      "ancillary_jvs": {
+        "truss_manufacturers": "Joint venture",
+        "bathroom_manufacturers": "Plug and play bathrooms from Finland",
+        "other_addons": "Various component suppliers"
+      }
+    },
+    "epcf_model": {
+      "description": "EPC Finance wrapper - client buys turnkey + financed houses from established EPC",
+      "flow": [
+        "EPC gets ECA coverage",
+        "EPC buys raw materials",
+        "EPC hires TWX to convert to pre-fab",
+        "EPC hires contractor (Greenblocks) to erect and finish on-site"
+      ],
+      "client_benefits": [
+        "Pre-sales can start prior to repayments",
+        "Higher and predictable quality (thanks to TWX)",
+        "EPCF allows lower interest rates and higher leverage",
+        "Client focuses on sales instead of building and funding",
+        "Speed of delivery"
+      ],
+      "country_benefits": [
+        "Velocity of house deployment increases",
+        "Addresses housing crisis (2.5M+ backlog)"
+      ]
+    },
+    "coe_center_of_excellence": {
+      "description": "Watercare Center of Excellence for SETA-accredited training",
+      "sale_to_llc": {
+        "timing_year": 4,
+        "premium_pct": 10,
+        "description": "CoE sold to LLC in Year 4 at 10% premium to purchase price. Stops rental income stream.",
+        "note": "Mention in NWL that rental swaps to LLC ownership after sale"
+      },
+      "reference_doc": "Chapter 5.2: Center of Excellence – Skills, Safety & Systemic Reform",
+      "bom_file": "7. Integrator (Colubris Water Solutions)/technology/center of excellence/BOM V.1.0 5 aug.xlsx"
+    }
+  },
+
+  "financial_model_corrections": {
+    "iic_grant": {
+      "incorrect_eur": 5000,
+      "correct_eur": 50000,
+      "note": "Already correct in financing.json, needs display fix in Sources & Uses",
+      "reference": "financing.json line 88"
+    },
+    "balance_sheet_gaps": {
+      "nwl": {
+        "gap_eur": 1209313,
+        "description": "Retained Earnings ≠ Cumulative PAT",
+        "debug_areas": ["DSRA accounting", "IC margin flow", "Depreciation timing"]
+      },
+      "smart_city": {
+        "gap_eur": 1727997,
+        "description": "RE ≠ Cumulative NI",
+        "debug_areas": ["DSRA accounting", "Equity investments INTO subsidiaries", "IC flows"]
+      },
+      "lanred": {
+        "gap_eur": 1567559,
+        "description": "Retained Earnings ≠ Cumulative PAT",
+        "debug_areas": ["DSRA negative (unprofitable vs sign error?)", "IC flows", "Depreciation"]
+      }
+    }
+  },
+
+  "implementation_priorities": {
+    "p0_critical": [
+      "Fix IIC grant display (€5k → €50k) in Sources & Uses",
+      "Fix all Balance Sheet gaps (debug DSRA, IC flows, depreciation)",
+      "TWX complete business model rewrite (3-phase evolution, EPCF wrapper)"
+    ],
+    "p1_high": [
+      "NWL: Restructure Graphs tab (LCOW primary, 39% crisis graph, MABR savings, 2-col layout)",
+      "NWL: Operations tab improvements (95% utilization label, CAS comparison, CoE container)",
+      "NWL: Facilities borders and 6-month DSRA periods",
+      "Smart City: Same table layouts as NWL, remove debug menu, add equity investments graph",
+      "LanRED: 3-revenue model (IC+Smart City growth+open market), SA power crisis context",
+      "LanRED: Split PV/BESS assets, add price per kW from Bear benchmark",
+      "TWX: Pipeline graph, 3-phase explanation, CoE design docs references"
+    ],
+    "cross_cutting": [
+      "All Facilities: Borders, 6-month periods, Catalytic Assets logo",
+      "All Balance Sheets: Hero metrics improvement",
+      "All Sources & Uses: €50k IIC grant, list assets individually"
+    ]
+  },
+
+  "scraping_targets": {
+    "description": "Websites to scrape for ongoing data updates",
+    "last_updated": "2026-02-10",
+    "energy_tariffs": [
+      {
+        "name": "Eskom Schedule of Standard Prices",
+        "url": "https://www.eskom.co.za/distribution/tariffs-and-charges/",
+        "data_type": "TOU tariff rates (Megaflex, Homeflex, Miniflex)",
+        "format": "PDF/Excel",
+        "frequency": "Annual (April)",
+        "priority": "high"
+      },
+      {
+        "name": "Eskom Tariff Booklet",
+        "url": "https://www.eskom.co.za/distribution/wp-content/uploads/2025/07/Tariff-booklet2.pdf",
+        "data_type": "Complete tariff tables all categories",
+        "format": "PDF",
+        "frequency": "Annual",
+        "priority": "high"
+      },
+      {
+        "name": "Eskom Rates in Excel",
+        "url": "https://www.eskom.co.za/distribution/rates-in-excel-format/",
+        "data_type": "Machine-readable tariff data",
+        "format": "Excel",
+        "frequency": "Annual",
+        "priority": "critical"
+      },
+      {
+        "name": "NERSA Decisions",
+        "url": "https://www.nersa.org.za/",
+        "data_type": "Tariff increase approvals, regulatory decisions",
+        "format": "PDF",
+        "frequency": "Annual",
+        "priority": "medium"
+      },
+      {
+        "name": "City Power Johannesburg Tariffs",
+        "url": "https://www.citypower.co.za/",
+        "data_type": "Municipal C&I and residential tariff rates",
+        "format": "PDF",
+        "frequency": "Annual (July)",
+        "priority": "high"
+      },
+      {
+        "name": "Ekurhuleni Municipality Tariffs",
+        "url": "https://www.ekurhuleni.gov.za/",
+        "data_type": "Municipal tariffs (Megaflex-based markup)",
+        "format": "PDF",
+        "frequency": "Annual",
+        "priority": "medium"
+      },
+      {
+        "name": "GreenCape Energy Intelligence",
+        "url": "https://www.greencape.co.za/",
+        "data_type": "SA renewable energy market data, PV/BESS pricing",
+        "format": "PDF reports",
+        "frequency": "Annual",
+        "priority": "high"
+      },
+      {
+        "name": "SAPVIA Market Reports",
+        "url": "https://sapvia.co.za/",
+        "data_type": "SA PV industry benchmarks, installed costs",
+        "format": "PDF",
+        "frequency": "Quarterly",
+        "priority": "high"
+      },
+      {
+        "name": "SA IPP Office",
+        "url": "https://www.ipp-projects.co.za/",
+        "data_type": "C&I solar project data, PPA rates",
+        "format": "Reports",
+        "frequency": "Quarterly",
+        "priority": "medium"
+      },
+      {
+        "name": "EcoFlow SA Tariff Guide",
+        "url": "https://www.ecoflow.com/za/blog/electricity-cost-per-kwh",
+        "data_type": "Consumer-friendly Eskom tariff summaries with exact rates",
+        "format": "HTML (text extractable)",
+        "frequency": "Annual",
+        "priority": "high"
+      }
+    ],
+    "solar_bess_pricing": [
+      {
+        "name": "IRENA Renewable Cost Database",
+        "url": "https://www.irena.org/costs",
+        "data_type": "Global solar PV and BESS installed cost data",
+        "format": "Interactive/Excel",
+        "frequency": "Annual",
+        "priority": "medium"
+      },
+      {
+        "name": "BloombergNEF (BNEF)",
+        "url": "https://about.bnef.com/",
+        "data_type": "Battery price survey, solar module prices",
+        "format": "Reports (subscription)",
+        "frequency": "Semi-annual",
+        "priority": "low"
+      }
+    ]
+  }
+}

@@ -1,0 +1,90 @@
+{
+  "capital_structure": {
+    "equity_pct": 0.00,
+    "mezz_pct": 0.15,
+    "senior_pct": 0.85,
+    "note": "Land excluded - funded separately via equity"
+  },
+  "limits": {
+    "senior_debt_max": 13700000,
+    "senior_debt_used": 13597304,
+    "headroom": 102696,
+    "status": "Within Limit"
+  },
+  "totals": {
+    "equity": 0,
+    "mezz": 2282580,
+    "senior_debt": 13597304,
+    "total": 15879884
+  },
+  "by_asset": {
+    "water": {
+      "equity": 0,
+      "mezz": 1225447,
+      "senior": 6944201,
+      "total": 8169648,
+      "line_items": {
+        "oxymem": {"mezz": 367699.58, "senior": 2083630.93, "total": 2451330.50},
+        "colubris": {"mezz": 258288.75, "senior": 1463636.25, "total": 1721925.00},
+        "nwl_civil": {"mezz": 561958.86, "senior": 3184433.54, "total": 3746392.40},
+        "wsp": {"mezz": 37500.00, "senior": 212500.00, "total": 250000.00}
+      }
+    },
+    "coe": {
+      "equity": 0,
+      "mezz": 279319,
+      "senior": 1582805,
+      "total": 1862124,
+      "line_items": {
+        "timberworx_coe": {"mezz": 249318.60, "senior": 1412805.40, "total": 1662124.00},
+        "timberworx_panel": {"mezz": 30000.00, "senior": 170000.00, "total": 200000.00}
+      }
+    },
+    "solar": {
+      "equity": 0,
+      "mezz": 436321,
+      "senior": 2472488,
+      "total": 2908809,
+      "carve_out": true,
+      "line_items": {
+        "solar_n2": {"mezz": 218160.66, "senior": 1236243.76, "total": 1454404.42},
+        "solar_n3": {"mezz": 218160.66, "senior": 1236243.76, "total": 1454404.42}
+      }
+    },
+    "esg": {
+      "equity": 0,
+      "mezz": 224549,
+      "senior": 1272443,
+      "total": 1496992,
+      "line_items": {
+        "esg": {"mezz": 49144.94, "senior": 278488.00, "total": 327632.94},
+        "project_mgmt": {"mezz": 157403.81, "senior": 891954.92, "total": 1049358.73},
+        "preop_finance": {"mezz": 18000.00, "senior": 102000.00, "total": 120000.00}
+      }
+    },
+    "fees": {
+      "equity": 0,
+      "mezz": 116944,
+      "senior": 1325367,
+      "total": 1442311,
+      "note": "Aggregated from entity-level fee computations",
+      "line_items": {
+        "facility_fee": {"mezz": 0, "senior": 122719, "total": 122719, "funding": "senior_only"},
+        "integration_fee": {"mezz": 108282, "senior": 613596, "total": 721878},
+        "atradius_premium": {"mezz": 0, "senior": 539964, "total": 539964, "funding": "senior_only"},
+        "exporter_premium": {"mezz": 8662, "senior": 49088, "total": 57750}
+      }
+    }
+  },
+  "special_funding_rules": {
+    "senior_only_items": [
+      {"item": "Facility Fee", "amount": 122719, "reason": "Lender fee funded from senior facility"},
+      {"item": "Atradius Premium", "amount": 539964, "reason": "ECA premium funded from senior facility"}
+    ],
+    "mezz_senior_split": {
+      "rule": "15% Mezz / 85% Senior for all other items",
+      "mezz_provider": "Creation Capital",
+      "senior_provider": "Invest International"
+    }
+  }
+}

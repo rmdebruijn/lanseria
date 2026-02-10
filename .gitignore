@@ -1,0 +1,24 @@
+# Virtual environment
+venv/
+
+# Output files
+output/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# Workflow logs
+.workflow/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Secrets (users.yaml has bcrypt-hashed passwords only, safe for repo)
+.streamlit/secrets.toml

@@ -1,0 +1,301 @@
+{
+  "description": "Three-layer security package per Creation Capital term sheet. L1 = pure financial claims (holding), L2 = guarantees & insurance (subsidiary-level, pushed down to IIC), L3 = physical assets & revenue contracts (subsidiary-level)",
+  "holding": {
+    "name": "Smart City Lanseria Catalytic Assets (SCLCA)",
+    "role": "Borrower & onward lender",
+    "layer_1": {
+      "title": "Layer 1 — Financial Claims at Holding Level",
+      "description": "Pure financial assets — IC loan receivables pledged to IIC, equity pledged to Creation Capital",
+      "items": [
+        {
+          "security": "Intercompany loan receivables",
+          "detail": "Loans to NWL, LanRED, Timberworx",
+          "value_eur": 15879884,
+          "pledged_to": "Invest International Capital B.V.",
+          "note": "Senior + Mezz IC loans, including capitalized interest"
+        },
+        {
+          "security": "100% equity in subsidiaries",
+          "detail": "Shares in NWL (93%), LanRED (100%), Timberworx (5%)",
+          "value_eur": 99000,
+          "pledged_to": "Creation Capital",
+          "note": "Share pledge to Mezz lender — NWL R930k + LanRED R1m + TWX R50k = R1.98M = EUR99k"
+        }
+      ]
+    }
+  },
+  "subsidiaries": {
+    "nwl": {
+      "name": "New Water Lanseria Pty Ltd",
+      "ic_loan_size_eur": 10632337,
+      "carve_out": false,
+      "layer_2": {
+        "title": "Layer 2 — Guarantees & Insurance (NWL)",
+        "description": "Credit enhancements pushed down by Creation Capital to secure IIC senior facility",
+        "items": [
+          {
+            "enhancement": "Veracity corporate guarantee",
+            "type": "Guarantee",
+            "jurisdiction": "South Africa",
+            "status": "Committed",
+            "coverage_eur": 10632337,
+            "note": "Guarantee for full NWL IC loan (Senior + Mezz)",
+            "guarantor_financials": {
+              "entity": "Veracity Proprietary Limited",
+              "total_assets_zar": 746500000,
+              "investment_property_zar": 692900000,
+              "equity_zar": 53400000,
+              "revenue_zar": 72500000,
+              "ebitda_zar": 42900000,
+              "finance_costs_zar": 58500000,
+              "debt_to_equity": 13.0,
+              "interest_coverage": 0.73,
+              "note": "Property holding company with R692.9M investment property base"
+            }
+          },
+          {
+            "enhancement": "Atradius ECA cover",
+            "type": "Insurance",
+            "jurisdiction": "Netherlands",
+            "status": "In place",
+            "note": "Dutch export credit cover on Colubris Balance of Plant (€1.72M). WSP is South African — not Dutch content"
+          },
+          {
+            "enhancement": "DSRA via Forward Exchange Contract",
+            "type": "Reserve",
+            "jurisdiction": "South Africa",
+            "status": "Committed",
+            "value_zar": 47500000,
+            "value_eur": 2201389,
+            "note": "Funded by Creation Capital, held by Investec. FEC locks ZAR47.5M → covers P1+P2 (M24-M36). Pledged to IIC, not held at SCLCA level"
+          },
+          {
+            "enhancement": "DTIC Manufacturing Incentive",
+            "type": "Grant",
+            "jurisdiction": "South Africa",
+            "status": "Approved",
+            "value_zar": 25000000,
+            "value_eur": 1159313,
+            "timing": "M12 (P-2)",
+            "note": "Applied as senior prepayment — reduces NWL IC loan balance at M12"
+          },
+          {
+            "enhancement": "GEPF Bulk Services Fee",
+            "type": "Fee",
+            "jurisdiction": "South Africa",
+            "status": "Committed",
+            "value_zar": 44800000,
+            "value_eur": 2076691,
+            "timing": "M12 (P-2)",
+            "note": "Bulk services fee (R40M GEPF + R4.8M third party) — applied as senior prepayment at M12"
+          }
+        ]
+      },
+      "layer_3": {
+        "title": "Layer 3 — Physical Assets & Revenue Contracts (NWL)",
+        "description": "Hard collateral and offtake agreements securing IIC senior facility",
+        "physical_assets": [
+          {
+            "asset": "MABR membranes",
+            "supplier": "Oxymem",
+            "country": "Ireland",
+            "budget_eur": 2451331,
+            "note": "Core technology — Membrane Aerated Biofilm Reactor"
+          },
+          {
+            "asset": "Balance of plant equipment",
+            "supplier": "Colubris Water Solutions",
+            "country": "Netherlands",
+            "budget_eur": 1721925,
+            "note": "Dutch export content — covered by Atradius ECA"
+          },
+          {
+            "asset": "Civil infrastructure & pipelines",
+            "supplier": "NWL Local Civil",
+            "country": "South Africa",
+            "budget_eur": 3746392,
+            "note": "Local content — site preparation, pipelines, civil works"
+          },
+          {
+            "asset": "Owner's engineer deliverables",
+            "supplier": "WSP",
+            "country": "South Africa",
+            "budget_eur": 250000,
+            "note": "South African owner's engineer — design, supervision, commissioning"
+          }
+        ],
+        "revenue_contracts": [
+          {
+            "contract": "City of Johannesburg Letter of Intent",
+            "type": "Offtake",
+            "status": "Signed",
+            "note": "Municipal commitment for sewage treatment — brownfield revenue stream"
+          },
+          {
+            "contract": "Johannesburg Water Offtake Approval",
+            "type": "Offtake",
+            "status": "Approved",
+            "note": "Scheme report approved Dec 2021 — regulatory approval in place"
+          },
+          {
+            "contract": "DWS Acknowledgement Letter",
+            "type": "Regulatory",
+            "status": "Received",
+            "note": "Department of Water & Sanitation support — national regulatory buy-in"
+          }
+        ],
+        "market_position": {
+          "installed_capacity_mld": 2.0,
+          "latent_demand_mld": 50.0,
+          "growth_headroom": 25.0,
+          "note": "Lanseria area water demand is 50 MLD vs 2 MLD installed — 25x expansion potential"
+        }
+      }
+    },
+    "lanred": {
+      "name": "LanRED",
+      "ic_loan_size_eur": 3199398,
+      "carve_out": true,
+      "layer_2": {
+        "title": "Layer 2 — Guarantees & Insurance (LanRED)",
+        "description": "Credit enhancements — independently underwritten within IIC risk envelope",
+        "items": [
+          {
+            "enhancement": "Independent underwriting",
+            "type": "Insurance",
+            "jurisdiction": "TBD",
+            "status": "Planned",
+            "coverage_eur": 3199398,
+            "note": "Separately underwritten for full LanRED IC loan — independently covered within IIC risk envelope"
+          }
+        ]
+      },
+      "layer_3": {
+        "title": "Layer 3 — Physical Assets & Revenue Contracts (LanRED)",
+        "description": "Renewable energy assets and power sales agreements",
+        "physical_assets": [
+          {
+            "asset": "Solar PV installation",
+            "supplier": "TBD",
+            "country": "TBD",
+            "note": "Solar panels, inverters, mounting systems"
+          },
+          {
+            "asset": "Battery storage systems",
+            "supplier": "TBD",
+            "country": "TBD",
+            "note": "Energy storage for grid stabilization and peak shaving"
+          },
+          {
+            "asset": "Grid connection infrastructure",
+            "supplier": "TBD",
+            "country": "TBD",
+            "note": "Transformers, switchgear, metering for grid integration"
+          }
+        ],
+        "revenue_contracts": [
+          {
+            "contract": "Inter-company power sales to NWL",
+            "type": "PPA",
+            "status": "To be contracted",
+            "pricing": "Eskom -10%",
+            "note": "Primary offtaker — NWL MABR power consumption at Eskom rate -10%"
+          },
+          {
+            "contract": "Power sales to Lanseria development",
+            "type": "PPA",
+            "status": "To be secured",
+            "note": "Sales to commercial and industrial off-takers in Lanseria precinct"
+          },
+          {
+            "contract": "Grid savings contracts",
+            "type": "Savings",
+            "status": "To be secured",
+            "note": "On-site generation displaces grid purchases at full Eskom tariff"
+          },
+          {
+            "contract": "Wheeling arrangements",
+            "type": "Infrastructure",
+            "status": "To be secured",
+            "note": "Grid access for surplus power distribution to third parties"
+          }
+        ]
+      }
+    },
+    "timberworx": {
+      "name": "Timberworx",
+      "ic_loan_size_eur": 2048149,
+      "carve_out": false,
+      "layer_2": {
+        "title": "Layer 2 — Guarantees & Insurance (Timberworx)",
+        "description": "Credit enhancements from Phoenix holding and ECA cover",
+        "items": [
+          {
+            "enhancement": "Phoenix holding company guarantee",
+            "type": "Guarantee",
+            "jurisdiction": "South Africa",
+            "status": "Committed",
+            "coverage_eur": 2048149,
+            "note": "Guarantee for full TWX IC loan (Senior + Mezz) — VH Properties holds 40% in Phoenix Group",
+            "guarantor_financials": {
+              "entity": "VH Properties",
+              "phoenix_ebitda_zar": 68200000,
+              "mark_van_houten_ownership": 0.40,
+              "attributable_ebitda_zar": 27300000,
+              "two_year_cash_generation_zar": 54600000,
+              "coverage_multiple": 1.34,
+              "note": "VH Properties holds 40% in Phoenix Group. 2yr attributable EBITDA = R54.6M vs TWX IC = R40.8M (1.34x coverage)"
+            }
+          },
+          {
+            "enhancement": "Atradius ECA cover",
+            "type": "Insurance",
+            "jurisdiction": "Netherlands",
+            "status": "In place",
+            "note": "Dutch export credit cover on Timberworx Dutch content (Panel Equipment €200k)"
+          }
+        ]
+      },
+      "layer_3": {
+        "title": "Layer 3 — Physical Assets & Revenue Contracts (Timberworx)",
+        "description": "Centre of Excellence building, manufacturing equipment, and revenue streams",
+        "physical_assets": [
+          {
+            "asset": "Centre of Excellence building",
+            "supplier": "Timberworx",
+            "country": "Finland (60%), South Africa (10%), France (30%)",
+            "budget_eur": 1662124,
+            "note": "CoE facility — Finnish timber technology (60%), local content (10%), French components (30%)"
+          },
+          {
+            "asset": "Panel equipment",
+            "supplier": "Timberworx",
+            "country": "Netherlands",
+            "budget_eur": 200000,
+            "note": "100% Dutch content — panel manufacturing equipment"
+          }
+        ],
+        "revenue_contracts": [
+          {
+            "contract": "Centre of Excellence rental income",
+            "type": "Lease",
+            "status": "To be contracted",
+            "note": "CoE leased to NWL at capital-recovery rate: CapEx × (WACC + O&M overhead) = €1.66M × 8.21% = R234k/month"
+          },
+          {
+            "contract": "Timber panel sales",
+            "type": "Sales",
+            "status": "To be contracted",
+            "note": "Sales to large off-takers in timber construction sector"
+          },
+          {
+            "contract": "Training programme fees",
+            "type": "Services",
+            "status": "To be secured",
+            "note": "Skills development and SETA programme revenue — training fees and government subsidies"
+          }
+        ]
+      }
+    }
+  }
+}

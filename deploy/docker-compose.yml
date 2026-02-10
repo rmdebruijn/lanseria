@@ -1,0 +1,12 @@
+services:
+  sclca-model:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+    container_name: sclca-financial-model
+    ports:
+      - "8502:8502"
+    volumes:
+      - ../config:/app/config
+      - ../assets:/app/assets
+    restart: unless-stopped

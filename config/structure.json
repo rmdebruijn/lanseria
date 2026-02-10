@@ -1,0 +1,225 @@
+{
+  "holding": {
+    "name": "Smart City Lanseria Catalytic Assets",
+    "code": "SCLCA",
+    "type": "financial_holding",
+    "registration": "Not yet incorporated",
+    "description": "Financial holding company that receives debt facilities and deploys as intercompany loans to subsidiaries"
+  },
+  "devco": {
+    "name": "Lanseria Smart City Development",
+    "legal_name": "Lanseria Smart City Development (Pty) Ltd",
+    "registration": "2025/950567/07",
+    "type": "master_development_company",
+    "description": "Master development company — land development, township establishment, bulk infrastructure"
+  },
+  "sources": {
+    "description": "Capital received at SCLCA level",
+    "senior_debt": {
+      "provider": "Invest International",
+      "amount": 13597304,
+      "currency": "EUR",
+      "interest": {
+        "rate": 0.047,
+        "base": "euribor",
+        "euribor": 0.0275,
+        "margin": 0.0195,
+        "note": "Euribor 2.75% + Bank Margin 1.95% = 4.70%"
+      },
+      "loan_start_cod_months": 18,
+      "moratorium_months": 6,
+      "loan_holiday_months": 24,
+      "repayments": 14,
+      "repayment_months": 84,
+      "loan_settlement_months": 108,
+      "frequency": "semi-annual",
+      "repayment_profile": "P_constant",
+      "idc": {
+        "rolls_up": true,
+        "capitalize_over_remainder": true,
+        "period_months": 18,
+        "amount": 1077634
+      },
+      "hedge": {
+        "hedged": true,
+        "periods": 4
+      },
+      "eca_premium": 623917
+    },
+    "mezzanine": {
+      "name": "Mezzanine (Quasi Equity)",
+      "provider": "Creation Capital",
+      "amount_eur": 2282580,
+      "amount_zar": 47082778,
+      "currency": "ZAR",
+      "basis": "15% of Project Cost x FX Rate",
+      "interest": {
+        "base": "prime",
+        "margin": 0.04,
+        "prime_rate": 0.1075,
+        "total_rate": 0.1475,
+        "note": "Prime + 4% = 14.75%"
+      },
+      "roll_up_months": 24,
+      "repayment_months": 60,
+      "repayments": 10,
+      "frequency": "semi-annual",
+      "pay_catchup_rolled_interest": false,
+      "novations": {
+        "coe": {"description": "Allocation of cash following Novation of CoE", "amount_zar": 0},
+        "solar": {"description": "Allocation of cash following Novation of Solar", "amount_zar": 0}
+      }
+    },
+    "dsra": {
+      "name": "Debt Service Reserve Account",
+      "provider": "Creation Capital",
+      "currency": "ZAR",
+      "sizing": {
+        "basis": "debt_service_payments",
+        "repayments_covered": 2,
+        "note": "Sized to cover first 2 full debt service payments (P+I) of senior loan"
+      },
+      "funded_at_month": 24
+    },
+    "grants": {
+      "name": "Grants & Subsidies (Non-diluting)",
+      "type": "non_diluting_equity",
+      "rows": [
+        {
+          "source": "DTIC grant",
+          "amount_zar": 25000000,
+          "amount_eur": null,
+          "timing_month": 12,
+          "note": "Department of Trade, Industry and Competition"
+        },
+        {
+          "source": "IIC grant",
+          "amount_zar": null,
+          "amount_eur": 50000,
+          "timing_start_month": 6,
+          "timing_end_month": 18,
+          "note": "Invest International Capital"
+        }
+      ],
+      "total_eur_applied": 1159313,
+      "application": "senior_debt_prepayment",
+      "application_note": "Grant proceeds applied to early repayment of senior debt, reducing outstanding balance. Amount per financing.json grant_proceeds_to_early_repayment."
+    },
+    "total": 15879884
+  },
+  "uses": {
+    "description": "Intercompany loans deployed to subsidiaries - each subsidiary receives Senior + Mezz loan",
+    "loan_pricing": {
+      "senior_to_subs": {
+        "rate": 0.052,
+        "base_rate": 0.047,
+        "margin": 0.005,
+        "note": "Facility 4.70% + IC margin 0.50% = 5.20%"
+      },
+      "mezz_to_subs": {
+        "rate": 0.1525,
+        "base_rate": 0.1475,
+        "margin": 0.005,
+        "note": "Prime + 4% (14.75%) + IC margin 0.50% = 15.25%"
+      }
+    },
+    "loans_to_subsidiaries": {
+      "nwl": {
+        "name": "New Water Lanseria",
+        "purpose": "Water + Management & Compliance + Entity-level fees",
+        "assets_base": 9666640,
+        "pro_rata_pct": 0.670,
+        "fees_allocated": 965697,
+        "total_loan": 10632337,
+        "senior_portion": 9104041,
+        "mezz_portion": 1528296,
+        "breakdown": {
+          "water": 8169648,
+          "esg_mgmt": 1496992,
+          "fees": 965697
+        }
+      },
+      "lanred": {
+        "name": "LanRED",
+        "purpose": "Solar + Entity-level fees",
+        "assets_base": 2908809,
+        "pro_rata_pct": 0.201,
+        "fees_allocated": 290589,
+        "total_loan": 3199398,
+        "senior_portion": 2739516,
+        "mezz_portion": 459882,
+        "breakdown": {
+          "solar": 2908809,
+          "fees": 290589
+        }
+      },
+      "timberworx": {
+        "name": "Timberworx",
+        "purpose": "CoE + Panel Equipment + Entity-level fees",
+        "assets_base": 1862124,
+        "pro_rata_pct": 0.129,
+        "fees_allocated": 186025,
+        "total_loan": 2048149,
+        "senior_portion": 1753747,
+        "mezz_portion": 294402,
+        "breakdown": {
+          "coe": 1662124,
+          "panel_equipment": 200000,
+          "fees": 186025
+        }
+      }
+    },
+    "total": 15879884
+  },
+  "subsidiaries": {
+    "nwl": {
+      "name": "New Water Lanseria",
+      "legal_name": "New Water Lanseria (Pty) Ltd",
+      "registration": "2020/882602/07",
+      "code": "NWL",
+      "type": "operating_company",
+      "assets": ["water", "esg"],
+      "loans_from_sclca": {
+        "senior": 9104041,
+        "mezz": 1528296,
+        "total": 10632337
+      }
+    },
+    "lanred": {
+      "name": "LanRED",
+      "legal_name": "LanRED (Pty) Ltd",
+      "registration": "2025/242125/07",
+      "code": "LANRED",
+      "type": "operating_company",
+      "assets": ["solar"],
+      "loans_from_sclca": {
+        "senior": 2739516,
+        "mezz": 459882,
+        "total": 3199398
+      }
+    },
+    "timberworx": {
+      "name": "Timberworx",
+      "legal_name": "Timber Worx (Pty) Ltd",
+      "registration": "2024/431134/07",
+      "code": "TIMBERWORX",
+      "type": "operating_company",
+      "assets": ["coe"],
+      "loans_from_sclca": {
+        "senior": 1753747,
+        "mezz": 294402,
+        "total": 2048149
+      }
+    }
+  },
+  "balance_check": {
+    "sources_total": 15879884,
+    "uses_total": 15879884,
+    "senior_sources": 13597304,
+    "senior_uses": 13597304,
+    "mezz_sources": 2282580,
+    "mezz_uses": 2282580,
+    "balanced": true,
+    "note": "Bottom-up from entity-level assets with funding rules: assets 85/15, senior-only fees 100% senior, mezz/senior fees 85/15"
+  }
+}

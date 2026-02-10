@@ -1,0 +1,15 @@
+[server]
+port = 8502
+enableXsrfProtection = true
+enableCORS = false
+runOnSave = true
+
+[client]
+toolbarMode = "developer"
+showSidebarNavigation = true
+
+[browser]
+gatherUsageStats = false
+
+[theme]
+base = "light"
