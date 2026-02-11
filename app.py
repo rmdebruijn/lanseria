@@ -135,7 +135,9 @@ def load_content_md(filename: str) -> dict:
     Sub-sections (### heading) are preserved as-is within each entity block.
     """
     model_dir = Path(__file__).parent  # .../11. Financial Model/model/
-    md_file = model_dir.parent / filename
+    md_file = model_dir / "content" / filename  # in-repo: model/content/
+    if not md_file.exists():
+        md_file = model_dir.parent / filename  # fallback: parent dir (local dev)
     if not md_file.exists():
         return {}
 
@@ -175,7 +177,9 @@ def _parse_svg_content_md(filename: str) -> dict:
     Returns dict mapping element IDs to their text content.
     """
     model_dir = Path(__file__).parent
-    md_file = model_dir.parent / filename
+    md_file = model_dir / "content" / filename
+    if not md_file.exists():
+        md_file = model_dir.parent / filename
     if not md_file.exists():
         return {}
     with open(md_file, 'r', encoding='utf-8') as f:
@@ -9592,24 +9596,24 @@ the project integrator and wrapper across all three delivery scopes.
                     st.divider()
 
                     # Budget: Fees + IDC (shared across scenarios)
-                    st.subheader("Budget Breakdown")
-                    st.caption("Financial costs and capitalised interest — shared across both scenarios")
-                    _all_cost_rows = []
-                    # Add asset costs for content breakdown
-                    if _del_lr_active == "Brownfield+":
-                        _bf_price = _bf_port.get("purchase_price_zar", 60000000)
-                        _all_cost_rows.append({"country": "South Africa", "amount": _bf_price / 20.56})
-                    else:
-                        for _ak in sub_data.get('assets', []):
-                            _asset_data = assets_del['assets'].get(_ak, {})
-                            if _asset_data and _asset_data.get('line_items'):
-                                for _li in _asset_data['line_items']:
-                                    _split = _li.get('content_split')
-                                    if _split:
-                                        for _sc, _sp in _split.items():
-                                            _all_cost_rows.append({"country": _sc, "amount": _li['budget'] * _sp})
-                                    else:
-                                        _all_cost_rows.append({"country": _li['country'], "amount": _li['budget']})
+                    st.subheader("Financial Costs")
+                    st.caption("Fees and capitalised interest — identical for both scenarios")
+                    # Build _all_cost_rows for BOTH scenarios (for content breakdown)
+                    _all_cost_rows_gf = []
+                    _all_cost_rows_bf = []
+                    for _ak in sub_data.get('assets', []):
+                        _asset_data = assets_del['assets'].get(_ak, {})
+                        if _asset_data and _asset_data.get('line_items'):
+                            for _li in _asset_data['line_items']:
+                                _split = _li.get('content_split')
+                                if _split:
+                                    for _sc, _sp in _split.items():
+                                        _all_cost_rows_gf.append({"country": _sc, "amount": _li['budget'] * _sp})
+                                else:
+                                    _all_cost_rows_gf.append({"country": _li['country'], "amount": _li['budget']})
+                    _bf_price = _bf_port.get("purchase_price_zar", 60000000)
+                    _all_cost_rows_bf.append({"country": "South Africa", "amount": _bf_price / 20.56})
+                    _all_cost_rows = _all_cost_rows_gf if _del_lr_active == "Greenfield" else _all_cost_rows_bf
 
                 else:
                     c1, c2, c3 = st.columns(3)
@@ -9721,53 +9725,98 @@ the project integrator and wrapper across all three delivery scopes.
                 # --- Actual country-wise content breakdown ---
                 st.subheader("Content Breakdown")
                 st.caption("Actual country-of-origin breakdown — assets, fees, and IDC combined")
-                _country_totals = {}
-                for _cr in _all_cost_rows:
-                    _c = _cr['country']
-                    if _c:
-                        _country_totals[_c] = _country_totals.get(_c, 0.0) + _cr['amount']
-                _grand_total = sum(_country_totals.values())
 
-                _sorted_countries = sorted(_country_totals.items(), key=lambda x: -x[1])
-                _content_rows = []
-                for _country, _val in _sorted_countries:
-                    _pct = _val / _grand_total if _grand_total > 0 else 0
+                _pie_colors = {
+                    "Netherlands": "#FF6B00", "Ireland": "#169B62",
+                    "South Africa": "#007A4D", "Finland": "#003580",
+                    "Australia": "#FFD700", "France": "#002395",
+                    "Europe": "#94a3b8",
+                }
+
+                # LanRED: side-by-side content breakdown for both scenarios
+                if entity_key == 'lanred' and scope.get('scenario_toggle'):
+                    # Compute fee+IDC costs (shared across both scenarios)
+                    _shared_fees_idc = []
+                    for _fr in _fee_rows:
+                        if _fr.get("Country") and _fr.get("Budget") and _fr["Country"] != "":
+                            _shared_fees_idc.append({"country": _fr["Country"], "amount": _fr["Budget"]})
+                    _shared_fees_idc.append({"country": "Netherlands", "amount": _del_entity_idc})
+
+                    _cb_col_gf, _cb_col_bf = st.columns(2)
+                    for _cb_col, _cb_label, _cb_asset_rows in [
+                        (_cb_col_gf, "Greenfield", _all_cost_rows_gf),
+                        (_cb_col_bf, "Brownfield+", _all_cost_rows_bf),
+                    ]:
+                        _cb_all = _cb_asset_rows + _shared_fees_idc
+                        _cb_totals = {}
+                        for _cr in _cb_all:
+                            _c = _cr['country']
+                            if _c:
+                                _cb_totals[_c] = _cb_totals.get(_c, 0.0) + _cr['amount']
+                        _cb_grand = sum(_cb_totals.values())
+                        _cb_sorted = sorted(_cb_totals.items(), key=lambda x: -x[1])
+                        with _cb_col:
+                            with st.container(border=True):
+                                st.markdown(f"**{_cb_label}**")
+                                _cb_rows = []
+                                for _country, _val in _cb_sorted:
+                                    _pct = _val / _cb_grand if _cb_grand > 0 else 0
+                                    _cb_rows.append({"Country": _country, "Amount": _val, "Share": f"{_pct*100:.1f}%"})
+                                _cb_rows.append({"Country": "**Total**", "Amount": _cb_grand, "Share": "100%"})
+                                render_table(pd.DataFrame(_cb_rows), {"Amount": _eur_fmt})
+                                _cb_labels = [c for c, _ in _cb_sorted]
+                                _cb_values = [v for _, v in _cb_sorted]
+                                _cb_clrs = [_pie_colors.get(c, "#94a3b8") for c in _cb_labels]
+                                fig_pie = go.Figure(data=[go.Pie(
+                                    labels=_cb_labels, values=_cb_values,
+                                    marker=dict(colors=_cb_clrs),
+                                    textinfo='label+percent', textfont=dict(size=11), hole=0.35,
+                                )])
+                                fig_pie.update_layout(showlegend=False, margin=dict(t=10, b=10, l=10, r=10), height=250)
+                                st.plotly_chart(fig_pie, use_container_width=True)
+                else:
+                    _country_totals = {}
+                    for _cr in _all_cost_rows:
+                        _c = _cr['country']
+                        if _c:
+                            _country_totals[_c] = _country_totals.get(_c, 0.0) + _cr['amount']
+                    _grand_total = sum(_country_totals.values())
+
+                    _sorted_countries = sorted(_country_totals.items(), key=lambda x: -x[1])
+                    _content_rows = []
+                    for _country, _val in _sorted_countries:
+                        _pct = _val / _grand_total if _grand_total > 0 else 0
+                        _content_rows.append({
+                            "Country": _country,
+                            "Amount": _val,
+                            "Share": f"{_pct*100:.1f}%",
+                        })
                     _content_rows.append({
-                        "Country": _country,
-                        "Amount": _val,
-                        "Share": f"{_pct*100:.1f}%",
+                        "Country": "**Total**",
+                        "Amount": _grand_total,
+                        "Share": "100%",
                     })
-                _content_rows.append({
-                    "Country": "**Total**",
-                    "Amount": _grand_total,
-                    "Share": "100%",
-                })
-                _ct1, _ct2 = st.columns([3, 2])
-                with _ct1:
-                    render_table(pd.DataFrame(_content_rows), {"Amount": _eur_fmt})
-                with _ct2:
-                    _pie_labels = [c for c, _ in _sorted_countries]
-                    _pie_values = [v for _, v in _sorted_countries]
-                    _pie_colors = {
-                        "Netherlands": "#FF6B00", "Ireland": "#169B62",
-                        "South Africa": "#007A4D", "Finland": "#003580",
-                        "Australia": "#FFD700", "France": "#002395",
-                    }
-                    _pie_clrs = [_pie_colors.get(c, "#94a3b8") for c in _pie_labels]
-                    fig_pie = go.Figure(data=[go.Pie(
-                        labels=_pie_labels,
-                        values=_pie_values,
-                        marker=dict(colors=_pie_clrs),
-                        textinfo='label+percent',
-                        textfont=dict(size=12),
-                        hole=0.35,
-                    )])
-                    fig_pie.update_layout(
-                        showlegend=False,
-                        margin=dict(t=10, b=10, l=10, r=10),
-                        height=280,
-                    )
-                    st.plotly_chart(fig_pie, use_container_width=True)
+                    _ct1, _ct2 = st.columns([3, 2])
+                    with _ct1:
+                        render_table(pd.DataFrame(_content_rows), {"Amount": _eur_fmt})
+                    with _ct2:
+                        _pie_labels = [c for c, _ in _sorted_countries]
+                        _pie_values = [v for _, v in _sorted_countries]
+                        _pie_clrs = [_pie_colors.get(c, "#94a3b8") for c in _pie_labels]
+                        fig_pie = go.Figure(data=[go.Pie(
+                            labels=_pie_labels,
+                            values=_pie_values,
+                            marker=dict(colors=_pie_clrs),
+                            textinfo='label+percent',
+                            textfont=dict(size=12),
+                            hole=0.35,
+                        )])
+                        fig_pie.update_layout(
+                            showlegend=False,
+                            margin=dict(t=10, b=10, l=10, r=10),
+                            height=280,
+                        )
+                        st.plotly_chart(fig_pie, use_container_width=True)
 
                 # ── ECA Content Compliance ──
                 st.divider()
@@ -14760,6 +14809,7 @@ elif entity == "Tasks":
         ("Prepare detailed Dutch content breakdown for Atradius application", "High", "Pending"),
         ("Commission ESIA to IFC Performance Standards", "High", "Pending"),
         ("Legal opinion on guarantee enforceability (RSA law) for both entities", "High", "Pending"),
+        ("LanRED content analysis — Greenfield vs Brownfield+ solar (not ECA, informational only)", "Low", "Pending"),
     ]
     _task_df = pd.DataFrame(_task_data, columns=["Task", "Priority", "Status"])
     st.dataframe(_task_df, use_container_width=True, hide_index=True)
