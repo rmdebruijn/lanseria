@@ -1,0 +1,103 @@
+{
+  "metadata": {
+    "extraction_level": "L4_highest_quality",
+    "extraction_date": "2026-02-10",
+    "document_type": "reviewed_annual_financial_statements",
+    "entity": {
+      "legal_name": "Ridgeview Centre (Pty) Ltd",
+      "registration_number": "2019/311732/07",
+      "country": "South Africa",
+      "nature_of_business": "Investment property holding"
+    },
+    "reporting_period": { "year_end_date": "2025-02-28", "prior_year_end_date": "2024-03-01", "current_year_label": "2025", "prior_year_label": "2024" },
+    "accounting_framework": "IFRS for Small and Medium-sized Entities",
+    "currency": "ZAR",
+    "auditor": { "name": "KCE Accountants and Auditors Inc", "designation": "Reviewed" },
+    "presentation_columns": ["2025", "2024"],
+    "guarantor_group": "phoenix",
+    "going_concern": false,
+    "going_concern_note": "The company has accumulated losses of R21,561,080 and its total liabilities exceed its total assets by R21,560,980. A sale agreement has been entered into with the Bondholder. The directors have assessed that the company may not have adequate financial resources to continue as a going concern.",
+    "verification_checksums": {
+      "cy_2025": { "total_assets": 206616630, "total_equity_and_liabilities": 206616630, "balance_check": true },
+      "py_2024": { "total_assets": 207505909, "total_equity_and_liabilities": 207505909, "balance_check": true }
+    },
+    "notes": {
+      "negative_equity": true,
+      "negative_equity_comment": "Accumulated losses R21.6M, liabilities exceed assets by R21.6M. Sale agreement with Bondholder in place."
+    }
+  },
+  "statement_of_financial_position": {
+    "as_at_date": "2025-02-28",
+    "assets": {
+      "non_current_assets": {
+        "investment_property": { "note": 2, "values": [185150000, 194989418] },
+        "other_financial_assets": { "note": 3, "values": [4022569, 2522569] },
+        "deferred_tax": { "note": 5, "values": [6666669, 1163628] },
+        "total": { "values": [195839238, 198675615] }
+      },
+      "current_assets": {
+        "trade_and_other_receivables": { "note": 6, "values": [6395135, 4847028] },
+        "cash_and_cash_equivalents": { "note": 7, "values": [4382257, 3983266] },
+        "total": { "values": [10777392, 8830294] }
+      },
+      "total_assets": { "values": [206616630, 207505909] }
+    },
+    "equity_and_liabilities": {
+      "equity": {
+        "share_capital": { "note": 8, "values": [100, 100] },
+        "accumulated_loss": { "values": [-21561080, -3153671] },
+        "total_equity": { "values": [-21560980, -3153571] }
+      },
+      "non_current_liabilities": {
+        "other_financial_liabilities": { "note": 9, "values": [223895940, 206571595] },
+        "total": { "values": [223895940, 206571595] }
+      },
+      "current_liabilities": {
+        "trade_and_other_payables": { "note": 10, "values": [4254670, 4060885] },
+        "provisions": { "note": 11, "values": [27000, 27000] },
+        "total": { "values": [4281670, 4087885] }
+      },
+      "total_liabilities": { "values": [228177610, 210659480] },
+      "total_equity_and_liabilities": { "values": [206616630, 207505909] }
+    }
+  },
+  "statement_of_comprehensive_income": {
+    "revenue": { "note": 12, "values": [19276382, 18310574] },
+    "other_income": { "note": 13, "values": [12944772, 13449370] },
+    "operating_expenses": { "values": [-34959322, -12714704] },
+    "operating_profit_loss": { "values": [-2738168, 19045240] },
+    "investment_revenue": { "note": 14, "values": [305699, 200618] },
+    "finance_costs": { "note": 15, "values": [-21477981, -21477981] },
+    "profit_loss_before_taxation": { "values": [-23910450, -2232123] },
+    "taxation": { "note": 16, "values": [5503041, 155090] },
+    "profit_loss_for_the_year": { "values": [-18407409, -2077033] }
+  },
+  "statement_of_cash_flows": {
+    "operating": {
+      "cash_generated_from_operations": { "note": 17, "values": [13856786, 12403780] },
+      "interest_income": { "values": [305699, 200618] },
+      "finance_costs": { "values": [-21477981, -21477981] },
+      "tax_paid": { "values": [-305699, 0] },
+      "net": { "values": [-7621195, -8873583] }
+    },
+    "investing": {
+      "purchase_investment_property": { "values": [-7804159, -107879418] },
+      "movement_other_financial_assets": { "values": [-1500000, -2522569] },
+      "net": { "values": [-9304159, -110401987] }
+    },
+    "financing": {
+      "movement_other_financial_liabilities": { "values": [17324345, 119275570] },
+      "net": { "values": [17324345, 119275570] }
+    },
+    "net_change": { "values": [398991, 0] },
+    "closing_cash": { "note": 7, "values": [4382257, 3983266] }
+  },
+  "statement_of_changes_in_equity": {
+    "columns": ["share_capital", "accumulated_loss", "total_equity"],
+    "balance_2023_03_01": [100, -1076538, -1076438],
+    "loss_2024": [null, -2077133, -2077133],
+    "balance_2024_03_01": [100, -3153671, -3153571],
+    "loss_2025": [null, -18407409, -18407409],
+    "balance_2025_02_28": [100, -21561080, -21560980]
+  }
+}

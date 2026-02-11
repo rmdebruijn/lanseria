@@ -79,10 +79,8 @@ def load_config(name: str) -> dict:
 @st.cache_data(ttl=3600)
 def load_about_content() -> dict:
     """Load ABOUT tabs content from markdown file (cached 1 hour)."""
-    # Path to ABOUT_TABS_CONTENT.md in parent directory
-    # __file__ is in model/app.py, we need ../ABOUT_TABS_CONTENT.md
-    model_dir = Path(__file__).parent  # .../11. Financial Model/model/
-    about_file = model_dir.parent / "ABOUT_TABS_CONTENT.md"  # .../11. Financial Model/ABOUT_TABS_CONTENT.md
+    model_dir = Path(__file__).parent
+    about_file = model_dir / "content" / "ABOUT_TABS_CONTENT.md"
     if not about_file.exists():
         return {}
 
@@ -134,10 +132,8 @@ def load_content_md(filename: str) -> dict:
     Returns dict mapping lowercase entity keys to their markdown content.
     Sub-sections (### heading) are preserved as-is within each entity block.
     """
-    model_dir = Path(__file__).parent  # .../11. Financial Model/model/
-    md_file = model_dir / "content" / filename  # in-repo: model/content/
-    if not md_file.exists():
-        md_file = model_dir.parent / filename  # fallback: parent dir (local dev)
+    model_dir = Path(__file__).parent
+    md_file = model_dir / "content" / filename
     if not md_file.exists():
         return {}
 
@@ -179,8 +175,6 @@ def _parse_svg_content_md(filename: str) -> dict:
     model_dir = Path(__file__).parent
     md_file = model_dir / "content" / filename
     if not md_file.exists():
-        md_file = model_dir.parent / filename
-    if not md_file.exists():
         return {}
     with open(md_file, 'r', encoding='utf-8') as f:
         content = f.read()
@@ -205,8 +199,6 @@ def load_svg_patched(svg_filename: str, md_filename: str) -> str:
     """
     model_dir = Path(__file__).parent
     svg_path = model_dir / "assets" / svg_filename
-    if not svg_path.exists():
-        svg_path = model_dir.parent / svg_filename  # legacy fallback
     if not svg_path.exists():
         return ""
     with open(svg_path, 'r', encoding='utf-8') as f:
@@ -9291,21 +9283,6 @@ revenue contracts (Layer 3) upstream through SCLCA to Invest International Capit
                             st.divider()
                             _render_email_qa(_guar_cfg_twx)
 
-                        # ── Sales Pipeline ──
-                        st.divider()
-                        with st.container(border=True):
-                            st.markdown("##### Timber Panel Fabrication Pipeline")
-                            _pip1, _pip2, _pip3 = st.columns(3)
-                            _pip1.metric("Pipeline Value", "R177.9M", delta="10 projects")
-                            _pip2.metric("Phase 1 (near-term)", "R90.4M", delta="9 projects")
-                            _pip3.metric("Phase 2 (Limbro Park)", "R87.5M", delta="DBSA Green Fund")
-                            st.caption(
-                                "Key projects: NBI Youth Centres (R68M, KfW funded, Aug 2026), "
-                                "Limbro Park Development (R87.5M, DBSA, Jun 2027), "
-                                "Giants Castle Lodge (R5.1M, May 2026), Garden Route (R6.1M, secured). "
-                                "All via Green Block Construction."
-                            )
-
                     # LanRED: underwriter OR swap (show both, grey out unselected)
                     elif entity_key == 'lanred':
                         _lanred_uw_on = st.session_state.get("lanred_scenario", "Greenfield") == "Greenfield"
@@ -10057,7 +10034,7 @@ authenticator.logout("Logout", location="sidebar", key="sidebar_logout")
 st.sidebar.caption("NexusNovus | Financial Model")
 
 # ── Guarantor JSON helpers (module-level for use across entity tabs) ──
-_GUARANTOR_ROOT = Path(__file__).parent.parent.parent / "context" / "Guarantor"
+_GUARANTOR_ROOT = Path(__file__).parent / "data" / "guarantor"
 
 @st.cache_data(ttl=300)
 def _load_guarantor_config() -> dict:
@@ -14243,14 +14220,6 @@ surplus is allocated at {ek_label} level: Ops Reserve -> OpCo DSRA ->
                             _m1.metric("Installed Capacity", f"{_mkt.get('installed_capacity_mld', 0)} MLD")
                             _m2.metric("Latent Demand", f"{_mkt.get('latent_demand_mld', 0)} MLD")
                             _m3.metric("Growth Headroom", f"{_mkt.get('growth_headroom', 0):.0f}x")
-
-                    # TWX: sales pipeline summary
-                    if sub_key == 'timberworx':
-                        st.markdown("**Timber Panel Fabrication Pipeline**")
-                        _tp1, _tp2, _tp3 = st.columns(3)
-                        _tp1.metric("Pipeline Value", "R177.9M", delta="10 projects")
-                        _tp2.metric("Phase 1 (near-term)", "R90.4M", delta="9 projects")
-                        _tp3.metric("Phase 2 (Limbro Park)", "R87.5M", delta="DBSA Green Fund")
 
     # --- FX ---
     # --- DELIVERY ---

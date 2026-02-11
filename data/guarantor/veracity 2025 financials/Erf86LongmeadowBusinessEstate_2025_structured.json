@@ -1,0 +1,97 @@
+{
+  "metadata": {
+    "extraction_level": "L4_highest_quality",
+    "extraction_date": "2026-02-10",
+    "document_type": "reviewed_annual_financial_statements",
+    "entity": {
+      "legal_name": "Erf 86 Longmeadow Business Estate (Pty) Ltd",
+      "registration_number": "2021/754274/07",
+      "country": "South Africa",
+      "nature_of_business": "Investment property holding"
+    },
+    "reporting_period": { "year_end_date": "2025-02-28", "prior_year_end_date": "2024-03-01", "current_year_label": "2025", "prior_year_label": "2024" },
+    "accounting_framework": "IFRS for Small and Medium-sized Entities",
+    "currency": "ZAR",
+    "auditor": { "name": "KCE Accountants and Auditors Inc", "designation": "Reviewed" },
+    "presentation_columns": ["2025", "2024"],
+    "verification_checksums": {
+      "cy_2025": { "total_assets": 46898084, "total_equity_and_liabilities": 46898084, "balance_check": true },
+      "py_2024": { "total_assets": 48096506, "total_equity_and_liabilities": 48096506, "balance_check": true }
+    }
+  },
+  "statement_of_financial_position": {
+    "as_at_date": "2025-02-28",
+    "assets": {
+      "non_current_assets": {
+        "investment_property": { "note": 2, "values": [46723682, 48000000] },
+        "deferred_tax": { "note": 8, "values": [13904, null] },
+        "total": { "values": [46737586, 48000000] }
+      },
+      "current_assets": {
+        "trade_and_other_receivables": { "note": 3, "values": [159370, 95115] },
+        "cash_and_cash_equivalents": { "note": 4, "values": [1128, 1391] },
+        "total": { "values": [160498, 96506] }
+      },
+      "total_assets": { "values": [46898084, 48096506] }
+    },
+    "equity_and_liabilities": {
+      "equity": {
+        "share_capital": { "note": 5, "values": [100, 100] },
+        "retained_income": { "values": [2673354, 4562266] },
+        "total_equity": { "values": [2673454, 4562366] }
+      },
+      "non_current_liabilities": {
+        "loans_from_shareholders": { "note": 6, "values": [460272, 1851052] },
+        "other_financial_liabilities": { "note": 7, "values": [42358812, 39420020] },
+        "deferred_tax": { "note": 8, "values": [null, 1059937] },
+        "total": { "values": [42819084, 42331009] }
+      },
+      "current_liabilities": {
+        "trade_and_other_payables": { "note": 9, "values": [1380546, 1178131] },
+        "provisions": { "note": 10, "values": [25000, 25000] },
+        "total": { "values": [1405546, 1203131] }
+      },
+      "total_liabilities": { "values": [44224630, 43534140] },
+      "total_equity_and_liabilities": { "values": [46898084, 48096506] }
+    }
+  },
+  "statement_of_comprehensive_income": {
+    "revenue": { "note": 11, "values": [3845279, 3338337] },
+    "other_income": { "note": 12, "values": [2016915, 1606285] },
+    "operating_expenses": { "values": [-2685568, -1944673] },
+    "operating_profit": { "values": [3176626, 2999949] },
+    "investment_revenue": { "note": 13, "values": [14249, 71902] },
+    "fair_value_adjustments": { "note": 2, "values": [null, 8523682] },
+    "finance_costs": { "note": 14, "values": [-6153628, -5547044] },
+    "profit_loss_before_taxation": { "values": [-2962753, 6048489] },
+    "taxation": { "note": 15, "values": [1073841, -1176994] },
+    "profit_loss_for_the_year": { "values": [-1888912, 4871495] }
+  },
+  "statement_of_cash_flows": {
+    "operating": {
+      "cash_generated_from_operations": { "note": 17, "values": [3314786, 4492416] },
+      "interest_income": { "values": [14249, 71902] },
+      "finance_costs": { "values": [-6153628, -5547044] },
+      "net": { "values": [-2824593, -982726] }
+    },
+    "investing": {
+      "sale_of_investment_property": { "note": 2, "values": [1276318, null] },
+      "net": { "values": [1276318, null] }
+    },
+    "financing": {
+      "net_movement_other_financial_liabilities": { "values": [2938792, 1623228] },
+      "repayment_shareholders_loan": { "values": [-1390780, -771663] },
+      "net": { "values": [1548012, 851565] }
+    },
+    "net_change": { "values": [-263, -131161] },
+    "closing_cash": { "note": 4, "values": [1128, 1392] }
+  },
+  "statement_of_changes_in_equity": {
+    "columns": ["share_capital", "retained_income", "total_equity"],
+    "balance_2023_03_01": [100, -309229, -309129],
+    "profit_2024": [null, 4871495, 4871495],
+    "balance_2024_03_01": [100, 4562266, 4562366],
+    "loss_2025": [null, -1888912, -1888912],
+    "balance_2025_02_28": [100, 2673354, 2673454]
+  }
+}

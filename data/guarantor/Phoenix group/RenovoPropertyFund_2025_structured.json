@@ -1,0 +1,72 @@
+{
+  "metadata": {
+    "extraction_level": "L4_highest_quality",
+    "extraction_date": "2026-02-10",
+    "document_type": "reviewed_annual_financial_statements",
+    "entity": {
+      "legal_name": "Renovo Property Fund (Pty) Ltd",
+      "registration_number": "2021/881720/07",
+      "country": "South Africa",
+      "nature_of_business": "Investment holding company"
+    },
+    "reporting_period": { "year_end_date": "2025-02-28", "prior_year_end_date": "2024-03-01", "current_year_label": "2025", "prior_year_label": "2024" },
+    "accounting_framework": "IFRS for Small and Medium-sized Entities",
+    "currency": "ZAR",
+    "auditor": { "name": "KCE Accountants and Auditors Inc", "designation": "Reviewed" },
+    "presentation_columns": ["2025", "2024"],
+    "guarantor_group": "phoenix",
+    "verification_checksums": {
+      "cy_2025": { "total_assets": 16412115, "total_equity_and_liabilities": 16412115, "balance_check": true },
+      "py_2024": { "total_assets": 1260734, "total_equity_and_liabilities": 1260734, "balance_check": true }
+    },
+    "notes": {
+      "holding_company": true,
+      "subsidiaries": [
+        { "name": "Madelief Shopping Centre (Pty) Ltd", "ownership": 1.0 }
+      ],
+      "shareholders": [
+        { "name": "Trillium Holdings 1 (Pty) Ltd" },
+        { "name": "Veracity Property Investments (Pty) Ltd" }
+      ]
+    }
+  },
+  "statement_of_financial_position": {
+    "as_at_date": "2025-02-28",
+    "assets": {
+      "non_current_assets": {
+        "investments_in_subsidiaries": { "note": 2, "values": [16412115, 1260734] },
+        "total": { "values": [16412115, 1260734] }
+      },
+      "total_assets": { "values": [16412115, 1260734] }
+    },
+    "equity_and_liabilities": {
+      "equity": {
+        "share_capital": { "note": 3, "values": [100, 100] },
+        "retained_income": { "values": [16412015, 1260634] },
+        "total_equity": { "values": [16412115, 1260734] }
+      },
+      "total_equity_and_liabilities": { "values": [16412115, 1260734] }
+    }
+  },
+  "statement_of_comprehensive_income": {
+    "other_income": { "values": [15151381, 1260634] },
+    "profit_before_taxation": { "values": [15151381, 1260634] },
+    "taxation": { "values": [null, null] },
+    "profit_for_the_year": { "values": [15151381, 1260634] }
+  },
+  "statement_of_cash_flows": {
+    "operating": {
+      "net": { "values": [null, null] }
+    },
+    "net_change": { "values": [null, null] },
+    "closing_cash": { "values": [null, null] }
+  },
+  "statement_of_changes_in_equity": {
+    "columns": ["share_capital", "retained_income", "total_equity"],
+    "balance_2023_03_01": [100, null, 100],
+    "profit_2024": [null, 1260634, 1260634],
+    "balance_2024_03_01": [100, 1260634, 1260734],
+    "profit_2025": [null, 15151381, 15151381],
+    "balance_2025_02_28": [100, 16412015, 16412115]
+  }
+}

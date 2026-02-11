@@ -1,0 +1,99 @@
+{
+  "metadata": {
+    "extraction_level": "L4_highest_quality",
+    "extraction_date": "2026-02-10",
+    "document_type": "audited_annual_financial_statements",
+    "entity": {
+      "legal_name": "6 On Kloof Proprietary Limited",
+      "registration_number": "2021/875872/07",
+      "country": "South Africa",
+      "nature_of_business": "Investment property holding, rental income, hotel management and operation"
+    },
+    "reporting_period": { "year_end_date": "2025-02-28", "prior_year_end_date": "2024-02-29", "current_year_label": "2025", "prior_year_label": "2024" },
+    "accounting_framework": "IFRS for Small and Medium-sized Entities",
+    "currency": "ZAR",
+    "auditor": { "name": "AC Venter Incorporated", "designation": "Audited" },
+    "presentation_columns": ["2025", "2024"],
+    "presentation_type": "consolidated",
+    "verification_checksums": {
+      "cy_2025": { "total_assets": 93248842, "total_equity_and_liabilities": 93248842, "balance_check": true },
+      "py_2024": { "total_assets": 34281171, "total_equity_and_liabilities": 34281171, "balance_check": true }
+    }
+  },
+  "statement_of_financial_position": {
+    "as_at_date": "2025-02-28",
+    "assets": {
+      "non_current_assets": {
+        "property_plant_equipment": { "note": 2, "values": [5524122, null] },
+        "investment_property": { "note": 3, "values": [80011663, 31899086] },
+        "deferred_tax": { "note": 4, "values": [2057617, 372930] },
+        "total": { "values": [87593402, 32272016] }
+      },
+      "current_assets": {
+        "cash_and_cash_equivalents": { "note": 5, "values": [5221817, 863764] },
+        "trade_and_other_receivables": { "note": 6, "values": [433623, 1145391] },
+        "total": { "values": [5655440, 2009155] }
+      },
+      "total_assets": { "values": [93248842, 34281171] }
+    },
+    "equity_and_liabilities": {
+      "equity": {
+        "share_capital": { "note": 7, "values": [null, null] },
+        "retained_income": { "values": [1318816, -1008292] },
+        "total_equity": { "values": [1318816, -1008292] }
+      },
+      "non_current_liabilities": {
+        "other_financial_liabilities": { "note": 8, "values": [71134863, 22758171] },
+        "deferred_tax": { "note": 4, "values": [2113273, null] },
+        "total": { "values": [73248136, 22758171] }
+      },
+      "current_liabilities": {
+        "trade_and_other_payables": { "note": 9, "values": [882282, 3767950] },
+        "loans_from_shareholders": { "note": 10, "values": [17799608, 8763342] },
+        "total": { "values": [18681890, 12531292] }
+      },
+      "total_liabilities": { "values": [91930026, 35289463] },
+      "total_equity_and_liabilities": { "values": [93248842, 34281171] }
+    }
+  },
+  "statement_of_comprehensive_income": {
+    "revenue": { "note": 11, "values": [5983850, null] },
+    "other_operating_income": { "note": 12, "values": [18771, null] },
+    "other_operating_gain": { "note": 13, "values": [5888834, null] },
+    "operating_expenses": { "values": [-3060823, -122145] },
+    "operating_profit_loss": { "note": 14, "values": [8830632, -122145] },
+    "investment_income": { "note": 15, "values": [null, 8718] },
+    "finance_costs": { "note": 16, "values": [-6074938, -1267795] },
+    "profit_loss_before_taxation": { "values": [2755694, -1381222] },
+    "taxation": { "note": 17, "values": [-428586, 372930] },
+    "profit_loss_for_the_year": { "values": [2327108, -1008292] }
+  },
+  "statement_of_cash_flows": {
+    "operating": {
+      "cash_generated_from_operations": { "note": 18, "values": [929867, 2500414] },
+      "interest_received": { "values": [null, 8718] },
+      "finance_costs": { "values": [-6074938, -1267795] },
+      "net": { "values": [-5145071, 1241337] }
+    },
+    "investing": {
+      "purchase_ppe": { "note": 2, "values": [-5686091, null] },
+      "additions_investment_property": { "note": 3, "values": [-42223743, -31899086] },
+      "net": { "values": [-47909834, -31899086] }
+    },
+    "financing": {
+      "proceeds_other_financial_liabilities": { "values": [48376692, 22758171] },
+      "proceeds_shareholder_loans": { "values": [9036266, 8763342] },
+      "net": { "values": [57412958, 31521513] }
+    },
+    "net_change": { "values": [4358053, 863764] },
+    "closing_cash": { "note": 5, "values": [5221817, 863764] }
+  },
+  "statement_of_changes_in_equity": {
+    "columns": ["share_capital", "retained_income", "total_equity"],
+    "balance_2023_03_01": [null, null, null],
+    "loss_2024": [null, -1008292, -1008292],
+    "balance_2024_02_29": [null, -1008292, -1008292],
+    "profit_2025": [null, 2327108, 2327108],
+    "balance_2025_02_28": [null, 1318816, 1318816]
+  }
+}

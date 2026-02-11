@@ -1,0 +1,70 @@
+{
+  "metadata": {
+    "extraction_level": "L4_highest_quality",
+    "extraction_date": "2026-02-10",
+    "document_type": "reviewed_annual_financial_statements",
+    "entity": {
+      "legal_name": "Chartwell Co-Owner Company (Pty) Ltd",
+      "registration_number": "2021/332563/07",
+      "country": "South Africa",
+      "nature_of_business": "Property co-ownership management"
+    },
+    "reporting_period": { "year_end_date": "2025-02-28", "prior_year_end_date": "2024-03-01", "current_year_label": "2025", "prior_year_label": "2024" },
+    "accounting_framework": "IFRS for Small and Medium-sized Entities",
+    "currency": "ZAR",
+    "auditor": { "name": "KCE Accountants and Auditors Inc", "designation": "Reviewed" },
+    "presentation_columns": ["2025", "2024"],
+    "guarantor_group": "phoenix",
+    "verification_checksums": {
+      "cy_2025": { "total_assets": 3743002, "total_equity_and_liabilities": 3743002, "balance_check": true },
+      "py_2024": { "total_assets": 3165943, "total_equity_and_liabilities": 3165943, "balance_check": true }
+    },
+    "notes": {
+      "pass_through_entity": true,
+      "pass_through_comment": "Zero net income entity — all revenue and expenses pass through to co-owners"
+    }
+  },
+  "statement_of_financial_position": {
+    "as_at_date": "2025-02-28",
+    "assets": {
+      "non_current_assets": {
+        "other_financial_assets": { "note": 2, "values": [759857, 566057] },
+        "total": { "values": [759857, 566057] }
+      },
+      "current_assets": {
+        "trade_and_other_receivables": { "note": 3, "values": [1294327, 1085649] },
+        "prepayments": { "values": [343137, 250958] },
+        "cash_and_cash_equivalents": { "note": 4, "values": [1345681, 1263279] },
+        "total": { "values": [2983145, 2599886] }
+      },
+      "total_assets": { "values": [3743002, 3165943] }
+    },
+    "equity_and_liabilities": {
+      "equity": {
+        "share_capital": { "values": [100, 100] },
+        "retained_income": { "values": [1, 1] },
+        "total_equity": { "values": [101, 101] }
+      },
+      "current_liabilities": {
+        "trade_and_other_payables": { "note": 5, "values": [3742901, 3165842] },
+        "total": { "values": [3742901, 3165842] }
+      },
+      "total_liabilities": { "values": [3742901, 3165842] },
+      "total_equity_and_liabilities": { "values": [3743002, 3165943] }
+    }
+  },
+  "statement_of_comprehensive_income": {
+    "revenue": { "note": 6, "values": [17947578, 15912541] },
+    "other_income": { "values": [10966776, 9455832] },
+    "operating_expenses": { "values": [-29038954, -25368373] },
+    "operating_loss": { "values": [-124600, 0] },
+    "other_comprehensive_income": { "values": [124600, 0] },
+    "total_comprehensive_income": { "values": [0, 0] }
+  },
+  "statement_of_changes_in_equity": {
+    "columns": ["share_capital", "retained_income", "total_equity"],
+    "balance_2023_03_01": [100, 1, 101],
+    "balance_2024_03_01": [100, 1, 101],
+    "balance_2025_02_28": [100, 1, 101]
+  }
+}

@@ -1,0 +1,52 @@
+{
+  "metadata": {
+    "extraction_level": "L4_highest_quality",
+    "extraction_date": "2026-02-10",
+    "document_type": "reviewed_annual_financial_statements",
+    "entity": {
+      "legal_name": "Cornerstone Property Group (Pty) Ltd",
+      "registration_number": "2022/394506/07",
+      "country": "South Africa",
+      "nature_of_business": "Investment holding company"
+    },
+    "reporting_period": { "year_end_date": "2025-02-28", "prior_year_end_date": "2024-03-01", "current_year_label": "2025", "prior_year_label": "2024" },
+    "accounting_framework": "IFRS for Small and Medium-sized Entities",
+    "currency": "ZAR",
+    "auditor": { "name": "KCE Accountants and Auditors Inc", "designation": "Reviewed" },
+    "presentation_columns": ["2025", "2024"],
+    "verification_checksums": {
+      "cy_2025": { "total_assets": 160, "total_equity_and_liabilities": 160, "balance_check": true },
+      "py_2024": { "total_assets": 160, "total_equity_and_liabilities": 160, "balance_check": true }
+    }
+  },
+  "statement_of_financial_position": {
+    "as_at_date": "2025-02-28",
+    "assets": {
+      "non_current_assets": {
+        "investments_in_subsidiaries": { "values": [160, 160] },
+        "total": { "values": [160, 160] }
+      },
+      "total_assets": { "values": [160, 160] }
+    },
+    "equity_and_liabilities": {
+      "equity": {
+        "share_capital": { "values": [120, 120] },
+        "total_equity": { "values": [120, 120] }
+      },
+      "current_liabilities": {
+        "trade_and_other_payables": { "values": [40, 40] },
+        "total": { "values": [40, 40] }
+      },
+      "total_liabilities": { "values": [40, 40] },
+      "total_equity_and_liabilities": { "values": [160, 160] }
+    }
+  },
+  "statement_of_comprehensive_income": null,
+  "statement_of_cash_flows": null,
+  "statement_of_changes_in_equity": {
+    "columns": ["share_capital", "total_equity"],
+    "balance_2023_03_01": [120, 120],
+    "balance_2024_03_01": [120, 120],
+    "balance_2025_02_28": [120, 120]
+  }
+}

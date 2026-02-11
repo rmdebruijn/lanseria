@@ -1,0 +1,98 @@
+{
+  "metadata": {
+    "extraction_level": "L4_highest_quality",
+    "extraction_date": "2026-02-10",
+    "document_type": "reviewed_annual_financial_statements",
+    "entity": {
+      "legal_name": "Uvongo Falls No 26 Proprietary Limited",
+      "registration_number": "2000/031067/07",
+      "country": "South Africa",
+      "nature_of_business": "Investment property holding"
+    },
+    "reporting_period": { "year_end_date": "2025-02-28", "prior_year_end_date": "2024-03-01", "current_year_label": "2025", "prior_year_label": "2024" },
+    "accounting_framework": "SMEs Accounting Standard",
+    "currency": "ZAR",
+    "auditor": { "name": "Stein Registered Auditors", "designation": "Reviewed" },
+    "presentation_columns": ["2025", "2024"],
+    "going_concern": false,
+    "going_concern_note": "The directors do not believe that the company has adequate financial resources to continue in operation for the foreseeable future. The annual financial statements have accordingly not been prepared on the going concern basis.",
+    "verification_checksums": {
+      "cy_2025": { "total_assets": 340201994, "total_equity_and_liabilities": 340201994, "balance_check": true },
+      "py_2024": { "total_assets": 353944587, "total_equity_and_liabilities": 353944587, "balance_check": true }
+    }
+  },
+  "statement_of_financial_position": {
+    "as_at_date": "2025-02-28",
+    "assets": {
+      "non_current_assets": {
+        "property_plant_equipment": { "note": 2, "values": [null, null] },
+        "investment_property": { "note": 3, "values": [336919312, 336919312] },
+        "deferred_tax": { "note": 4, "values": [749806, null] },
+        "total": { "values": [337669118, 336919312] }
+      },
+      "current_assets": {
+        "trade_and_other_receivables": { "note": 5, "values": [2444607, 15434020] },
+        "cash_and_cash_equivalents": { "note": 6, "values": [88269, 1591255] },
+        "total": { "values": [2532876, 17025275] }
+      },
+      "total_assets": { "values": [340201994, 353944587] }
+    },
+    "equity_and_liabilities": {
+      "equity": {
+        "stated_capital": { "note": 7, "values": [1000, 1000] },
+        "retained_income": { "values": [12403832, 19200959] },
+        "total_equity": { "values": [12404832, 19201959] }
+      },
+      "non_current_liabilities": {
+        "other_financial_liabilities": { "note": 8, "values": [215452019, 210166135] },
+        "deferred_tax": { "note": 4, "values": [null, 1764200] },
+        "total": { "values": [215452019, 211930335] }
+      },
+      "current_liabilities": {
+        "trade_and_other_payables": { "note": 9, "values": [3861913, 8364661] },
+        "loans_from_shareholders": { "note": 10, "values": [108483230, 114447632] },
+        "total": { "values": [112345143, 122812293] }
+      },
+      "total_liabilities": { "values": [327797162, 334742628] },
+      "total_equity_and_liabilities": { "values": [340201994, 353944587] }
+    }
+  },
+  "statement_of_comprehensive_income": {
+    "revenue": { "note": 11, "values": [29866523, 36462048] },
+    "other_income": { "values": [76740, 45039] },
+    "operating_expenses": { "note": 12, "values": [-18659820, -17967250] },
+    "operating_profit": { "values": [11283443, 18539837] },
+    "investment_revenue": { "values": [392880, 956994] },
+    "finance_costs": { "values": [-20987456, -20487495] },
+    "loss_before_taxation": { "values": [-9311133, -990664] },
+    "taxation": { "note": 13, "values": [2514006, 255329] },
+    "loss_for_the_year": { "values": [-6797127, -735335] }
+  },
+  "statement_of_cash_flows": {
+    "operating": {
+      "cash_generated_from_operations": { "note": 14, "values": [21184641, 20311258] },
+      "interest_income": { "values": [392880, 956994] },
+      "finance_costs": { "values": [-20987456, -20487495] },
+      "net": { "values": [590265, 780757] }
+    },
+    "investing": {
+      "purchase_investment_property": { "note": 3, "values": [null, -170312] },
+      "net": { "values": [null, -170312] }
+    },
+    "financing": {
+      "decrease_shareholder_loans": { "values": [-7379135, null] },
+      "increase_other_financial_liabilities": { "values": [5285884, 287177] },
+      "net": { "values": [-2093251, 287177] }
+    },
+    "net_change": { "values": [-1502986, 897622] },
+    "closing_cash": { "note": 6, "values": [88269, 1591255] }
+  },
+  "statement_of_changes_in_equity": {
+    "columns": ["stated_capital", "retained_income", "total_equity"],
+    "balance_2023_03_01": [1000, 19936294, 19937294],
+    "loss_2024": [null, -735335, -735335],
+    "balance_2024_03_01": [1000, 19200959, 19201959],
+    "loss_2025": [null, -6797127, -6797127],
+    "balance_2025_02_28": [1000, 12403832, 12404832]
+  }
+}

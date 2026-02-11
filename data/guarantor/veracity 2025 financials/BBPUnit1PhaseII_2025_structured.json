@@ -1,0 +1,72 @@
+{
+  "metadata": {
+    "extraction_level": "L4_highest_quality",
+    "extraction_date": "2026-02-10",
+    "document_type": "compiled_annual_financial_statements",
+    "entity": {
+      "legal_name": "BBP Unit 1 Phase II (Pty) Ltd",
+      "registration_number": "2023/114073/07",
+      "country": "South Africa",
+      "nature_of_business": "Investment property holding",
+      "formerly": "CC 1997/034107/23"
+    },
+    "reporting_period": { "year_end_date": "2025-02-28", "prior_year_end_date": "2024-03-01", "current_year_label": "2025", "prior_year_label": "2024" },
+    "accounting_framework": "IFRS for Small and Medium-sized Entities",
+    "currency": "ZAR",
+    "auditor": { "name": "KCE Accountants and Auditors Inc", "designation": "Compiled" },
+    "presentation_columns": ["2025", "2024"],
+    "verification_checksums": {
+      "cy_2025": { "total_assets": 2863483, "total_equity_and_liabilities": 2863483, "balance_check": true },
+      "py_2024": { "total_assets": 2803913, "total_equity_and_liabilities": 2803913, "balance_check": true }
+    }
+  },
+  "statement_of_financial_position": {
+    "as_at_date": "2025-02-28",
+    "assets": {
+      "non_current_assets": {
+        "property_plant_equipment": { "values": [21620, null] },
+        "investment_property": { "note": 2, "values": [2803913, 2803913] },
+        "total": { "values": [2825533, 2803913] }
+      },
+      "current_assets": {
+        "trade_and_other_receivables": { "values": [37950, null] },
+        "total": { "values": [37950, 0] }
+      },
+      "total_assets": { "values": [2863483, 2803913] }
+    },
+    "equity_and_liabilities": {
+      "equity": {
+        "share_capital": { "values": [100, 100] },
+        "retained_income": { "values": [1273543, 1192664] },
+        "total_equity": { "values": [1273643, 1192764] }
+      },
+      "non_current_liabilities": {
+        "other_financial_liabilities": { "values": [1071192, 1205460] },
+        "deferred_tax": { "values": [378000, 378000] },
+        "total": { "values": [1449192, 1583460] }
+      },
+      "current_liabilities": {
+        "trade_and_other_payables": { "values": [21100, 24724] },
+        "loans_from_group": { "values": [119344, null] },
+        "current_tax": { "values": [204, 2965] },
+        "total": { "values": [140648, 27689] }
+      },
+      "total_liabilities": { "values": [1589840, 1611149] },
+      "total_equity_and_liabilities": { "values": [2863483, 2803913] }
+    }
+  },
+  "statement_of_comprehensive_income": {
+    "revenue": { "values": [396000, 396000] },
+    "operating_expenses": { "values": [-155984, -135879] },
+    "operating_profit": { "values": [240016, 260121] },
+    "finance_costs": { "values": [-128837, -139836] },
+    "profit_before_taxation": { "values": [111179, 120285] },
+    "taxation": { "values": [-30300, -32477] },
+    "profit_for_the_year": { "values": [80879, 87808] }
+  },
+  "statement_of_cash_flows": {
+    "operating": { "net": { "values": [36910, 99178] } },
+    "investing": { "net": { "values": [-21986, 1647844] } },
+    "financing": { "net": { "values": [-14924, -1747020] } }
+  }
+}

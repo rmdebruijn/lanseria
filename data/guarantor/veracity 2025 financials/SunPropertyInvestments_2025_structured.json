@@ -1,0 +1,99 @@
+{
+  "metadata": {
+    "extraction_level": "L4_highest_quality",
+    "extraction_date": "2026-02-10",
+    "document_type": "reviewed_annual_financial_statements",
+    "entity": {
+      "legal_name": "Sun Property Investments (Pty) Ltd",
+      "registration_number": "2018/572479/07",
+      "country": "South Africa",
+      "nature_of_business": "Investment holding company"
+    },
+    "reporting_period": { "year_end_date": "2025-02-28", "prior_year_end_date": "2024-03-01", "current_year_label": "2025", "prior_year_label": "2024" },
+    "accounting_framework": "IFRS for Small and Medium-sized Entities",
+    "currency": "ZAR",
+    "auditor": { "name": "KCE Accountants and Auditors Inc", "designation": "Reviewed" },
+    "presentation_columns": ["2025", "2024"],
+    "verification_checksums": {
+      "cy_2025": { "total_assets": 7632750, "total_equity_and_liabilities": 7632750, "balance_check": true },
+      "py_2024": { "total_assets": 3315656, "total_equity_and_liabilities": 3315656, "balance_check": true }
+    },
+    "notes": {
+      "negative_equity": true,
+      "negative_equity_comment": "Accumulated losses exceed share capital resulting in negative total equity"
+    }
+  },
+  "statement_of_financial_position": {
+    "as_at_date": "2025-02-28",
+    "assets": {
+      "non_current_assets": {
+        "investments_in_associates": { "note": 3, "values": [329729, 25] },
+        "loans_to_group_companies": { "note": 4, "values": [4447410, 1622294] },
+        "deferred_tax": { "note": 5, "values": [2577568, 1409959] },
+        "total": { "values": [7354707, 3032278] }
+      },
+      "current_assets": {
+        "trade_and_other_receivables": { "note": 6, "values": [277891, 277871] },
+        "cash_and_cash_equivalents": { "note": 7, "values": [152, 5507] },
+        "total": { "values": [278043, 283378] }
+      },
+      "total_assets": { "values": [7632750, 3315656] }
+    },
+    "equity_and_liabilities": {
+      "equity": {
+        "share_capital": { "note": 8, "values": [100, 100] },
+        "accumulated_loss": { "values": [-8692341, -5925573] },
+        "total_equity": { "values": [-8692241, -5925473] }
+      },
+      "non_current_liabilities": {
+        "loans_from_shareholders": { "note": 9, "values": [15529405, 8687129] },
+        "other_financial_liabilities": { "note": 10, "values": [500000, 500000] },
+        "total": { "values": [16029405, 9187129] }
+      },
+      "current_liabilities": {
+        "provisions": { "note": 11, "values": [295586, 54000] },
+        "total": { "values": [295586, 54000] }
+      },
+      "total_liabilities": { "values": [16324991, 9241129] },
+      "total_equity_and_liabilities": { "values": [7632750, 3315656] }
+    }
+  },
+  "statement_of_comprehensive_income": {
+    "revenue": { "values": [null, 21942] },
+    "operating_expenses": { "values": [-1992450, -3277286] },
+    "operating_loss": { "values": [-1992450, -3255344] },
+    "finance_costs": { "note": 13, "values": [-2271631, -696339] },
+    "loss_before_taxation": { "values": [-4264081, -3951683] },
+    "taxation": { "note": 14, "values": [1167609, 462481] },
+    "loss_for_the_year": { "values": [-3096472, -3489202] }
+  },
+  "statement_of_cash_flows": {
+    "operating": {
+      "cash_used_in_operations": { "note": 15, "values": [-1750884, -1561028] },
+      "finance_costs": { "values": [-2271631, -696339] },
+      "net": { "values": [-4022515, -2257367] }
+    },
+    "investing": {
+      "proceeds_sale_investment_property": { "note": 2, "values": [null, 11750000] },
+      "repayments_loans_to_group": { "values": [-2825116, null] },
+      "purchases_other_financial_assets": { "values": [null, -1622294] },
+      "net": { "values": [-2825116, 10127706] }
+    },
+    "financing": {
+      "repayments_shareholder_loans": { "values": [6842276, 1809158] },
+      "repayments_other_financial_liabilities": { "values": [null, -9699221] },
+      "net": { "values": [6842276, -7890063] }
+    },
+    "net_change": { "values": [-5355, -19724] },
+    "closing_cash": { "note": 7, "values": [152, 5507] }
+  },
+  "statement_of_changes_in_equity": {
+    "columns": ["share_capital", "accumulated_loss", "total_equity"],
+    "balance_2023_03_01": [100, -2436371, -2436271],
+    "loss_2024": [null, -3489202, -3489202],
+    "balance_2024_03_01": [100, -5925573, -5925473],
+    "loss_2025": [null, -3096472, -3096472],
+    "share_of_profit_associate": [null, 329704, 329704],
+    "balance_2025_02_28": [100, -8692341, -8692241]
+  }
+}

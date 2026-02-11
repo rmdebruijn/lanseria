@@ -1,0 +1,99 @@
+{
+  "metadata": {
+    "extraction_level": "L4_highest_quality",
+    "extraction_date": "2026-02-10",
+    "document_type": "reviewed_annual_financial_statements",
+    "entity": {
+      "legal_name": "Providence Property Investments (Pty) Ltd",
+      "registration_number": "2019/157504/07",
+      "country": "South Africa",
+      "nature_of_business": "Investment property holding"
+    },
+    "reporting_period": { "year_end_date": "2025-02-28", "prior_year_end_date": "2024-03-01", "current_year_label": "2025", "prior_year_label": "2024" },
+    "accounting_framework": "IFRS for Small and Medium-sized Entities",
+    "currency": "ZAR",
+    "auditor": { "name": "KCE Accountants and Auditors Inc", "designation": "Reviewed" },
+    "presentation_columns": ["2025", "2024"],
+    "verification_checksums": {
+      "cy_2025": { "total_assets": 91435554, "total_equity_and_liabilities": 91435554, "balance_check": true },
+      "py_2024": { "total_assets": 89820595, "total_equity_and_liabilities": 89820595, "balance_check": true }
+    }
+  },
+  "statement_of_financial_position": {
+    "as_at_date": "2025-02-28",
+    "assets": {
+      "non_current_assets": {
+        "investment_property_at_fair_value": { "note": 2, "values": [49640700, 49640700] },
+        "investments_in_associates": { "note": 3, "values": [200, 200] },
+        "loans_to_group_companies": { "note": 4, "values": [39979705, 39979705] },
+        "deferred_tax": { "note": 6, "values": [1781960, 199990] },
+        "total": { "values": [91402565, 89820595] }
+      },
+      "current_assets": {
+        "trade_and_other_receivables": { "values": [32989, null] },
+        "total": { "values": [32989, null] }
+      },
+      "total_assets": { "values": [91435554, 89820595] }
+    },
+    "equity_and_liabilities": {
+      "equity": {
+        "share_capital": { "note": 8, "values": [100, 100] },
+        "retained_income": { "values": [5126250, 9403427] },
+        "total_equity": { "values": [5126350, 9403527] }
+      },
+      "non_current_liabilities": {
+        "loans_from_shareholders": { "note": 5, "values": [14641247, 12001610] },
+        "other_financial_liabilities": { "note": 9, "values": [64092512, 61301533] },
+        "total": { "values": [78733759, 73303143] }
+      },
+      "current_liabilities": {
+        "trade_and_other_payables": { "note": 10, "values": [453100, 375926] },
+        "other_financial_liabilities": { "note": 9, "values": [5064620, 4999377] },
+        "bank_overdraft": { "note": 7, "values": [2057725, 1738622] },
+        "total": { "values": [7575445, 7113925] }
+      },
+      "total_liabilities": { "values": [86309204, 80417068] },
+      "total_equity_and_liabilities": { "values": [91435554, 89820595] }
+    }
+  },
+  "statement_of_comprehensive_income": {
+    "revenue": { "note": 11, "values": [3335787, 304414] },
+    "other_income": { "note": 12, "values": [67786, 9944140] },
+    "operating_expenses": { "values": [-1376223, -541972] },
+    "operating_profit": { "values": [2027350, 9706582] },
+    "investment_revenue": { "note": 13, "values": [30489, 2359] },
+    "finance_costs": { "note": 15, "values": [-7916986, -505504] },
+    "profit_loss_before_taxation": { "values": [-5859147, 9203437] },
+    "taxation": { "note": 16, "values": [1581970, 199990] },
+    "profit_loss_for_the_year": { "values": [-4277177, 9403427] }
+  },
+  "statement_of_cash_flows": {
+    "operating": {
+      "cash_generated_from_operations": { "note": 17, "values": [2071535, 257165] },
+      "interest_income": { "values": [30489, 2359] },
+      "finance_costs": { "values": [-7916986, -624201] },
+      "net": { "values": [-5814962, -364677] }
+    },
+    "investing": {
+      "purchase_investment_property": { "note": 2, "values": [null, -39696560] },
+      "movement_loans_to_group": { "values": [null, -39979905] },
+      "net": { "values": [null, -79676465] }
+    },
+    "financing": {
+      "movement_shareholder_loans": { "values": [2639637, 12001610] },
+      "movement_other_financial_liabilities": { "values": [2856222, null] },
+      "movement_other_financial_liabilities_2": { "values": [null, 66300910] },
+      "net": { "values": [5495859, 78302520] }
+    },
+    "net_change": { "values": [-319103, -1738622] },
+    "closing_cash": { "note": 7, "values": [-2057725, -1738622] }
+  },
+  "statement_of_changes_in_equity": {
+    "columns": ["share_capital", "retained_income", "total_equity"],
+    "balance_2023_03_01": [100, null, 100],
+    "profit_2024": [null, 9403427, 9403427],
+    "balance_2024_03_01": [100, 9403427, 9403527],
+    "loss_2025": [null, -4277177, -4277177],
+    "balance_2025_02_28": [100, 5126250, 5126350]
+  }
+}

@@ -1,0 +1,97 @@
+{
+  "metadata": {
+    "extraction_level": "L4_highest_quality",
+    "extraction_date": "2026-02-10",
+    "document_type": "reviewed_annual_financial_statements",
+    "entity": {
+      "legal_name": "Jukskei Meander (Pty) Ltd",
+      "registration_number": "2015/071990/07",
+      "country": "South Africa",
+      "nature_of_business": "Investment property holding"
+    },
+    "reporting_period": { "year_end_date": "2025-02-28", "prior_year_end_date": "2024-03-01", "current_year_label": "2025", "prior_year_label": "2024" },
+    "accounting_framework": "IFRS for Small and Medium-sized Entities",
+    "currency": "ZAR",
+    "auditor": { "name": "KCE Accountants and Auditors Inc", "designation": "Reviewed" },
+    "presentation_columns": ["2025", "2024"],
+    "guarantor_group": "phoenix",
+    "verification_checksums": {
+      "cy_2025": { "total_assets": 84661051, "total_equity_and_liabilities": 84661051, "balance_check": true },
+      "py_2024": { "total_assets": 98749516, "total_equity_and_liabilities": 98749516, "balance_check": true }
+    }
+  },
+  "statement_of_financial_position": {
+    "as_at_date": "2025-02-28",
+    "assets": {
+      "non_current_assets": {
+        "investment_property": { "note": 2, "values": [75127871, 90000000] },
+        "other_financial_assets": { "note": 3, "values": [4318527, 4248527] },
+        "total": { "values": [79446398, 94248527] }
+      },
+      "current_assets": {
+        "trade_and_other_receivables": { "note": 5, "values": [1324270, 1886287] },
+        "cash_and_cash_equivalents": { "note": 6, "values": [3890383, 2614702] },
+        "total": { "values": [5214653, 4500989] }
+      },
+      "total_assets": { "values": [84661051, 98749516] }
+    },
+    "equity_and_liabilities": {
+      "equity": {
+        "share_capital": { "note": 7, "values": [100, 100] },
+        "retained_income": { "values": [1841627, 11268524] },
+        "total_equity": { "values": [1841727, 11268624] }
+      },
+      "non_current_liabilities": {
+        "other_financial_liabilities": { "note": 8, "values": [80011859, 78499464] },
+        "deferred_tax": { "note": 4, "values": [520603, 4892028] },
+        "total": { "values": [80532462, 83391492] }
+      },
+      "current_liabilities": {
+        "trade_and_other_payables": { "note": 9, "values": [2232564, 4035102] },
+        "current_tax_payable": { "values": [27298, 27298] },
+        "provisions": { "note": 10, "values": [27000, 27000] },
+        "total": { "values": [2286862, 4089400] }
+      },
+      "total_liabilities": { "values": [82819324, 87480892] },
+      "total_equity_and_liabilities": { "values": [84661051, 98749516] }
+    }
+  },
+  "statement_of_comprehensive_income": {
+    "revenue": { "note": 11, "values": [6501297, 6330296] },
+    "other_income": { "note": 12, "values": [5332825, 17577483] },
+    "operating_expenses": { "values": [-20310374, -6006447] },
+    "operating_profit_loss": { "values": [-8476252, 17901332] },
+    "investment_revenue": { "note": 13, "values": [87796, 36932] },
+    "finance_costs": { "note": 14, "values": [-5382568, -4947636] },
+    "profit_loss_before_taxation": { "values": [-13771024, 12990628] },
+    "taxation": { "note": 15, "values": [4344127, -2854869] },
+    "profit_loss_for_the_year": { "values": [-9426897, 10135759] }
+  },
+  "statement_of_cash_flows": {
+    "operating": {
+      "cash_generated_from_operations": { "note": 16, "values": [7288178, 5218009] },
+      "interest_income": { "values": [87796, 36932] },
+      "finance_costs": { "values": [-5382568, -4947636] },
+      "tax_paid": { "values": [-175592, -83613] },
+      "net": { "values": [1817814, 223692] }
+    },
+    "investing": {
+      "movement_other_financial_assets": { "values": [-70000, -4248527] },
+      "net": { "values": [-70729, -4248527] }
+    },
+    "financing": {
+      "movement_other_financial_liabilities": { "values": [-471404, 4488595] },
+      "net": { "values": [-471404, 4488595] }
+    },
+    "net_change": { "values": [1275681, 463760] },
+    "closing_cash": { "note": 6, "values": [3890383, 2614702] }
+  },
+  "statement_of_changes_in_equity": {
+    "columns": ["share_capital", "retained_income", "total_equity"],
+    "balance_2023_03_01": [100, 1132765, 1132865],
+    "profit_2024": [null, 10135759, 10135759],
+    "balance_2024_03_01": [100, 11268524, 11268624],
+    "loss_2025": [null, -9426897, -9426897],
+    "balance_2025_02_28": [100, 1841627, 1841727]
+  }
+}

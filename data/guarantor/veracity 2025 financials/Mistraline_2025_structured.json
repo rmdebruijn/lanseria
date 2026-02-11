@@ -1,0 +1,96 @@
+{
+  "metadata": {
+    "extraction_level": "L4_highest_quality",
+    "extraction_date": "2026-02-10",
+    "document_type": "reviewed_annual_financial_statements",
+    "entity": {
+      "legal_name": "Mistraline (Pty) Ltd",
+      "registration_number": "2017/340700/07",
+      "country": "South Africa",
+      "nature_of_business": "Investment property holding"
+    },
+    "reporting_period": { "year_end_date": "2025-02-28", "prior_year_end_date": "2024-03-01", "current_year_label": "2025", "prior_year_label": "2024" },
+    "accounting_framework": "IFRS for Small and Medium-sized Entities",
+    "currency": "ZAR",
+    "auditor": { "name": "KCE Accountants and Auditors Inc", "designation": "Reviewed" },
+    "presentation_columns": ["2025", "2024"],
+    "verification_checksums": {
+      "cy_2025": { "total_assets": 170616884, "total_equity_and_liabilities": 170616884, "balance_check": true },
+      "py_2024": { "total_assets": 169883844, "total_equity_and_liabilities": 169883844, "balance_check": true }
+    }
+  },
+  "statement_of_financial_position": {
+    "as_at_date": "2025-02-28",
+    "assets": {
+      "non_current_assets": {
+        "investment_property_at_fair_value": { "note": 2, "values": [160500000, 160500000] },
+        "loans_to_shareholders": { "note": 3, "values": [6700000, 6440000] },
+        "other_financial_assets": { "note": 4, "values": [2473083, 1071000] },
+        "total": { "values": [169673083, 168011000] }
+      },
+      "current_assets": {
+        "trade_and_other_receivables": { "note": 5, "values": [452405, 944804] },
+        "cash_and_cash_equivalents": { "note": 6, "values": [491396, 928040] },
+        "total": { "values": [943801, 1872844] }
+      },
+      "total_assets": { "values": [170616884, 169883844] }
+    },
+    "equity_and_liabilities": {
+      "equity": {
+        "share_capital": { "note": 7, "values": [120, 120] },
+        "retained_income": { "values": [29293631, 28793262] },
+        "total_equity": { "values": [29293751, 28793382] }
+      },
+      "non_current_liabilities": {
+        "other_financial_liabilities": { "note": 8, "values": [125821728, 126652519] },
+        "deferred_tax": { "note": 9, "values": [7624562, 8414850] },
+        "total": { "values": [133446290, 135067369] }
+      },
+      "current_liabilities": {
+        "trade_and_other_payables": { "note": 10, "values": [6522333, 4569863] },
+        "provisions": { "note": 11, "values": [1354510, 1453230] },
+        "total": { "values": [7876843, 6023093] }
+      },
+      "total_liabilities": { "values": [141323133, 141090462] },
+      "total_equity_and_liabilities": { "values": [170616884, 169883844] }
+    }
+  },
+  "statement_of_comprehensive_income": {
+    "revenue": { "note": 12, "values": [14458639, 13665186] },
+    "other_income": { "note": 13, "values": [9385268, 17847872] },
+    "operating_expenses": { "values": [-12413255, -10949234] },
+    "operating_profit": { "values": [11430652, 20563824] },
+    "investment_revenue": { "note": 14, "values": [366387, 240195] },
+    "finance_costs": { "note": 16, "values": [-12086958, -12362649] },
+    "profit_loss_before_taxation": { "values": [-289919, 8441370] },
+    "taxation": { "note": 17, "values": [790288, -1105430] },
+    "profit_for_the_year": { "values": [500369, 7335940] }
+  },
+  "statement_of_cash_flows": {
+    "operating": {
+      "cash_generated_from_operations": { "note": 18, "values": [13776800, 12269992] },
+      "interest_income": { "values": [366387, 240195] },
+      "finance_costs": { "values": [-12086959, -12362649] },
+      "net": { "values": [2056228, 147538] }
+    },
+    "investing": {
+      "repayments_loans_to_shareholders": { "values": [-467708, null] },
+      "movement_other_financial_assets": { "values": [-1194375, -4011000] },
+      "net": { "values": [-1662083, -4011000] }
+    },
+    "financing": {
+      "movement_other_financial_liabilities": { "values": [-830791, -843089] },
+      "net": { "values": [-830791, -843089] }
+    },
+    "net_change": { "values": [-436646, -4706551] },
+    "closing_cash": { "note": 6, "values": [491394, 928040] }
+  },
+  "statement_of_changes_in_equity": {
+    "columns": ["share_capital", "retained_income", "total_equity"],
+    "balance_2023_03_01": [120, 21457322, 21457442],
+    "profit_2024": [null, 7335940, 7335940],
+    "balance_2024_03_01": [120, 28793262, 28793382],
+    "profit_2025": [null, 500369, 500369],
+    "balance_2025_02_28": [120, 29293631, 29293751]
+  }
+}

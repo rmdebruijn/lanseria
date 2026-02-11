@@ -1,0 +1,82 @@
+{
+  "metadata": {
+    "extraction_level": "L4_highest_quality",
+    "extraction_date": "2026-02-10",
+    "document_type": "reviewed_annual_financial_statements",
+    "entity": {
+      "legal_name": "Phoenix Property Fund SA (Pty) Ltd",
+      "registration_number": "2022/391448/07",
+      "country": "South Africa",
+      "nature_of_business": "Investment holding company"
+    },
+    "reporting_period": { "year_end_date": "2025-02-28", "prior_year_end_date": "2024-03-01", "current_year_label": "2025", "prior_year_label": "2024" },
+    "accounting_framework": "IFRS for Small and Medium-sized Entities",
+    "currency": "ZAR",
+    "auditor": { "name": "KCE Accountants and Auditors Inc", "designation": "Reviewed" },
+    "presentation_columns": ["2025", "2024"],
+    "guarantor_group": "phoenix",
+    "verification_checksums": {
+      "cy_2025": { "total_assets": 550, "total_equity_and_liabilities": 550, "balance_check": true },
+      "py_2024": { "total_assets": 11269074, "total_equity_and_liabilities": 11269074, "balance_check": true }
+    },
+    "notes": {
+      "negative_equity": true,
+      "negative_equity_comment": "Accumulated losses from subsidiary impairments exceed share capital",
+      "holding_company": true,
+      "subsidiaries": [
+        { "name": "Chartwell Corner (Pty) Ltd", "ownership": 1.0 },
+        { "name": "Jukskei Meander (Pty) Ltd", "ownership": 1.0 },
+        { "name": "Brackenfell Property (Pty) Ltd", "ownership": 1.0 },
+        { "name": "Ridgeview Centre (Pty) Ltd", "ownership": 1.0 },
+        { "name": "Olivedale Corner (Pty) Ltd", "ownership": 1.0 },
+        { "name": "Silva Terrace (Pty) Ltd", "ownership": 0.5 }
+      ]
+    }
+  },
+  "statement_of_financial_position": {
+    "as_at_date": "2025-02-28",
+    "assets": {
+      "non_current_assets": {
+        "investments_in_subsidiaries": { "note": 2, "values": [550, 11269074] },
+        "total": { "values": [550, 11269074] }
+      },
+      "total_assets": { "values": [550, 11269074] }
+    },
+    "equity_and_liabilities": {
+      "equity": {
+        "share_capital": { "note": 3, "values": [100, 100] },
+        "accumulated_loss": { "values": [-19649702, -8381178] },
+        "total_equity": { "values": [-19649602, -8381078] }
+      },
+      "non_current_liabilities": {
+        "loans_from_group_companies": { "note": 4, "values": [19650152, 19650152] },
+        "total": { "values": [19650152, 19650152] }
+      },
+      "total_liabilities": { "values": [19650152, 19650152] },
+      "total_equity_and_liabilities": { "values": [550, 11269074] }
+    }
+  },
+  "statement_of_comprehensive_income": {
+    "other_income_fair_value": { "values": [null, 1611436] },
+    "impairment_investments": { "values": [-11268524, -12675179] },
+    "loss_on_disposal": { "values": [null, -100] },
+    "loss_before_taxation": { "values": [-11268524, -11063843] },
+    "taxation": { "values": [null, null] },
+    "loss_for_the_year": { "values": [-11268524, -11063843] }
+  },
+  "statement_of_cash_flows": {
+    "operating": {
+      "net": { "values": [null, null] }
+    },
+    "net_change": { "values": [null, null] },
+    "closing_cash": { "values": [null, null] }
+  },
+  "statement_of_changes_in_equity": {
+    "columns": ["share_capital", "accumulated_loss", "total_equity"],
+    "balance_2023_03_01": [100, 2682665, 2682765],
+    "loss_2024": [null, -11063843, -11063843],
+    "balance_2024_03_01": [100, -8381178, -8381078],
+    "loss_2025": [null, -11268524, -11268524],
+    "balance_2025_02_28": [100, -19649702, -19649602]
+  }
+}

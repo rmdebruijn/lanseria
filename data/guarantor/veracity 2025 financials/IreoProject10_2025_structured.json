@@ -1,0 +1,94 @@
+{
+  "metadata": {
+    "extraction_level": "L4_highest_quality",
+    "extraction_date": "2026-02-10",
+    "document_type": "audited_annual_financial_statements",
+    "entity": {
+      "legal_name": "Ireo Project 10 (Proprietary) Limited",
+      "registration_number": "2021/754291/07",
+      "country": "South Africa",
+      "nature_of_business": "Commercial property letting",
+      "formerly": "Chepstow Properties (Proprietary) Limited"
+    },
+    "reporting_period": { "year_end_date": "2025-02-28", "prior_year_end_date": "2024-02-29", "current_year_label": "2025", "prior_year_label": "2024" },
+    "accounting_framework": "IFRS for Small and Medium-sized Entities",
+    "currency": "ZAR",
+    "auditor": { "name": "M Kruger Auditing Incorporated", "designation": "Audited" },
+    "presentation_columns": ["2025", "2024"],
+    "verification_checksums": {
+      "cy_2025": { "total_assets": 76462113, "total_equity_and_liabilities": 76462113, "balance_check": true },
+      "py_2024": { "total_assets": 120, "total_equity_and_liabilities": 120, "balance_check": true }
+    }
+  },
+  "statement_of_financial_position": {
+    "as_at_date": "2025-02-28",
+    "assets": {
+      "non_current_assets": {
+        "investment_property": { "note": 4, "values": [74200000, null] },
+        "total": { "values": [74200000, null] }
+      },
+      "current_assets": {
+        "trade_and_other_receivables": { "note": 5, "values": [1476459, 120] },
+        "cash_and_cash_equivalents": { "note": 6, "values": [785654, null] },
+        "total": { "values": [2262113, 120] }
+      },
+      "total_assets": { "values": [76462113, 120] }
+    },
+    "equity_and_liabilities": {
+      "equity": {
+        "issued_capital": { "note": 7, "values": [120, 120] },
+        "retained_income": { "values": [6577564, null] },
+        "total_equity": { "values": [6577684, 120] }
+      },
+      "non_current_liabilities": {
+        "deferred_tax_liabilities": { "values": [1790211, null] },
+        "other_financial_liabilities": { "note": 8, "values": [9621027, null] },
+        "mortgage_bonds": { "note": 9, "values": [57215000, null] },
+        "total": { "values": [68626238, null] }
+      },
+      "current_liabilities": {
+        "trade_and_other_payables": { "note": 10, "values": [1258191, null] },
+        "total": { "values": [1258191, null] }
+      },
+      "total_liabilities": { "values": [69884429, null] },
+      "total_equity_and_liabilities": { "values": [76462113, 120] }
+    }
+  },
+  "statement_of_comprehensive_income": {
+    "revenue": { "note": 11, "values": [8255898, null] },
+    "other_expenses": { "values": [-1567042, null] },
+    "other_gains_losses": { "values": [9540776, null] },
+    "operating_profit": { "values": [16229632, null] },
+    "finance_income": { "note": 12, "values": [62747, null] },
+    "finance_costs": { "note": 13, "values": [-7924604, null] },
+    "profit_before_tax": { "values": [8367775, null] },
+    "income_tax_expense": { "note": 14, "values": [-1790211, null] },
+    "profit_for_the_year": { "values": [6577564, null] }
+  },
+  "statement_of_cash_flows": {
+    "operating": {
+      "cash_from_operations": { "values": [6470688, -120] },
+      "interest_paid": { "values": [-7924604, null] },
+      "interest_received": { "values": [62747, null] },
+      "net": { "values": [-1391169, -120] }
+    },
+    "investing": {
+      "purchase_investment_property": { "values": [-64659204, null] },
+      "net": { "values": [-64659204, null] }
+    },
+    "financing": {
+      "proceeds_share_issue": { "values": [null, 120] },
+      "proceeds_other_financial_liabilities": { "values": [66836027, null] },
+      "net": { "values": [66836027, 120] }
+    },
+    "net_change": { "values": [785654, null] },
+    "closing_cash": { "note": 6, "values": [785654, null] }
+  },
+  "statement_of_changes_in_equity": {
+    "columns": ["issued_capital", "retained_income", "total_equity"],
+    "balance_2023_03_01": [120, null, 120],
+    "balance_2024_02_29": [120, null, 120],
+    "profit_2025": [null, 6577564, 6577564],
+    "balance_2025_02_28": [120, 6577564, 6577684]
+  }
+}

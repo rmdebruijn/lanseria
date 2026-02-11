@@ -1,0 +1,101 @@
+{
+  "metadata": {
+    "extraction_level": "L4_highest_quality",
+    "extraction_date": "2026-02-10",
+    "document_type": "reviewed_annual_financial_statements",
+    "entity": {
+      "legal_name": "Olivedale Corner (Pty) Ltd",
+      "registration_number": "2021/495500/07",
+      "country": "South Africa",
+      "nature_of_business": "Investment property holding"
+    },
+    "reporting_period": { "year_end_date": "2025-02-28", "prior_year_end_date": "2024-03-01", "current_year_label": "2025", "prior_year_label": "2024" },
+    "accounting_framework": "IFRS for Small and Medium-sized Entities",
+    "currency": "ZAR",
+    "auditor": { "name": "KCE Accountants and Auditors Inc", "designation": "Reviewed" },
+    "presentation_columns": ["2025", "2024"],
+    "guarantor_group": "phoenix",
+    "verification_checksums": {
+      "cy_2025": { "total_assets": 134795475, "total_equity_and_liabilities": 134795475, "balance_check": true },
+      "py_2024": { "total_assets": 140211946, "total_equity_and_liabilities": 140211946, "balance_check": true }
+    },
+    "notes": {
+      "negative_equity": true,
+      "negative_equity_comment": "Accumulated losses exceed share capital resulting in negative total equity"
+    }
+  },
+  "statement_of_financial_position": {
+    "as_at_date": "2025-02-28",
+    "assets": {
+      "non_current_assets": {
+        "investment_property": { "note": 2, "values": [120300000, 126200000] },
+        "other_financial_assets": { "note": 3, "values": [9327256, 9977256] },
+        "total": { "values": [129627256, 136177256] }
+      },
+      "current_assets": {
+        "trade_and_other_receivables": { "note": 5, "values": [2480652, 1837585] },
+        "cash_and_cash_equivalents": { "note": 6, "values": [2687567, 2197105] },
+        "total": { "values": [5168219, 4034690] }
+      },
+      "total_assets": { "values": [134795475, 140211946] }
+    },
+    "equity_and_liabilities": {
+      "equity": {
+        "share_capital": { "note": 7, "values": [100, 100] },
+        "accumulated_loss": { "values": [-1603946, -2669338] },
+        "total_equity": { "values": [-1603846, -2669238] }
+      },
+      "non_current_liabilities": {
+        "other_financial_liabilities": { "note": 8, "values": [131852736, 138106717] },
+        "deferred_tax": { "note": 4, "values": [1296456, 2464069] },
+        "total": { "values": [133149192, 140570786] }
+      },
+      "current_liabilities": {
+        "trade_and_other_payables": { "note": 9, "values": [3151650, 2211919] },
+        "current_tax_payable": { "values": [76479, 76479] },
+        "provisions": { "note": 10, "values": [22000, 22000] },
+        "total": { "values": [3250129, 2310398] }
+      },
+      "total_liabilities": { "values": [136399321, 142881184] },
+      "total_equity_and_liabilities": { "values": [134795475, 140211946] }
+    }
+  },
+  "statement_of_comprehensive_income": {
+    "revenue": { "note": 11, "values": [11068384, 9899455] },
+    "other_income": { "note": 12, "values": [12046188, 4450734] },
+    "operating_expenses": { "values": [-10063005, -8508939] },
+    "operating_profit": { "values": [13051567, 5841250] },
+    "investment_revenue": { "note": 13, "values": [208902, 58779] },
+    "finance_costs": { "note": 14, "values": [-13286211, -13286211] },
+    "profit_loss_before_taxation": { "values": [-25742, -7386182] },
+    "taxation": { "note": 15, "values": [1091134, 4934766] },
+    "profit_loss_for_the_year": { "values": [1065392, -2451416] }
+  },
+  "statement_of_cash_flows": {
+    "operating": {
+      "cash_generated_from_operations": { "note": 16, "values": [10117787, 8269987] },
+      "interest_income": { "values": [208902, 58779] },
+      "finance_costs": { "values": [-13286211, -13286211] },
+      "tax_paid": { "values": [-208902, 0] },
+      "net": { "values": [-3168424, -4957445] }
+    },
+    "investing": {
+      "movement_other_financial_assets": { "values": [9912867, -5000000] },
+      "net": { "values": [9912867, -5000000] }
+    },
+    "financing": {
+      "movement_other_financial_liabilities": { "values": [-6253981, 9961445] },
+      "net": { "values": [-6253981, 9961445] }
+    },
+    "net_change": { "values": [490462, 4000] },
+    "closing_cash": { "note": 6, "values": [2687567, 2197105] }
+  },
+  "statement_of_changes_in_equity": {
+    "columns": ["share_capital", "accumulated_loss", "total_equity"],
+    "balance_2023_03_01": [100, -217922, -217822],
+    "loss_2024": [null, -2451416, -2451416],
+    "balance_2024_03_01": [100, -2669338, -2669238],
+    "profit_2025": [null, 1065392, 1065392],
+    "balance_2025_02_28": [100, -1603946, -1603846]
+  }
+}
