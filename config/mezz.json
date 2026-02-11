@@ -28,7 +28,7 @@
         "solar": {
           "amount": -4500000,
           "timing": "Period 1",
-          "note": "Allocation of cash following Novation of Solar (carve-out)"
+          "note": "Allocation of cash following Novation of Solar"
         },
         "coe": {
           "amount": 0,

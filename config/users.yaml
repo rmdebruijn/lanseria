@@ -4,7 +4,7 @@ cookie:
   name: sclca_fm_auth
 credentials:
   usernames:
-    Eckardt:
+    eckardt:
       email: eckardt@vansquared.co.za
       first_name: Eckardt
       last_name: van Wyk
@@ -13,8 +13,7 @@ credentials:
         can_manage_users: false
         entities:
         - Timberworx
-        mgmt_pages:
-        - '*'
+        mgmt_pages: []
         tabs:
         - '*'
       roles:
@@ -73,7 +72,10 @@ credentials:
         entities:
         - '*'
         mgmt_pages:
-        - '*'
+        - Summary
+        - Strategy
+        - Tasks
+        - CP & CS
         tabs:
         - '*'
       roles:

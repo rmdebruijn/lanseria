@@ -35,5 +35,15 @@
   "lanred_swap": {
     "extended_repayments_sr": 28,
     "extended_repayments_mz": 20
-  }
+  },
+  "entity_cascade": {
+    "ops_reserve_coverage_pct": 1.0,
+    "opco_dsra_coverage_periods": 1
+  },
+  "surplus_priority_by_seniority": [
+    {"name": "mezz_ic_accel", "rate": 0.1525, "character": "mezz"},
+    {"name": "zar_rand_leg", "rate": 0.1175, "character": "senior", "entity": "nwl"},
+    {"name": "overdraft_repay", "rate": 0.10, "character": "senior", "entity": "lanred"},
+    {"name": "sr_ic_accel", "rate": 0.052, "character": "senior"}
+  ]
 }

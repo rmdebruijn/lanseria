@@ -1,0 +1,294 @@
+{
+  "ubo": "Mark van Houten",
+  "groups": {
+    "veracity": {
+      "trust": "VH Investments Trust (VHIT)",
+      "guarantor_for": "nwl",
+      "holding": {
+        "key": "VPH",
+        "name": "Veracity Property Holdings (Pty) Ltd",
+        "json": "VeracityPropertyHoldings_2025_structured",
+        "ownership": 100,
+        "type": "subsidiary",
+        "children": [
+          {
+            "key": "aquaside",
+            "name": "Aquaside Trading",
+            "json": "AquasideTrading_2025_structured",
+            "ownership": 100,
+            "type": "subsidiary",
+            "asset": "4+1 residential rentals, Saxonwold JHB + George CT"
+          },
+          {
+            "key": "bbp",
+            "name": "BBP Unit 1 Phase II",
+            "json": "BBPUnit1PhaseII_2025_structured",
+            "ownership": 100,
+            "type": "subsidiary",
+            "asset": "Commercial, Randpark Ridge JHB"
+          },
+          {
+            "key": "cornerstone",
+            "name": "Cornerstone Property Group",
+            "json": "CornerstonePropertyGroup_2025_structured",
+            "ownership": 50,
+            "type": "subsidiary",
+            "asset": "HoldCo",
+            "children": [
+              {
+                "key": "ireo",
+                "name": "Ireo Project 10 (formerly Chepstow)",
+                "json": "IreoProject10_2025_structured",
+                "ownership": 100,
+                "type": "subsidiary",
+                "asset": "Industrial, Bellville CT"
+              }
+            ]
+          },
+          {
+            "key": "erf86",
+            "name": "Erf 86 Longmeadow",
+            "json": "Erf86LongmeadowBusinessEstate_2025_structured",
+            "ownership": 100,
+            "type": "subsidiary",
+            "asset": "Commercial + PV solar, Gauteng"
+          },
+          {
+            "key": "providence",
+            "name": "Providence Property Investments",
+            "json": "ProvidencePropertyInvestments_2025_structured",
+            "ownership": 100,
+            "type": "subsidiary",
+            "asset": "13 units Tyrwhitt, Rosebank JHB",
+            "children": [
+              {
+                "key": "manappu",
+                "name": "Manappu Investments",
+                "json": null,
+                "ownership": 20,
+                "type": "associate",
+                "asset": "50 units Tyrwhitt JHB",
+                "no_afs": true
+              }
+            ]
+          },
+          {
+            "key": "sun",
+            "name": "Sun Property Investments",
+            "json": "SunPropertyInvestments_2025_structured",
+            "ownership": 50,
+            "type": "subsidiary",
+            "asset": "HoldCo [-ve equity]",
+            "children": [
+              {
+                "key": "sixonkloof",
+                "name": "6 On Kloof",
+                "json": "SixOnKloof_2025_structured",
+                "ownership": 25,
+                "type": "associate",
+                "asset": "46 hotel/apartment units, Sea Point CT"
+              }
+            ]
+          },
+          {
+            "key": "uvongo",
+            "name": "Uvongo Falls No 26",
+            "json": "UvongoFallsNo26_2025_structured",
+            "ownership": 50,
+            "type": "subsidiary",
+            "asset": "Residential dev, Morningside Sandton JHB [GC]"
+          },
+          {
+            "key": "mistraline",
+            "name": "Mistraline",
+            "json": "Mistraline_2025_structured",
+            "ownership": 33,
+            "type": "associate",
+            "asset": "Industrial, Linbro Park JHB (Mastiff Sandton)"
+          }
+        ]
+      },
+      "siblings": [
+        {
+          "key": "VPI",
+          "name": "Veracity Property Investments",
+          "no_afs": true,
+          "note": "Development assets. Co-shareholder of Renovo (Phoenix cross-ownership)"
+        },
+        {
+          "key": "VI",
+          "name": "Veracity Investments",
+          "no_afs": true,
+          "note": "Divestment properties"
+        }
+      ]
+    },
+    "phoenix": {
+      "guarantor_for": "timberworx",
+      "holding": {
+        "key": "VHProp",
+        "name": "VH Properties (Pty) Ltd",
+        "no_afs": true,
+        "ownership": 40,
+        "type": "subsidiary",
+        "note": "TWX guarantor entity — zero AFS",
+        "children": [
+          {
+            "key": "phoenix_specialist",
+            "name": "Phoenix Specialist Property Fund",
+            "json": "PhoenixSpecialistPropertyFund_2025_structured",
+            "ownership": 100,
+            "type": "subsidiary",
+            "asset": "Dormant shell (R100)",
+            "children": [
+              {
+                "key": "phoenix_prop_fund",
+                "name": "Phoenix Property Fund SA",
+                "json": "PhoenixPropertyFundSA_2025_structured",
+                "ownership": 100,
+                "type": "subsidiary",
+                "asset": "HoldCo for 6 retail centres [-ve equity]",
+                "children": [
+                  {
+                    "key": "ridgeview",
+                    "name": "Ridgeview Centre",
+                    "json": "RidgeviewCentre_2025_structured",
+                    "ownership": 100,
+                    "type": "subsidiary",
+                    "asset": "R185M retail centre, Midrand [GC, -ve]"
+                  },
+                  {
+                    "key": "brackenfell",
+                    "name": "Brackenfell Corner",
+                    "json": "BrackenfellCorner_2025_structured",
+                    "ownership": 100,
+                    "type": "subsidiary",
+                    "asset": "R259M retail centre, Brackenfell CT [-ve]"
+                  },
+                  {
+                    "key": "chartwell",
+                    "name": "Chartwell Corner",
+                    "json": "ChartwellCorner_2025_structured",
+                    "ownership": 100,
+                    "type": "subsidiary",
+                    "asset": "R104M retail centre, Fourways JHB [GC, -ve]"
+                  },
+                  {
+                    "key": "jukskei",
+                    "name": "Jukskei Meander",
+                    "json": "JukskeiMeander_2025_structured",
+                    "ownership": 100,
+                    "type": "subsidiary",
+                    "asset": "R84M retail centre, Midrand JHB"
+                  },
+                  {
+                    "key": "olivedale",
+                    "name": "Olivedale Corner",
+                    "json": "OlivedaleCorner_2025_structured",
+                    "ownership": 100,
+                    "type": "subsidiary",
+                    "asset": "R132M retail centre, Olivedale JHB [-ve]"
+                  },
+                  {
+                    "key": "silva",
+                    "name": "Silva Terrace",
+                    "json": null,
+                    "ownership": 50,
+                    "type": "subsidiary",
+                    "no_afs": true,
+                    "asset": "Retail centre (50%)"
+                  }
+                ]
+              },
+              {
+                "key": "renovo",
+                "name": "Renovo Property Fund",
+                "json": "RenovoPropertyFund_2025_structured",
+                "ownership": 100,
+                "type": "subsidiary",
+                "asset": "HoldCo for Madelief",
+                "note": "Shareholders: Trillium + Veracity Property Investments (cross-ownership)",
+                "children": [
+                  {
+                    "key": "madelief",
+                    "name": "Madelief Shopping Centre",
+                    "json": "MadeliefShoppingCentre_2025_structured",
+                    "ownership": 100,
+                    "type": "subsidiary",
+                    "asset": "R141M retail shopping centre"
+                  }
+                ]
+              },
+              {
+                "key": "praam",
+                "name": "PRAAM",
+                "json": "PRAAM_2025_structured",
+                "ownership": 100,
+                "type": "subsidiary",
+                "asset": "Asset management + intercompany lending"
+              },
+              {
+                "key": "chartwell_coowner",
+                "name": "Chartwell Co-Owner",
+                "json": "ChartwellCoOwner_2025_structured",
+                "ownership": 100,
+                "type": "subsidiary",
+                "asset": "Pass-through entity for Chartwell co-ownership"
+              }
+            ]
+          }
+        ]
+      }
+    }
+  },
+  "email_qa": [
+    {
+      "q": "Which entity will act as the Veracity guarantor?",
+      "a": "VPH will be the guarantor.",
+      "from": "Mark",
+      "date": "2025-03-11"
+    },
+    {
+      "q": "Does VHIT consist of VPH, VI and VPI only?",
+      "a": "This is the complete structure. VHIT holds 100% of all three.",
+      "from": "Mark",
+      "date": "2025-03-01"
+    },
+    {
+      "q": "Are VPH, VPI and VI siblings, financially and operationally independent?",
+      "a": "I can confirm financial and operational independence.",
+      "from": "Mark",
+      "date": "2025-03-01"
+    },
+    {
+      "q": "What is the distinction between VPH, VPI, and VI?",
+      "a": "VPH held properties as longer term investments and VPI held the development assets and medium term investments.",
+      "from": "Mark",
+      "date": "2025-02-28"
+    },
+    {
+      "q": "Can you provide a simulated consolidation for VPH for 2022 and 2023?",
+      "a": "Attached consolidated financials for VPH at 29/02/24. The consolidated financials for VPH include the simulated version for 2023.",
+      "from": "Mark",
+      "date": "2025-03-01"
+    },
+    {
+      "q": "Can you provide individual annual reports for VPH subsidiaries?",
+      "a": "These financials are available should this be required.",
+      "from": "Mark",
+      "date": "2025-03-01"
+    },
+    {
+      "q": "When are VPH 29/02/2025 financials expected?",
+      "a": "Management accounts mid March. Group companies mid April. Consolidated end April.",
+      "from": "Mark",
+      "date": "2025-03-01"
+    },
+    {
+      "q": "Note: Robbert's strategy",
+      "a": "I want to control the narrative to Atradius \u2014 provide the ECA image myself, don't let them draw their own conclusions.",
+      "from": "Robbert",
+      "date": "2025-02-28"
+    }
+  ]
+}

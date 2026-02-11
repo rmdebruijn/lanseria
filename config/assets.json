@@ -85,7 +85,7 @@
     },
     "solar": {
       "name": "Solar Plant & Battery Storage",
-      "description": "Solar PV and battery energy storage - independently underwritten",
+      "description": "Solar PV and battery energy storage",
       "carve_out": true,
       "line_items": [
         {

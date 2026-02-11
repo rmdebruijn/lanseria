@@ -30,64 +30,120 @@
       "ic_loan_size_eur": 10632337,
       "carve_out": false,
       "layer_2": {
-        "title": "Layer 2 — Guarantees & Insurance (NWL)",
+        "title": "Layer 2 — Guarantees, Insurance & Credit Enhancements (NWL)",
         "description": "Credit enhancements pushed down by Creation Capital to secure IIC senior facility",
+        "groups": {
+          "guarantee_eca": {
+            "label": "Corporate Guarantee + ECA Cover",
+            "items": [
+              {
+                "enhancement": "Veracity corporate guarantee",
+                "type": "Guarantee",
+                "jurisdiction": "South Africa",
+                "status": "Committed",
+                "coverage_eur": 10632337,
+                "note": "Full NWL IC loan (Senior + Mezz). Guarantor: VPH (R746.5M assets, R692.9M property)",
+                "guarantor_financials": {
+                  "entity": "Veracity Property Holdings (Pty) Ltd",
+                  "total_assets_zar": 746500000,
+                  "investment_property_zar": 692900000,
+                  "equity_zar": 53400000,
+                  "revenue_zar": 72500000,
+                  "ebitda_zar": 42900000,
+                  "finance_costs_zar": 58500000,
+                  "debt_to_equity": 13.0,
+                  "interest_coverage": 0.73,
+                  "note": "Property holding company with R692.9M investment property base"
+                }
+              },
+              {
+                "enhancement": "Atradius ECA cover",
+                "type": "Insurance",
+                "jurisdiction": "Netherlands",
+                "status": "To be applied",
+                "coverage_eur": "M36_balance",
+                "dutch_content_trigger_eur": 1721925,
+                "note": "ECA cover sized to M36 exposed balance (~€4.2M). Triggered by Dutch content: Colubris BoP (€1.72M). To be applied for at Atradius DSB."
+              }
+            ]
+          },
+          "dsra": {
+            "label": "Debt Service Reserve",
+            "swap_alternative": true,
+            "items": [
+              {
+                "enhancement": "DSRA via Forward Exchange Contract",
+                "type": "Reserve",
+                "jurisdiction": "South Africa",
+                "status": "Committed",
+                "value_zar": 47500000,
+                "value_eur": 2201389,
+                "timing": "M24",
+                "note": "Funded by Creation Capital, held by Investec. FEC locks ZAR47.5M — covers P1+P2 (M24-M36). Pledged to IIC, not held at SCLCA level"
+              }
+            ],
+            "swap_items": [
+              {
+                "enhancement": "Cross-Currency Swap",
+                "type": "Swap",
+                "jurisdiction": "South Africa",
+                "status": "Alternative",
+                "note": "NWL enters EUR→ZAR swap. Replaces DSRA+FEC structure — the swap itself provides forex hedge and debt service coverage"
+              }
+            ]
+          },
+          "grants": {
+            "label": "Grant Prepayments",
+            "items": [
+              {
+                "enhancement": "DTIC Manufacturing Incentive",
+                "type": "Grant",
+                "jurisdiction": "South Africa",
+                "status": "Approved",
+                "value_zar": 25000000,
+                "value_eur": 1159313,
+                "timing": "M12 (P-2)",
+                "note": "Applied as senior prepayment — reduces NWL IC loan balance at M12"
+              },
+              {
+                "enhancement": "GEPF Bulk Services Fee",
+                "type": "Fee",
+                "jurisdiction": "South Africa",
+                "status": "Committed",
+                "value_zar": 44800000,
+                "value_eur": 2076691,
+                "timing": "M12 (P-2)",
+                "note": "Bulk services fee (R40M GEPF + R4.8M third party) — applied as senior prepayment at M12"
+              }
+            ]
+          }
+        },
         "items": [
           {
-            "enhancement": "Veracity corporate guarantee",
-            "type": "Guarantee",
-            "jurisdiction": "South Africa",
-            "status": "Committed",
+            "enhancement": "Veracity corporate guarantee + Atradius ECA",
+            "type": "Guarantee + Insurance",
+            "jurisdiction": "South Africa / Netherlands",
+            "status": "Committed / To be applied",
             "coverage_eur": 10632337,
-            "note": "Guarantee for full NWL IC loan (Senior + Mezz)",
-            "guarantor_financials": {
-              "entity": "Veracity Proprietary Limited",
-              "total_assets_zar": 746500000,
-              "investment_property_zar": 692900000,
-              "equity_zar": 53400000,
-              "revenue_zar": 72500000,
-              "ebitda_zar": 42900000,
-              "finance_costs_zar": 58500000,
-              "debt_to_equity": 13.0,
-              "interest_coverage": 0.73,
-              "note": "Property holding company with R692.9M investment property base"
-            }
+            "note": "VPH guarantee (full IC loan). Atradius ECA sized to M36 balance (~€4.2M), Dutch content trigger: Colubris BoP (€1.72M) — to be applied for"
           },
           {
-            "enhancement": "Atradius ECA cover",
-            "type": "Insurance",
-            "jurisdiction": "Netherlands",
-            "status": "In place",
-            "note": "Dutch export credit cover on Colubris Balance of Plant (€1.72M). WSP is South African — not Dutch content"
-          },
-          {
-            "enhancement": "DSRA via Forward Exchange Contract",
-            "type": "Reserve",
+            "enhancement": "DSRA via FEC (or Cross-Currency Swap)",
+            "type": "Reserve / Swap",
             "jurisdiction": "South Africa",
             "status": "Committed",
             "value_zar": 47500000,
             "value_eur": 2201389,
-            "note": "Funded by Creation Capital, held by Investec. FEC locks ZAR47.5M → covers P1+P2 (M24-M36). Pledged to IIC, not held at SCLCA level"
+            "note": "Creation Capital funded. FEC: covers P1+P2 (M24-M36). Alternative: Cross-Currency Swap replaces DSRA+FEC"
           },
           {
-            "enhancement": "DTIC Manufacturing Incentive",
-            "type": "Grant",
+            "enhancement": "DTIC + GEPF grant prepayments",
+            "type": "Grant + Fee",
             "jurisdiction": "South Africa",
-            "status": "Approved",
-            "value_zar": 25000000,
-            "value_eur": 1159313,
-            "timing": "M12 (P-2)",
-            "note": "Applied as senior prepayment — reduces NWL IC loan balance at M12"
-          },
-          {
-            "enhancement": "GEPF Bulk Services Fee",
-            "type": "Fee",
-            "jurisdiction": "South Africa",
-            "status": "Committed",
-            "value_zar": 44800000,
-            "value_eur": 2076691,
-            "timing": "M12 (P-2)",
-            "note": "Bulk services fee (R40M GEPF + R4.8M third party) — applied as senior prepayment at M12"
+            "status": "Approved / Committed",
+            "value_zar": 69800000,
+            "value_eur": 3236004,
+            "note": "DTIC R25M + GEPF R44.8M = R69.8M (€3.24M) — applied as senior prepayments at M12"
           }
         ]
       },
@@ -107,7 +163,7 @@
             "supplier": "Colubris Water Solutions",
             "country": "Netherlands",
             "budget_eur": 1721925,
-            "note": "Dutch export content — covered by Atradius ECA"
+            "note": "Dutch export content — Atradius ECA to be applied for"
           },
           {
             "asset": "Civil infrastructure & pipelines",
@@ -117,11 +173,25 @@
             "note": "Local content — site preparation, pipelines, civil works"
           },
           {
-            "asset": "Owner's engineer deliverables",
-            "supplier": "WSP",
+            "asset": "ESG & compliance",
+            "supplier": "NWL",
             "country": "South Africa",
-            "budget_eur": 250000,
-            "note": "South African owner's engineer — design, supervision, commissioning"
+            "budget_eur": 327633,
+            "note": "Environmental, social & governance compliance costs"
+          },
+          {
+            "asset": "Project management",
+            "supplier": "NWL",
+            "country": "South Africa",
+            "budget_eur": 1049359,
+            "note": "Project management and oversight during construction"
+          },
+          {
+            "asset": "Pre-op finance costs",
+            "supplier": "NWL",
+            "country": "Netherlands",
+            "budget_eur": 120000,
+            "note": "Pre-operational finance cost reimbursements"
           }
         ],
         "revenue_contracts": [
@@ -158,39 +228,52 @@
       "carve_out": true,
       "layer_2": {
         "title": "Layer 2 — Guarantees & Insurance (LanRED)",
-        "description": "Credit enhancements — independently underwritten within IIC risk envelope",
+        "description": "Credit enhancements — independent underwriting or cross-currency swap (bank-to-bank), per asset and sculpting choices",
+        "scenario_toggle": true,
         "items": [
           {
-            "enhancement": "Independent underwriting",
-            "type": "Insurance",
+            "enhancement": "Independent underwriting OR Cross-Currency Swap",
+            "type": "Insurance / Swap",
             "jurisdiction": "TBD",
             "status": "Planned",
             "coverage_eur": 3199398,
-            "note": "Separately underwritten for full LanRED IC loan — independently covered within IIC risk envelope"
+            "note": "Per asset and sculpting choices: independent underwriting or bank-to-bank swap"
           }
-        ]
+        ],
+        "underwriter_item": {
+          "enhancement": "Independent underwriting",
+          "type": "Insurance",
+          "jurisdiction": "TBD",
+          "status": "Planned",
+          "coverage_eur": 3199398,
+          "note": "Third-party insurer underwrites the full LanRED IC loan — IIC exposure transfers to underwriter"
+        },
+        "swap_item": {
+          "enhancement": "Cross-Currency Swap",
+          "type": "Swap",
+          "jurisdiction": "South Africa",
+          "status": "Alternative",
+          "coverage_eur": 3199398,
+          "note": "LanRED enters EUR→ZAR swap — provides forex hedge and replaces need for independent underwriter"
+        }
       },
       "layer_3": {
         "title": "Layer 3 — Physical Assets & Revenue Contracts (LanRED)",
-        "description": "Renewable energy assets and power sales agreements",
+        "description": "Renewable energy assets and power purchase agreements",
         "physical_assets": [
           {
-            "asset": "Solar PV installation",
-            "supplier": "TBD",
-            "country": "TBD",
-            "note": "Solar panels, inverters, mounting systems"
+            "asset": "Solar PV (2.4 MWp)",
+            "supplier": "DG&E",
+            "country": "Europe",
+            "budget_eur": 2508809,
+            "note": "Solar PV via DG&E EPC — panels, inverters, mounting systems"
           },
           {
-            "asset": "Battery storage systems",
-            "supplier": "TBD",
-            "country": "TBD",
-            "note": "Energy storage for grid stabilization and peak shaving"
-          },
-          {
-            "asset": "Grid connection infrastructure",
-            "supplier": "TBD",
-            "country": "TBD",
-            "note": "Transformers, switchgear, metering for grid integration"
+            "asset": "BESS (1.5 MWh Li-ion)",
+            "supplier": "DG&E",
+            "country": "Europe",
+            "budget_eur": 400000,
+            "note": "Battery energy storage — arbitrage and grid independence"
           }
         ],
         "revenue_contracts": [
@@ -199,25 +282,25 @@
             "type": "PPA",
             "status": "To be contracted",
             "pricing": "Eskom -10%",
-            "note": "Primary offtaker — NWL MABR power consumption at Eskom rate -10%"
+            "note": "NWL MABR power consumption at Eskom rate -10% (R2.53/kWh)"
           },
           {
-            "contract": "Power sales to Lanseria development",
+            "contract": "Smart City PPA",
             "type": "PPA",
             "status": "To be secured",
-            "note": "Sales to commercial and industrial off-takers in Lanseria precinct"
+            "note": "Lanseria Smart City demand: 90 MW — LanRED Phase 1 is 0.5% of demand"
           },
           {
-            "contract": "Grid savings contracts",
-            "type": "Savings",
+            "contract": "Open market / wheeling",
+            "type": "PPA",
             "status": "To be secured",
-            "note": "On-site generation displaces grid purchases at full Eskom tariff"
+            "note": "Residual generation sold to open market via wheeling"
           },
           {
-            "contract": "Wheeling arrangements",
-            "type": "Infrastructure",
-            "status": "To be secured",
-            "note": "Grid access for surplus power distribution to third parties"
+            "contract": "BESS arbitrage",
+            "type": "Arbitrage",
+            "status": "Operational",
+            "note": "TOU arbitrage: HD 2 cycles/day (R5-6/kWh spread), LD 1 cycle/day (R1.6/kWh spread)"
           }
         ]
       }
@@ -229,30 +312,47 @@
       "layer_2": {
         "title": "Layer 2 — Guarantees & Insurance (Timberworx)",
         "description": "Credit enhancements from Phoenix holding and ECA cover",
+        "groups": {
+          "guarantee_eca": {
+            "label": "Corporate Guarantee + ECA Cover",
+            "items": [
+              {
+                "enhancement": "Phoenix holding company guarantee",
+                "type": "Guarantee",
+                "jurisdiction": "South Africa",
+                "status": "Committed",
+                "coverage_eur": 2048149,
+                "note": "Full TWX IC loan (Senior + Mezz). Guarantor: VH Properties (40% in Phoenix Group, R68.2M EBITDA)",
+                "guarantor_financials": {
+                  "entity": "VH Properties",
+                  "phoenix_ebitda_zar": 68200000,
+                  "mark_van_houten_ownership": 0.40,
+                  "attributable_ebitda_zar": 27300000,
+                  "two_year_cash_generation_zar": 54600000,
+                  "coverage_multiple": 1.34,
+                  "note": "VH Properties holds 40% in Phoenix Group. 2yr attributable EBITDA = R54.6M vs TWX IC = R40.8M (1.34x coverage)"
+                }
+              },
+              {
+                "enhancement": "Atradius ECA cover",
+                "type": "Insurance",
+                "jurisdiction": "Netherlands",
+                "status": "To be applied",
+                "coverage_eur": 2048149,
+                "dutch_content_trigger_eur": 200000,
+                "note": "ECA cover for full TWX IC loan (€2,048,149). Fully guaranteed from M24, vanilla structure. Dutch content trigger: Panel Equipment (€200k, 100% Dutch content). To be applied for at Atradius DSB."
+              }
+            ]
+          }
+        },
         "items": [
           {
-            "enhancement": "Phoenix holding company guarantee",
-            "type": "Guarantee",
-            "jurisdiction": "South Africa",
-            "status": "Committed",
+            "enhancement": "Phoenix corporate guarantee + Atradius ECA",
+            "type": "Guarantee + Insurance",
+            "jurisdiction": "South Africa / Netherlands",
+            "status": "Committed / To be applied",
             "coverage_eur": 2048149,
-            "note": "Guarantee for full TWX IC loan (Senior + Mezz) — VH Properties holds 40% in Phoenix Group",
-            "guarantor_financials": {
-              "entity": "VH Properties",
-              "phoenix_ebitda_zar": 68200000,
-              "mark_van_houten_ownership": 0.40,
-              "attributable_ebitda_zar": 27300000,
-              "two_year_cash_generation_zar": 54600000,
-              "coverage_multiple": 1.34,
-              "note": "VH Properties holds 40% in Phoenix Group. 2yr attributable EBITDA = R54.6M vs TWX IC = R40.8M (1.34x coverage)"
-            }
-          },
-          {
-            "enhancement": "Atradius ECA cover",
-            "type": "Insurance",
-            "jurisdiction": "Netherlands",
-            "status": "In place",
-            "note": "Dutch export credit cover on Timberworx Dutch content (Panel Equipment €200k)"
+            "note": "VH Properties/Phoenix guarantee (full IC loan). Atradius ECA cover for full IC loan (€2,048,149), Dutch content trigger: Panel Equipment (€200k) — to be applied for"
           }
         ]
       },
@@ -272,7 +372,7 @@
             "supplier": "Timberworx",
             "country": "Netherlands",
             "budget_eur": 200000,
-            "note": "100% Dutch content — panel manufacturing equipment"
+            "note": "100% Dutch content — panel manufacturing equipment. Atradius ECA to be applied for."
           }
         ],
         "revenue_contracts": [
@@ -283,16 +383,12 @@
             "note": "CoE leased to NWL at capital-recovery rate: CapEx × (WACC + O&M overhead) = €1.66M × 8.21% = R234k/month"
           },
           {
-            "contract": "Timber panel sales",
+            "contract": "Timber panel fabrication pipeline",
             "type": "Sales",
-            "status": "To be contracted",
-            "note": "Sales to large off-takers in timber construction sector"
-          },
-          {
-            "contract": "Training programme fees",
-            "type": "Services",
-            "status": "To be secured",
-            "note": "Skills development and SETA programme revenue — training fees and government subsidies"
+            "status": "Pipeline secured",
+            "pipeline_value_zar": 177900000,
+            "projects": 10,
+            "note": "R177.9M pipeline across 10 projects. Key: NBI Youth Centres (R68M, KfW funded), Limbro Park (R87.5M, DBSA Green Fund), Giants Castle (R5.1M), Garden Route (R6.1M). All via Green Block Construction."
           }
         ]
       }
