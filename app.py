@@ -2839,18 +2839,27 @@ def render_subsidiary(entity_key, icon, name):
                             st.markdown(f"**{_sect_title}**\n\n{_sect_body}")
                             if _sect_title == "Assets":
                                 st.markdown(_uses_table_html, unsafe_allow_html=True)
-                    for _scen_name in ("Greenfield", "Brownfield+"):
-                        _is_active = (_lr_scenario == _scen_name)
-                        for _sect in _ov_entity.split("\n### "):
-                            if _sect.startswith(_scen_name):
-                                _sect_body = _sect.partition("\n")[2].strip()
-                                if _is_active:
-                                    with st.container(border=True):
-                                        st.markdown(f"**{_scen_name}**\n\n{_sect_body}")
+                    _ov_gf_body = ""
+                    _ov_bf_body = ""
+                    for _sect in _ov_entity.split("\n### "):
+                        if _sect.startswith("Greenfield"):
+                            _ov_gf_body = _sect.partition("\n")[2].strip()
+                        elif _sect.startswith("Brownfield+"):
+                            _ov_bf_body = _sect.partition("\n")[2].strip()
+                    _ov_lr_col_gf, _ov_lr_col_bf = st.columns(2)
+                    for _ov_lr_col, _ov_lr_name, _ov_lr_body, _ov_lr_active in [
+                        (_ov_lr_col_gf, "Greenfield", _ov_gf_body, _lr_scenario == "Greenfield"),
+                        (_ov_lr_col_bf, "Brownfield+", _ov_bf_body, _lr_scenario == "Brownfield+"),
+                    ]:
+                        with _ov_lr_col:
+                            with st.container(border=True):
+                                if _ov_lr_active:
+                                    st.markdown(":green[**SELECTED**]")
+                                    st.markdown(f"**{_ov_lr_name}**\n\n{_ov_lr_body}")
                                 else:
-                                    st.caption("Alternative scenario:")
-                                    st.markdown(f"<div style='color:#9CA3AF;font-size:0.9em;'><b>{_scen_name}</b><br/>{_sect_body}</div>", unsafe_allow_html=True)
-                                break
+                                    st.markdown(":grey[NOT SELECTED]")
+                                    st.markdown(f":grey[**{_ov_lr_name}**]")
+                                    st.markdown(f"<div style='color:#9CA3AF;font-size:0.9em;'>{_ov_lr_body}</div>", unsafe_allow_html=True)
                 else:
                     # Default (TWX): render sections with Uses table after Assets
                     for _sect in _ov_entity.split("\n### "):
@@ -9393,31 +9402,82 @@ revenue contracts (Layer 3) upstream through SCLCA to Invest International Capit
                     l3 = sub_sec.get('layer_3', {})
                     st.subheader(l3.get('title', 'Layer 3 — Physical Assets & Revenue Contracts'))
 
-                    _phys_assets = l3.get('physical_assets', [])
-                    if _phys_assets:
-                        st.markdown("**Physical Assets**")
-                        _pa_rows = []
-                        for _item in _phys_assets:
-                            _row = {
-                                'Asset': _item.get('asset', ''),
-                                'Supplier': _item.get('supplier', ''),
-                                'Country': _item.get('country', ''),
-                            }
-                            if 'budget_eur' in _item:
-                                _row['Budget'] = _item['budget_eur']
-                            _pa_rows.append(_row)
-                        _df_pa = pd.DataFrame(_pa_rows)
-                        render_table(_df_pa, {"Budget": _eur_fmt} if 'Budget' in _df_pa.columns else None)
+                    # LanRED: side-by-side Greenfield vs Brownfield+
+                    if entity_key == 'lanred' and l3.get('scenario_toggle'):
+                        _l3_lr_active = st.session_state.get("lanred_scenario", "Greenfield")
+                        _l3_gf = l3.get('greenfield', {})
+                        _l3_bf = l3.get('brownfield_plus', {})
+                        _l3_col_gf, _l3_col_bf = st.columns(2)
 
-                    _rev_contracts = l3.get('revenue_contracts', [])
-                    if _rev_contracts:
-                        st.markdown("**Revenue Contracts**")
-                        _df_rc = pd.DataFrame(_rev_contracts)
-                        _rc_cols = [c for c in ['contract', 'type', 'status', 'note'] if c in _df_rc.columns]
-                        render_table(_df_rc[_rc_cols].rename(columns={
-                            'contract': 'Contract', 'type': 'Type',
-                            'status': 'Status', 'note': 'Note'
-                        }))
+                        for _l3_col, _l3_data, _l3_name, _l3_is_active in [
+                            (_l3_col_gf, _l3_gf, "Greenfield", _l3_lr_active == "Greenfield"),
+                            (_l3_col_bf, _l3_bf, "Brownfield+", _l3_lr_active == "Brownfield+"),
+                        ]:
+                            with _l3_col:
+                                with st.container(border=True):
+                                    if _l3_is_active:
+                                        st.markdown(":green[**SELECTED**]")
+                                        st.markdown(f"**{_l3_name}**")
+                                        _l3_pa = _l3_data.get('physical_assets', [])
+                                        if _l3_pa:
+                                            st.markdown("**Physical Assets**")
+                                            _pa_rows = []
+                                            for _item in _l3_pa:
+                                                _row = {
+                                                    'Asset': _item.get('asset', ''),
+                                                    'Supplier': _item.get('supplier', ''),
+                                                }
+                                                if _item.get('budget_eur') is not None:
+                                                    _row['Budget'] = _item['budget_eur']
+                                                _pa_rows.append(_row)
+                                            _df_pa = pd.DataFrame(_pa_rows)
+                                            render_table(_df_pa, {"Budget": _eur_fmt} if 'Budget' in _df_pa.columns else None)
+                                        _l3_rc = _l3_data.get('revenue_contracts', [])
+                                        if _l3_rc:
+                                            st.markdown("**Revenue Contracts**")
+                                            _df_rc = pd.DataFrame(_l3_rc)
+                                            _rc_cols = [c for c in ['contract', 'type', 'status', 'note'] if c in _df_rc.columns]
+                                            render_table(_df_rc[_rc_cols].rename(columns={
+                                                'contract': 'Contract', 'type': 'Type',
+                                                'status': 'Status', 'note': 'Note'
+                                            }))
+                                    else:
+                                        st.markdown(":grey[NOT SELECTED]")
+                                        st.markdown(f":grey[**{_l3_name}**]")
+                                        _l3_pa = _l3_data.get('physical_assets', [])
+                                        if _l3_pa:
+                                            _pa_names = ", ".join(_i.get('asset', '') for _i in _l3_pa)
+                                            st.markdown(f":grey[Assets: {_pa_names}]")
+                                        _l3_rc = _l3_data.get('revenue_contracts', [])
+                                        if _l3_rc:
+                                            _rc_names = ", ".join(_r.get('contract', '') for _r in _l3_rc)
+                                            st.markdown(f":grey[Contracts: {_rc_names}]")
+                    else:
+                        _phys_assets = l3.get('physical_assets', [])
+                        if _phys_assets:
+                            st.markdown("**Physical Assets**")
+                            _pa_rows = []
+                            for _item in _phys_assets:
+                                _row = {
+                                    'Asset': _item.get('asset', ''),
+                                    'Supplier': _item.get('supplier', ''),
+                                    'Country': _item.get('country', ''),
+                                }
+                                if 'budget_eur' in _item:
+                                    _row['Budget'] = _item['budget_eur']
+                                _pa_rows.append(_row)
+                            _df_pa = pd.DataFrame(_pa_rows)
+                            render_table(_df_pa, {"Budget": _eur_fmt} if 'Budget' in _df_pa.columns else None)
+
+                        _rev_contracts = l3.get('revenue_contracts', [])
+                        if _rev_contracts:
+                            st.markdown("**Revenue Contracts**")
+                            _df_rc = pd.DataFrame(_rev_contracts)
+                            _rc_cols = [c for c in ['contract', 'type', 'status', 'note'] if c in _df_rc.columns]
+                            render_table(_df_rc[_rc_cols].rename(columns={
+                                'contract': 'Contract', 'type': 'Type',
+                                'status': 'Status', 'note': 'Note'
+                            }))
 
     # --- DELIVERY ---
     if "Delivery" in _tab_map:
@@ -9440,54 +9500,166 @@ revenue contracts (Layer 3) upstream through SCLCA to Invest International Capit
             if not scope:
                 st.info("Delivery data not available for this entity.")
             else:
-                c1, c2, c3 = st.columns(3)
-                c1.metric("EPC Model", scope['epc_model'])
-                c2.metric("EPC Contractor", scope['epc_contractor'])
-                c3.metric("Scope Value", f"€{scope['total_eur']:,.0f}")
+                # LanRED: full side-by-side Greenfield vs Brownfield+ delivery
+                if entity_key == 'lanred' and scope.get('scenario_toggle'):
+                    _del_lr_active = st.session_state.get("lanred_scenario", "Greenfield")
+                    _del_gf = scope.get('greenfield', {})
+                    _del_bf = scope.get('brownfield_plus', {})
+                    _bf_ops = load_config("operations").get("lanred", {}).get("brownfield_plus", {})
+                    _bf_port = _bf_ops.get("northlands_portfolio", {})
+                    _bf_sites = _bf_port.get("sites", [])
+                    _del_col_gf, _del_col_bf = st.columns(2)
 
-                st.markdown(f"""
+                    # --- Greenfield column ---
+                    with _del_col_gf:
+                        with st.container(border=True):
+                            _gf_active = (_del_lr_active == "Greenfield")
+                            if _gf_active:
+                                st.markdown(":green[**SELECTED**]")
+                                st.markdown("**Greenfield**")
+                                st.metric("EPC Model", _del_gf.get('epc_model', ''))
+                                st.metric("EPC Contractor", _del_gf.get('epc_contractor', ''))
+                                st.metric("Scope Value", f"€{_del_gf.get('total_eur', 0):,.0f}")
+                                st.caption(_del_gf.get('note', ''))
+                                st.divider()
+                                st.markdown("**Asset Breakdown**")
+                                _sub_asset_keys = sub_data.get('assets', [])
+                                for _ak in _sub_asset_keys:
+                                    _asset_data = assets_del['assets'].get(_ak, {})
+                                    if _asset_data and _asset_data.get('line_items'):
+                                        _li_rows = []
+                                        for _li in _asset_data['line_items']:
+                                            _li_rows.append({
+                                                "Supplier": _li['company'],
+                                                "Deliverable": _li['delivery'],
+                                                "Budget": _li['budget'],
+                                            })
+                                        _li_rows.append({
+                                            "Supplier": "**Total**",
+                                            "Deliverable": "",
+                                            "Budget": _asset_data['total'],
+                                        })
+                                        render_table(pd.DataFrame(_li_rows), {"Budget": _eur_fmt})
+                            else:
+                                st.markdown(":grey[NOT SELECTED]")
+                                st.markdown(":grey[**Greenfield**]")
+                                st.markdown(f":grey[EPC: {_del_gf.get('epc_contractor', '')}]")
+                                st.markdown(f":grey[Value: €{_del_gf.get('total_eur', 0):,.0f}]")
+                                st.markdown(":grey[New-build Solar PV (2.4 MWp) + BESS (1.5 MWh)]")
+
+                    # --- Brownfield+ column ---
+                    with _del_col_bf:
+                        with st.container(border=True):
+                            _bf_active = (_del_lr_active == "Brownfield+")
+                            if _bf_active:
+                                st.markdown(":green[**SELECTED**]")
+                                st.markdown("**Brownfield+**")
+                                st.metric("EPC Model", _del_bf.get('epc_model', ''))
+                                st.metric("EPC Contractor", _del_bf.get('epc_contractor', ''))
+                                st.metric("Scope Value", f"€{_del_bf.get('total_eur', 0):,.0f}")
+                                st.caption(_del_bf.get('note', ''))
+                                st.divider()
+                                st.markdown("**Portfolio Sites**")
+                                _bf_rows = []
+                                for _site in _bf_sites:
+                                    _bf_rows.append({
+                                        "Site": _site['name'],
+                                        "PV (kWp)": _site['pv_kwp'],
+                                        "BESS (kWh)": _site['bess_kwh'],
+                                        "Net (ZAR/mo)": _site['monthly_net_zar'],
+                                    })
+                                _bf_rows.append({
+                                    "Site": "**Total**",
+                                    "PV (kWp)": sum(s['pv_kwp'] for s in _bf_sites),
+                                    "BESS (kWh)": sum(s['bess_kwh'] for s in _bf_sites),
+                                    "Net (ZAR/mo)": sum(s['monthly_net_zar'] for s in _bf_sites),
+                                })
+                                render_table(pd.DataFrame(_bf_rows), {"Net (ZAR/mo)": "R{:,.0f}"})
+                                _bf_price = _bf_port.get("purchase_price_zar", 60000000)
+                                st.caption(f"Purchase price: R{_bf_price:,.0f}. All sites operational with 20-year PPAs.")
+                            else:
+                                st.markdown(":grey[NOT SELECTED]")
+                                st.markdown(":grey[**Brownfield+**]")
+                                st.markdown(f":grey[Acquisition: {_del_bf.get('epc_contractor', '')}]")
+                                st.markdown(f":grey[Value: €{_del_bf.get('total_eur', 0):,.0f}]")
+                                st.markdown(":grey[5 operational sites (2.17 MWp, 4 MWh). Day 1 revenue.]")
+
+                    st.markdown(f"""
+**Integrator:** {delivery['integrator']['name']} ({delivery['integrator']['country']}) serves as
+the project integrator and wrapper across all three delivery scopes.
+                    """)
+
+                    st.divider()
+
+                    # Budget: Fees + IDC (shared across scenarios)
+                    st.subheader("Budget Breakdown")
+                    st.caption("Financial costs and capitalised interest — shared across both scenarios")
+                    _all_cost_rows = []
+                    # Add asset costs for content breakdown
+                    if _del_lr_active == "Brownfield+":
+                        _bf_price = _bf_port.get("purchase_price_zar", 60000000)
+                        _all_cost_rows.append({"country": "South Africa", "amount": _bf_price / 20.56})
+                    else:
+                        for _ak in sub_data.get('assets', []):
+                            _asset_data = assets_del['assets'].get(_ak, {})
+                            if _asset_data and _asset_data.get('line_items'):
+                                for _li in _asset_data['line_items']:
+                                    _split = _li.get('content_split')
+                                    if _split:
+                                        for _sc, _sp in _split.items():
+                                            _all_cost_rows.append({"country": _sc, "amount": _li['budget'] * _sp})
+                                    else:
+                                        _all_cost_rows.append({"country": _li['country'], "amount": _li['budget']})
+
+                else:
+                    c1, c2, c3 = st.columns(3)
+                    c1.metric("EPC Model", scope['epc_model'])
+                    c2.metric("EPC Contractor", scope['epc_contractor'])
+                    c3.metric("Scope Value", f"€{scope['total_eur']:,.0f}")
+
+                    st.markdown(f"""
 **Integrator:** {delivery['integrator']['name']} ({delivery['integrator']['country']}) serves as
 the project integrator and wrapper across all three delivery scopes.
 
 **{name}** — {scope.get('note', '')}
-            """)
+                    """)
 
-                st.divider()
+                    st.divider()
 
-                # --- Full cost breakdown: Assets + Fees + IDC ---
-                st.subheader("Budget Breakdown")
-                st.caption("All capital costs by supplier — assets, financial costs, and capitalised interest")
+                    # --- Full cost breakdown: Assets + Fees + IDC ---
+                    st.subheader("Budget Breakdown")
+                    st.caption("All capital costs by supplier — assets, financial costs, and capitalised interest")
 
-                # Collect all cost rows for country aggregation
-                _all_cost_rows = []
+                    # Collect all cost rows for country aggregation
+                    _all_cost_rows = []
 
-                # 1. Asset line items (from assets.json) — no Status column
-                _sub_asset_keys = sub_data.get('assets', [])
-                for _ak in _sub_asset_keys:
-                    _asset_data = assets_del['assets'].get(_ak, {})
-                    if _asset_data and _asset_data.get('line_items'):
-                        st.markdown(f"**{_asset_data['name']}** — {_asset_data.get('description', '')}")
-                        _li_rows = []
-                        for _li in _asset_data['line_items']:
+                    # 1. Asset line items (from assets.json) — no Status column
+                    _sub_asset_keys = sub_data.get('assets', [])
+                    for _ak in _sub_asset_keys:
+                        _asset_data = assets_del['assets'].get(_ak, {})
+                        if _asset_data and _asset_data.get('line_items'):
+                            st.markdown(f"**{_asset_data['name']}** — {_asset_data.get('description', '')}")
+                            _li_rows = []
+                            for _li in _asset_data['line_items']:
+                                _li_rows.append({
+                                    "Supplier": _li['company'],
+                                    "Deliverable": _li['delivery'],
+                                    "Budget": _li['budget'],
+                                    "Country": _li['country'],
+                                })
+                                _split = _li.get('content_split')
+                                if _split:
+                                    for _sc, _sp in _split.items():
+                                        _all_cost_rows.append({"country": _sc, "amount": _li['budget'] * _sp})
+                                else:
+                                    _all_cost_rows.append({"country": _li['country'], "amount": _li['budget']})
                             _li_rows.append({
-                                "Supplier": _li['company'],
-                                "Deliverable": _li['delivery'],
-                                "Budget": _li['budget'],
-                                "Country": _li['country'],
+                                "Supplier": "**Total**",
+                                "Deliverable": "",
+                                "Budget": _asset_data['total'],
+                                "Country": "",
                             })
-                            _split = _li.get('content_split')
-                            if _split:
-                                for _sc, _sp in _split.items():
-                                    _all_cost_rows.append({"country": _sc, "amount": _li['budget'] * _sp})
-                            else:
-                                _all_cost_rows.append({"country": _li['country'], "amount": _li['budget']})
-                        _li_rows.append({
-                            "Supplier": "**Total**",
-                            "Deliverable": "",
-                            "Budget": _asset_data['total'],
-                            "Country": "",
-                        })
-                        render_table(pd.DataFrame(_li_rows), {"Budget": _eur_fmt})
+                            render_table(pd.DataFrame(_li_rows), {"Budget": _eur_fmt})
 
                 # 2. Fees (from fees.json) — allocated per entity
                 _del_fees_cfg = load_config("fees")

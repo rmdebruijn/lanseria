@@ -260,49 +260,121 @@
       "layer_3": {
         "title": "Layer 3 — Physical Assets & Revenue Contracts (LanRED)",
         "description": "Renewable energy assets and power purchase agreements",
-        "physical_assets": [
-          {
-            "asset": "Solar PV (2.4 MWp)",
-            "supplier": "DG&E",
-            "country": "Europe",
-            "budget_eur": 2508809,
-            "note": "Solar PV via DG&E EPC — panels, inverters, mounting systems"
+        "scenario_toggle": true,
+        "greenfield": {
+          "label": "Greenfield",
+          "physical_assets": [
+            {
+              "asset": "Solar PV (2.4 MWp)",
+              "supplier": "DG&E",
+              "country": "Europe",
+              "budget_eur": 2508809,
+              "note": "Solar PV via DG&E EPC — panels, inverters, mounting systems"
+            },
+            {
+              "asset": "BESS (1.5 MWh Li-ion)",
+              "supplier": "DG&E",
+              "country": "Europe",
+              "budget_eur": 400000,
+              "note": "Battery energy storage — arbitrage and grid independence"
+            }
+          ],
+          "revenue_contracts": [
+            {
+              "contract": "Inter-company power sales to NWL",
+              "type": "PPA",
+              "status": "To be contracted",
+              "pricing": "Eskom -10%",
+              "note": "NWL MABR power consumption at Eskom rate -10% (R2.53/kWh)"
+            },
+            {
+              "contract": "Smart City PPA",
+              "type": "PPA",
+              "status": "To be secured",
+              "note": "Lanseria Smart City demand: 90 MW — LanRED Phase 1 is 0.5% of demand"
+            },
+            {
+              "contract": "Open market / wheeling",
+              "type": "PPA",
+              "status": "To be secured",
+              "note": "Residual generation sold to open market via wheeling"
+            },
+            {
+              "contract": "BESS arbitrage",
+              "type": "Arbitrage",
+              "status": "Operational",
+              "note": "TOU arbitrage: HD 2 cycles/day (R5-6/kWh spread), LD 1 cycle/day (R1.6/kWh spread)"
+            }
+          ]
+        },
+        "brownfield_plus": {
+          "label": "Brownfield+",
+          "physical_assets": [
+            {
+              "asset": "Northlands Corner (699 kWp + 1,548 kWh)",
+              "supplier": "Existing portfolio",
+              "country": "South Africa",
+              "budget_eur": null,
+              "note": "SolarEdge + ATESS + Freedom Won. CoJ registered. R950k/mo income."
+            },
+            {
+              "asset": "Deco Park (899 kWp + 1,548 kWh)",
+              "supplier": "Existing portfolio",
+              "country": "South Africa",
+              "budget_eur": null,
+              "note": "SolarEdge + ATESS + Freedom Won. R700k/mo income."
+            },
+            {
+              "asset": "Commercial Park (198 kWp + 400 kWh)",
+              "supplier": "Existing portfolio",
+              "country": "South Africa",
+              "budget_eur": null,
+              "note": "SolarEdge + ATESS + Freedom Won. CoJ registered. R120k/mo income."
+            },
+            {
+              "asset": "Verimark (274 kWp + 400 kWh)",
+              "supplier": "Existing portfolio",
+              "country": "South Africa",
+              "budget_eur": null,
+              "note": "SolarEdge + ATESS + Freedom Won. CoJ registered. R240k/mo income."
+            },
+            {
+              "asset": "Stand 199 (100 kWp + 120 kWh)",
+              "supplier": "Existing portfolio",
+              "country": "South Africa",
+              "budget_eur": null,
+              "note": "Sunsynk + Sunsynk. CoJ registered. R70k/mo income."
+            }
+          ],
+          "portfolio_total": {
+            "pv_kwp": 2170,
+            "bess_kwh": 4016,
+            "monthly_income_zar": 2080000,
+            "monthly_net_zar": 1171000,
+            "purchase_price_zar": 60000000
           },
-          {
-            "asset": "BESS (1.5 MWh Li-ion)",
-            "supplier": "DG&E",
-            "country": "Europe",
-            "budget_eur": 400000,
-            "note": "Battery energy storage — arbitrage and grid independence"
-          }
-        ],
-        "revenue_contracts": [
-          {
-            "contract": "Inter-company power sales to NWL",
-            "type": "PPA",
-            "status": "To be contracted",
-            "pricing": "Eskom -10%",
-            "note": "NWL MABR power consumption at Eskom rate -10% (R2.53/kWh)"
-          },
-          {
-            "contract": "Smart City PPA",
-            "type": "PPA",
-            "status": "To be secured",
-            "note": "Lanseria Smart City demand: 90 MW — LanRED Phase 1 is 0.5% of demand"
-          },
-          {
-            "contract": "Open market / wheeling",
-            "type": "PPA",
-            "status": "To be secured",
-            "note": "Residual generation sold to open market via wheeling"
-          },
-          {
-            "contract": "BESS arbitrage",
-            "type": "Arbitrage",
-            "status": "Operational",
-            "note": "TOU arbitrage: HD 2 cycles/day (R5-6/kWh spread), LD 1 cycle/day (R1.6/kWh spread)"
-          }
-        ]
+          "revenue_contracts": [
+            {
+              "contract": "5× existing PPAs (Northlands portfolio)",
+              "type": "PPA",
+              "status": "Operational (Day 1)",
+              "note": "R2.08M/mo gross income from 5 sites. 20-year PPA terms. Day 1 revenue."
+            },
+            {
+              "contract": "Inter-company power sales to NWL",
+              "type": "PPA",
+              "status": "To be contracted",
+              "pricing": "Eskom -10%",
+              "note": "NWL MABR power consumption at Eskom rate -10% (R2.53/kWh)"
+            },
+            {
+              "contract": "Smart City PPA (Phase 2 expansion)",
+              "type": "PPA",
+              "status": "To be secured",
+              "note": "1.37 MWp Lanseria expansion funded from Northlands retained earnings Y2-Y3"
+            }
+          ]
+        }
       }
     },
     "timberworx": {

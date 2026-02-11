@@ -18,6 +18,23 @@
     },
     "lanred": {
       "name": "LanRED",
+      "scenario_toggle": true,
+      "greenfield": {
+        "epc_model": "Single EPC",
+        "epc_contractor": "DG&E (parent company in Europe)",
+        "epc_country": "Europe",
+        "total_eur": 3199398,
+        "note": "DG&E parent company in Europe (specific entity to be confirmed). New-build solar PV (2.4 MWp) + BESS (1.5 MWh) at Lanseria.",
+        "key_vendors": []
+      },
+      "brownfield_plus": {
+        "epc_model": "Portfolio Acquisition",
+        "epc_contractor": "Northlands Portfolio (5 sites)",
+        "epc_country": "South Africa",
+        "total_eur": 3199398,
+        "note": "Acquisition of 5 operational solar+BESS sites (2.17 MWp, 4 MWh) for R60M. Day 1 PPA revenue (R2.08M/mo). Phase 2: Lanseria expansion from retained earnings.",
+        "key_vendors": []
+      },
       "epc_model": "Single EPC",
       "epc_contractor": "DG&E (parent company in Europe)",
       "epc_country": "Europe",

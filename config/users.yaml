@@ -4,6 +4,24 @@ cookie:
   name: sclca_fm_auth
 credentials:
   usernames:
+    Saskia:
+      email: s.bruinders@nexusnovus.com
+      first_name: Saskia
+      last_name: bruinders
+      password: $2b$12$Ws1.iQ56Uh/cCtyhW9Scju36bWBkroUt554jA8wa2TQz6S9n5rHyW
+      permissions:
+        can_manage_users: false
+        entities:
+        - '*'
+        mgmt_pages:
+        - Summary
+        - Strategy
+        - Tasks
+        - CP & CS
+        tabs:
+        - '*'
+      roles:
+      - promotor_opco
     eckardt:
       email: eckardt@vansquared.co.za
       first_name: Eckardt
