@@ -204,7 +204,9 @@ def load_svg_patched(svg_filename: str, md_filename: str) -> str:
     Returns SVG string with text content replaced, or empty string if file missing.
     """
     model_dir = Path(__file__).parent
-    svg_path = model_dir.parent / svg_filename
+    svg_path = model_dir / "assets" / svg_filename
+    if not svg_path.exists():
+        svg_path = model_dir.parent / svg_filename  # legacy fallback
     if not svg_path.exists():
         return ""
     with open(svg_path, 'r', encoding='utf-8') as f:

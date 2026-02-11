@@ -1,0 +1,164 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 780" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="12">
+  <defs>
+    <style>
+      .box { rx: 6; ry: 6; stroke-width: 1.5; }
+      .label-bold { font-size: 11px; fill: #374151; font-weight: 600; }
+      .label-sm { font-size: 9.5px; fill: #6B7280; }
+      .label-white { font-size: 12px; fill: #FFFFFF; font-weight: 600; }
+      .label-white-sm { font-size: 10px; fill: #E5E7EB; }
+      .line-solid { stroke: #9CA3AF; stroke-width: 1.5; fill: none; }
+      .line-dashed { stroke: #9CA3AF; stroke-width: 1.5; fill: none; stroke-dasharray: 5,3; }
+      .tag { font-size: 8px; font-weight: 600; }
+    </style>
+  </defs>
+
+  <!-- UBO Box -->
+  <rect x="380" y="10" width="340" height="44" class="box" fill="#1F2937" stroke="#111827"/>
+  <text x="550" y="30" text-anchor="middle" class="label-white">Mark van Houten (UBO)</text>
+  <text x="550" y="44" text-anchor="middle" class="label-white-sm">Director of all entities, Ultimate Beneficial Owner</text>
+
+  <line x1="550" y1="54" x2="550" y2="78" class="line-solid"/>
+
+  <!-- Trust Box -->
+  <rect x="380" y="78" width="340" height="36" class="box" fill="#F3F4F6" stroke="#9CA3AF"/>
+  <text x="550" y="98" text-anchor="middle" class="label-bold">VH Investments Trust (VHIT)</text>
+  <text x="550" y="109" text-anchor="middle" class="label-sm">100% owner of VH Properties</text>
+
+  <line x1="550" y1="114" x2="550" y2="138" class="line-solid"/>
+
+  <!-- VH Properties (TWX Guarantor) -->
+  <rect x="380" y="138" width="340" height="52" class="box" fill="#DBEAFE" stroke="#2563EB" stroke-width="2"/>
+  <text x="550" y="157" text-anchor="middle" class="label-bold" fill="#1E40AF">VH Properties (Pty) Ltd</text>
+  <text x="550" y="170" text-anchor="middle" class="label-sm">40% in Phoenix Group — TWX Guarantor</text>
+  <rect x="470" y="176" width="160" height="14" rx="3" fill="#2563EB"/>
+  <text x="550" y="186" text-anchor="middle" class="tag" fill="white">TIMBERWORX GUARANTOR</text>
+
+  <line x1="550" y1="190" x2="550" y2="214" class="line-solid"/>
+
+  <!-- Phoenix Specialist Property Fund (dormant shell) -->
+  <rect x="380" y="214" width="340" height="44" class="box" fill="#E5E7EB" stroke="#9CA3AF"/>
+  <text x="550" y="233" text-anchor="middle" class="label-bold">Phoenix Specialist Property Fund</text>
+  <text x="550" y="248" text-anchor="middle" class="label-sm">100% — Dormant shell (R100)</text>
+
+  <line x1="550" y1="258" x2="550" y2="272" class="line-solid"/>
+  <!-- Horizontal connector to 4 children -->
+  <line x1="140" y1="272" x2="960" y2="272" class="line-solid"/>
+  <line x1="140" y1="272" x2="140" y2="290" class="line-solid"/>
+  <line x1="500" y1="272" x2="500" y2="290" class="line-solid"/>
+  <line x1="750" y1="272" x2="750" y2="290" class="line-solid"/>
+  <line x1="960" y1="272" x2="960" y2="290" class="line-solid"/>
+
+  <!-- Phoenix Property Fund SA -->
+  <rect x="30" y="290" width="220" height="52" class="box" fill="#FFF7ED" stroke="#F97316" stroke-width="2"/>
+  <text x="140" y="309" text-anchor="middle" class="label-bold">Phoenix Property Fund SA</text>
+  <text x="140" y="322" text-anchor="middle" class="label-sm">100% — HoldCo for 6 retail centres</text>
+  <rect x="90" y="328" width="100" height="13" rx="3" fill="#F97316"/>
+  <text x="140" y="338" text-anchor="middle" class="tag" fill="white">-VE EQUITY</text>
+
+  <!-- Renovo Property Fund -->
+  <rect x="400" y="290" width="200" height="52" class="box" fill="#FFFFFF" stroke="#D1D5DB"/>
+  <text x="500" y="309" text-anchor="middle" class="label-bold">Renovo Property Fund</text>
+  <text x="500" y="322" text-anchor="middle" class="label-sm">100% — HoldCo for Madelief</text>
+  <text x="500" y="335" text-anchor="middle" class="label-sm" fill="#9CA3AF">VPI cross-ownership</text>
+
+  <!-- PRAAM -->
+  <rect x="650" y="290" width="200" height="52" class="box" fill="#FFFFFF" stroke="#D1D5DB"/>
+  <text x="750" y="309" text-anchor="middle" class="label-bold">PRAAM</text>
+  <text x="750" y="322" text-anchor="middle" class="label-sm">100% — Asset management</text>
+  <text x="750" y="335" text-anchor="middle" class="label-sm" fill="#9CA3AF">+ intercompany lending</text>
+
+  <!-- Chartwell Co-Owner -->
+  <rect x="870" y="290" width="180" height="52" class="box" fill="#FFFFFF" stroke="#D1D5DB"/>
+  <text x="960" y="309" text-anchor="middle" class="label-bold">Chartwell Co-Owner</text>
+  <text x="960" y="322" text-anchor="middle" class="label-sm">100% — Pass-through</text>
+  <text x="960" y="335" text-anchor="middle" class="label-sm" fill="#9CA3AF">for Chartwell co-ownership</text>
+
+  <!-- Phoenix Prop Fund -> 6 retail centres -->
+  <line x1="140" y1="342" x2="140" y2="365" class="line-solid"/>
+  <line x1="70" y1="365" x2="770" y2="365" class="line-solid"/>
+  <line x1="70" y1="365" x2="70" y2="383" class="line-solid"/>
+  <line x1="210" y1="365" x2="210" y2="383" class="line-solid"/>
+  <line x1="350" y1="365" x2="350" y2="383" class="line-solid"/>
+  <line x1="490" y1="365" x2="490" y2="383" class="line-solid"/>
+  <line x1="630" y1="365" x2="630" y2="383" class="line-solid"/>
+  <line x1="770" y1="365" x2="770" y2="383" class="line-dashed"/>
+
+  <!-- 6 Retail Centres -->
+  <!-- Ridgeview (GC, -ve) -->
+  <rect x="5" y="383" width="130" height="95" class="box" fill="#FEF2F2" stroke="#DC2626" stroke-width="2"/>
+  <text x="70" y="400" text-anchor="middle" class="label-bold" font-size="10">Ridgeview Centre</text>
+  <text x="70" y="414" text-anchor="middle" class="label-sm">100% — R185M</text>
+  <text x="70" y="428" text-anchor="middle" class="label-sm">Midrand</text>
+  <rect x="20" y="448" width="100" height="13" rx="3" fill="#DC2626"/>
+  <text x="70" y="458" text-anchor="middle" class="tag" fill="white">GC + -VE EQUITY</text>
+
+  <!-- Brackenfell (-ve) -->
+  <rect x="145" y="383" width="130" height="95" class="box" fill="#FFF7ED" stroke="#F97316" stroke-width="2"/>
+  <text x="210" y="400" text-anchor="middle" class="label-bold" font-size="10">Brackenfell Corner</text>
+  <text x="210" y="414" text-anchor="middle" class="label-sm">100% — R259M</text>
+  <text x="210" y="428" text-anchor="middle" class="label-sm">Brackenfell CT</text>
+  <rect x="160" y="448" width="100" height="13" rx="3" fill="#F97316"/>
+  <text x="210" y="458" text-anchor="middle" class="tag" fill="white">-VE EQUITY</text>
+
+  <!-- Chartwell (GC, -ve) -->
+  <rect x="285" y="383" width="130" height="95" class="box" fill="#FEF2F2" stroke="#DC2626" stroke-width="2"/>
+  <text x="350" y="400" text-anchor="middle" class="label-bold" font-size="10">Chartwell Corner</text>
+  <text x="350" y="414" text-anchor="middle" class="label-sm">100% — R104M</text>
+  <text x="350" y="428" text-anchor="middle" class="label-sm">Fourways JHB</text>
+  <rect x="300" y="448" width="100" height="13" rx="3" fill="#DC2626"/>
+  <text x="350" y="458" text-anchor="middle" class="tag" fill="white">GC + -VE EQUITY</text>
+
+  <!-- Jukskei (OK) -->
+  <rect x="425" y="383" width="130" height="95" class="box" fill="#FFFFFF" stroke="#D1D5DB"/>
+  <text x="490" y="400" text-anchor="middle" class="label-bold" font-size="10">Jukskei Meander</text>
+  <text x="490" y="414" text-anchor="middle" class="label-sm">100% — R84M</text>
+  <text x="490" y="428" text-anchor="middle" class="label-sm">Midrand JHB</text>
+
+  <!-- Olivedale (-ve) -->
+  <rect x="565" y="383" width="130" height="95" class="box" fill="#FFF7ED" stroke="#F97316" stroke-width="2"/>
+  <text x="630" y="400" text-anchor="middle" class="label-bold" font-size="10">Olivedale Corner</text>
+  <text x="630" y="414" text-anchor="middle" class="label-sm">100% — R132M</text>
+  <text x="630" y="428" text-anchor="middle" class="label-sm">Olivedale JHB</text>
+  <rect x="580" y="448" width="100" height="13" rx="3" fill="#F97316"/>
+  <text x="630" y="458" text-anchor="middle" class="tag" fill="white">-VE EQUITY</text>
+
+  <!-- Silva Terrace (50%, no AFS) -->
+  <rect x="705" y="383" width="130" height="95" class="box" fill="#E5E7EB" stroke="#9CA3AF" stroke-dasharray="5,3"/>
+  <text x="770" y="400" text-anchor="middle" class="label-bold" font-size="10">Silva Terrace</text>
+  <text x="770" y="414" text-anchor="middle" class="label-sm">50% — Retail</text>
+  <rect x="720" y="448" width="100" height="13" rx="3" fill="#9CA3AF"/>
+  <text x="770" y="458" text-anchor="middle" class="tag" fill="white">NO AFS</text>
+
+  <!-- Renovo -> Madelief (routed right to avoid retail row) -->
+  <line x1="500" y1="342" x2="500" y2="356" class="line-solid"/>
+  <line x1="500" y1="356" x2="870" y2="356" class="line-solid"/>
+  <line x1="870" y1="356" x2="870" y2="510" class="line-solid"/>
+  <line x1="870" y1="510" x2="590" y2="510" class="line-solid"/>
+  <rect x="410" y="500" width="180" height="48" class="box" fill="#FFFFFF" stroke="#D1D5DB"/>
+  <text x="500" y="520" text-anchor="middle" class="label-bold">Madelief Shopping Centre</text>
+  <text x="500" y="535" text-anchor="middle" class="label-sm">100% — R141M retail centre</text>
+
+  <!-- Legend -->
+  <rect x="20" y="680" width="1060" height="70" rx="6" fill="#F9FAFB" stroke="#E5E7EB"/>
+  <text x="40" y="700" class="label-bold" font-size="11">Legend:</text>
+
+  <line x1="40" y1="720" x2="70" y2="720" class="line-solid"/>
+  <text x="78" y="724" class="label-sm">Subsidiary (>50% or control)</text>
+
+  <line x1="250" y1="720" x2="280" y2="720" class="line-dashed"/>
+  <text x="288" y="724" class="label-sm">50% or less</text>
+
+  <rect x="400" y="713" width="16" height="14" rx="3" fill="#DBEAFE" stroke="#2563EB" stroke-width="1.5"/>
+  <text x="422" y="724" class="label-sm">TWX Guarantor</text>
+
+  <rect x="530" y="713" width="16" height="14" rx="3" fill="#FEF2F2" stroke="#DC2626" stroke-width="1.5"/>
+  <text x="552" y="724" class="label-sm">Going Concern</text>
+
+  <rect x="660" y="713" width="16" height="14" rx="3" fill="#FFF7ED" stroke="#F97316" stroke-width="1.5"/>
+  <text x="682" y="724" class="label-sm">Negative Equity</text>
+
+  <rect x="800" y="713" width="16" height="14" rx="3" fill="#E5E7EB" stroke="#9CA3AF" stroke-width="1.5"/>
+  <text x="822" y="724" class="label-sm">No AFS / Dormant</text>
+
+  <text x="40" y="740" class="label-sm">Source: Mark van Houten, confirmed 01/03/2025. Phoenix Group: 6 retail centres + Renovo/Madelief + PRAAM asset management.</text>
+</svg>
