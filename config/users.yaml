@@ -4,15 +4,15 @@ cookie:
   name: sclca_fm_auth
 credentials:
   usernames:
-    Robbert:
-      email: r.zappeij@zencustomerfinance.nl
-      first_name: Robbert
-      last_name: Zappeij
-      password: $2b$12$TS4iMkXMx0oP49kQr64oMOYGD84mQA4RkcQspmLT3w5tfdjXwIuiu
+    Eckardt:
+      email: eckardt@vansquared.co.za
+      first_name: Eckardt
+      last_name: van Wyk
+      password: $2b$12$L.TrJK.p5qK2eDiPjNLdU.OTTaiQh1lRZW7DZNgrjwMfwUpiBAIMi
       permissions:
         can_manage_users: false
         entities:
-        - '*'
+        - Timberworx
         mgmt_pages:
         - '*'
         tabs:
@@ -41,6 +41,21 @@ credentials:
       password: $2b$12$wOuXzxmw8WSpP8WX5rsUg.HhJ5UCY0B7CtEZ82o3ZqYEcnrEFxnQu
       roles:
       - admin
+    robbert:
+      email: r.zappeij@zencustomerfinance.nl
+      first_name: Robbert
+      last_name: Zappeij
+      password: $2b$12$TS4iMkXMx0oP49kQr64oMOYGD84mQA4RkcQspmLT3w5tfdjXwIuiu
+      permissions:
+        can_manage_users: false
+        entities:
+        - '*'
+        mgmt_pages:
+        - '*'
+        tabs:
+        - '*'
+      roles:
+      - promotor_opco
     rutger:
       email: rutger@nexusnovus.com
       first_name: Rutger

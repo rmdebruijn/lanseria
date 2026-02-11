@@ -951,21 +951,29 @@ def _build_all_entity_ic_schedules(nwl_swap_enabled=False, lanred_swap_enabled=F
 def _compute_entity_waterfall_inputs(entity_key, ops_annual, entity_sr_sched, entity_mz_sched):
     """Entity surplus computation with character-preserving allocation (v3.1).
 
+    Cash can ONLY flow upstream via 2 pipes: Senior IC or Mezz IC.
     Surplus allocation at entity level:
-      1. Surplus → Mezz IC acceleration (until Mezz IC fully repaid)
-      2. Remainder → free_surplus (discretionary, flows to holding)
+      1. Surplus → accelerate Mezz IC (Mezz character, until Mezz IC = 0)
+      2. Surplus → accelerate Senior IC (Senior character, until Senior IC = 0)
+      3. After both IC loans repaid → entity retains in FD
 
     Returns list of 10 annual dicts with sr_pi, mz_pi, mz_accel_entity,
-    free_surplus, mz_ic_bal, plus backward-compat surplus/deficit.
+    sr_accel_entity, mz_ic_bal, sr_ic_bal, plus backward-compat surplus/deficit.
     """
     rows = []
 
-    # Track running Mezz IC balance for entity-level acceleration
+    # Track running IC balances for entity-level acceleration
     # Start from opening balance at first repayment period (M24+)
     mz_ic_bal = 0.0
     for r in entity_mz_sched:
         if r['Month'] >= 24:
             mz_ic_bal = r.get('Opening', 0)
+            break
+
+    sr_ic_bal = 0.0
+    for r in entity_sr_sched:
+        if r['Month'] >= 24:
+            sr_ic_bal = r.get('Opening', 0)
             break
 
     for yi in range(10):
@@ -982,11 +990,15 @@ def _compute_entity_waterfall_inputs(entity_key, ops_annual, entity_sr_sched, en
         ie_year = 0.0
         year_months = [yi * 12 + 6, yi * 12 + 12]
         mz_prin_sched = 0.0  # scheduled Mezz principal this year
+        sr_prin_sched = 0.0  # scheduled Senior principal this year
+        sr_prepay = 0.0      # grant prepayments this year (Senior character)
         for r in entity_sr_sched:
             if r['Month'] in year_months:
                 ie_year += r['Interest']
                 if r['Month'] >= 24:
                     sr_pi += r['Interest'] + abs(r['Principle'])
+                    sr_prin_sched += abs(r['Principle'])
+                sr_prepay += abs(r.get('Prepayment', 0))
         for r in entity_mz_sched:
             if r['Month'] in year_months:
                 ie_year += r['Interest']
@@ -1001,28 +1013,37 @@ def _compute_entity_waterfall_inputs(entity_key, ops_annual, entity_sr_sched, en
 
         net = ebitda - tax - ds_cash
 
-        # --- Entity-level surplus allocation (character preserving) ---
-        free_surplus = max(net, 0)
+        # --- Entity-level surplus allocation (2 pipes only) ---
+        remaining_surplus = max(net, 0)
 
-        # Reduce Mezz IC balance by scheduled principal first
+        # Reduce IC balances by scheduled principal + prepayments
         mz_ic_bal = max(mz_ic_bal - mz_prin_sched, 0)
+        sr_ic_bal = max(sr_ic_bal - sr_prin_sched - sr_prepay, 0)
 
-        # Surplus → Mezz IC acceleration (entity-level priority)
+        # Priority 1: Surplus → accelerate Mezz IC (Mezz character)
         mz_accel_entity = 0.0
-        if mz_ic_bal > 0.01 and free_surplus > 0:
-            mz_accel_entity = min(free_surplus, mz_ic_bal)
+        if mz_ic_bal > 0.01 and remaining_surplus > 0:
+            mz_accel_entity = min(remaining_surplus, mz_ic_bal)
             mz_ic_bal -= mz_accel_entity
-            free_surplus -= mz_accel_entity
+            remaining_surplus -= mz_accel_entity
+
+        # Priority 2: Surplus → accelerate Senior IC (Senior character)
+        sr_accel_entity = 0.0
+        if sr_ic_bal > 0.01 and remaining_surplus > 0:
+            sr_accel_entity = min(remaining_surplus, sr_ic_bal)
+            sr_ic_bal -= sr_accel_entity
+            remaining_surplus -= sr_accel_entity
 
         rows.append({
             'ebitda': ebitda, 'tax': tax, 'ds_cash': ds_cash,
             'sr_pi': sr_pi, 'mz_pi': mz_pi,
-            'mz_accel_entity': mz_accel_entity,  # Mezz-character surplus
-            'free_surplus': free_surplus,          # truly free surplus
+            'mz_accel_entity': mz_accel_entity,    # surplus → Mezz IC (Mezz character)
+            'sr_accel_entity': sr_accel_entity,    # surplus → Senior IC (Senior character)
             'ie_year': ie_year, 'pbt': pbt,
             'surplus': max(net, 0),  # backward compat (total surplus)
             'deficit': min(net, 0),
             'mz_ic_bal': mz_ic_bal,  # remaining Mezz IC balance
+            'sr_ic_bal': sr_ic_bal,  # remaining Senior IC balance
         })
     return rows
 
@@ -1133,17 +1154,17 @@ def _build_waterfall_model(annual_model, nwl_wf, lanred_wf, twx_wf,
                             lanred_swap_enabled=False, swap_schedule=None):
     """Build 10-year holding company cash waterfall (v3.1 — character-preserving).
 
-    Cash preserves its character through the chain:
-      - Entity Sr P+I + prepayments → Senior character → pay IIC
-      - Entity Mz P+I + entity Mezz accel → Mezz character → pay CC
-      - Entity free surplus → discretionary pool
+    Cash can ONLY flow upstream via 2 pipes: Senior IC or Mezz IC.
+      - Entity Sr P+I + prepayments + sr_accel_entity → Senior character → IIC
+      - Entity Mz P+I + mz_accel_entity → Mezz character → CC
+    No "free surplus" bucket — ALL cash is allocated at entity level.
 
     Priority cascade (6-step):
-      1. Senior P+I (pass-through to IIC, Senior character)
-      2. Mezz P+I + Entity Accel (pass-through to CC, Mezz character)
+      1. Senior P+I + Sr Accel (pass-through to IIC, Senior character)
+      2. Mezz P+I + Mz Accel (pass-through to CC, Mezz character)
       3. DSRA top-up (1x next Senior P+I)
       4. One-Time Dividend (IC obligation, when CC = 0)
-      5. Senior acceleration (IIC prepayment from free surplus)
+      5. Senior acceleration (holding-level, from Sr excess)
       6. Fixed Deposit (residual)
 
     Returns list of 10 annual dicts with full waterfall breakdown.
@@ -1182,11 +1203,10 @@ def _build_waterfall_model(annual_model, nwl_wf, lanred_wf, twx_wf,
         a = annual_model[yi]
         wf = {'year': yr}
 
-        # --- 1. Entity-level contributions (3 character buckets) ---
+        # --- 1. Entity-level contributions (2 pipes only) ---
         entity_wfs = {'nwl': nwl_wf[yi], 'lanred': lanred_wf[yi], 'timberworx': twx_wf[yi]}
-        sr_character = 0.0   # Senior character: sr_pi + prepayments
-        mz_character = 0.0   # Mezz character: mz_pi + entity mz_accel
-        free_pool = 0.0      # Discretionary: free_surplus
+        sr_character = 0.0   # Senior character: sr_pi + prepayments + sr_accel_entity
+        mz_character = 0.0   # Mezz character: mz_pi + mz_accel_entity
 
         for ek, ewf in entity_wfs.items():
             wf[f'{ek}_ebitda'] = ewf['ebitda']
@@ -1194,8 +1214,9 @@ def _build_waterfall_model(annual_model, nwl_wf, lanred_wf, twx_wf,
             wf[f'{ek}_sr_pi'] = ewf['sr_pi']
             wf[f'{ek}_mz_pi'] = ewf['mz_pi']
             wf[f'{ek}_mz_accel_entity'] = ewf.get('mz_accel_entity', 0)
-            wf[f'{ek}_free_surplus'] = ewf.get('free_surplus', 0)
+            wf[f'{ek}_sr_accel_entity'] = ewf.get('sr_accel_entity', 0)
             wf[f'{ek}_mz_ic_bal'] = ewf.get('mz_ic_bal', 0)
+            wf[f'{ek}_sr_ic_bal'] = ewf.get('sr_ic_bal', 0)
 
             # Grant-funded prepayments this year (from IC schedule, Senior character)
             y_start = yi * 12
@@ -1231,22 +1252,21 @@ def _build_waterfall_model(annual_model, nwl_wf, lanred_wf, twx_wf,
 
             fd_fill = 0.0
             if entity_ic_repaid and surplus > 0:
-                # After IC loans repaid: entity retains ALL cash (no upstream)
+                # After both IC loans repaid: entity retains ALL cash (no upstream)
                 entity_fd_bals[ek] += surplus
                 fd_fill = surplus
             wf[f'{ek}_dsra_bal'] = entity_fd_bals[ek]  # backward compat key name
 
-            wf[f'{ek}_surplus'] = ewf.get('free_surplus', 0) if not entity_ic_repaid else 0
+            wf[f'{ek}_surplus'] = ewf.get('sr_accel_entity', 0) if not entity_ic_repaid else 0
             wf[f'{ek}_deficit'] = ewf['deficit']
 
-            # Character-preserving upstream (stops after IC repaid)
+            # 2-pipe upstream (stops after IC repaid)
             if not entity_ic_repaid:
-                sr_character += ewf['sr_pi'] + ek_prepay
+                sr_character += ewf['sr_pi'] + ek_prepay + ewf.get('sr_accel_entity', 0)
                 mz_character += ewf['mz_pi'] + ewf.get('mz_accel_entity', 0)
-                free_pool += ewf.get('free_surplus', 0)
 
         # Total pool for display (all upstream combined)
-        pool = sr_character + mz_character + free_pool
+        pool = sr_character + mz_character
 
         # --- 2. IC Overdraft (LanRED deficit) ---
         lanred_deficit = abs(entity_wfs['lanred']['deficit'])
@@ -1259,13 +1279,12 @@ def _build_waterfall_model(annual_model, nwl_wf, lanred_wf, twx_wf,
             od_interest = od_bal * od_rate
             od_bal += od_drawn + od_interest
         else:
-            # Repay overdraft from free pool before cascade
+            # Repay overdraft from Senior excess before cascade
             od_interest = od_bal * od_rate
             od_bal += od_interest
-            od_repaid = min(free_pool, od_bal)
+            sr_excess_for_od = max(sr_character - (a.get('cf_repay_out_sr', 0) + a.get('cf_ie_sr_cash', 0)), 0)
+            od_repaid = min(sr_excess_for_od, od_bal)
             od_bal -= od_repaid
-            free_pool -= od_repaid
-            pool -= od_repaid
 
         wf['ic_overdraft_drawn'] = od_drawn
         wf['ic_overdraft_repaid'] = od_repaid
@@ -1275,24 +1294,24 @@ def _build_waterfall_model(annual_model, nwl_wf, lanred_wf, twx_wf,
         wf['pool_total'] = pool
         cc_opening = cc_bal
 
-        # Step 1: Senior P+I (pass-through, Senior character → IIC)
+        # Step 1: Senior P+I + Sr Accel (pass-through, Senior character → IIC)
         sr_pi_due = a.get('cf_repay_out_sr', 0) + a.get('cf_ie_sr_cash', 0)
-        wf_sr_pi = min(sr_character, sr_pi_due)
-        sr_excess = sr_character - wf_sr_pi  # any Senior excess → Sr acceleration
+        wf_sr_pi = sr_character  # ALL Senior-character cash → IIC
         wf['wf_sr_pi'] = wf_sr_pi
 
-        # Step 2: Mezz P+I + Entity Accel (pass-through, Mezz character → CC)
-        mz_pi_due = a.get('cf_repay_out_mz', 0) + a.get('cf_ie_mz_cash', 0)
-        # Mezz character includes scheduled P+I AND entity-level Mezz acceleration
-        wf_mz_pi = mz_character  # all Mezz-character cash goes to CC
-        # CC balance reduction: scheduled Mezz principal + entity acceleration principal
+        # Step 2: Mezz P+I + Mz Accel (pass-through, Mezz character → CC)
+        # ALL Mezz-character cash → CC
+        wf_mz_pi = mz_character
+        # CC balance reduction: scheduled Mezz principal + entity Mezz acceleration
         mz_prin_sched = a.get('cf_repay_out_mz', 0)
         entity_mz_accel_total = sum(ewf.get('mz_accel_entity', 0) for ewf in entity_wfs.values())
         cc_bal -= min(mz_prin_sched + entity_mz_accel_total, cc_bal)
         wf['wf_mz_pi'] = wf_mz_pi
 
-        # Step 3: DSRA top-up (from free pool, 1x next year Senior P+I)
-        remaining = free_pool + sr_excess  # discretionary pool
+        # Step 3: DSRA top-up (1x next year Senior P+I)
+        # Funded from any Senior excess beyond contractual P+I
+        sr_excess = max(sr_character - sr_pi_due - od_repaid, 0)
+        remaining = sr_excess
         next_yr_sr_pi = 0.0
         if yi < 9:
             na = annual_model[yi + 1] if yi + 1 < len(annual_model) else {}
@@ -1318,9 +1337,9 @@ def _build_waterfall_model(annual_model, nwl_wf, lanred_wf, twx_wf,
             slug_settled = True
         wf['wf_cc_slug_paid'] = wf_slug_paid
 
-        # Step 5: Senior acceleration (IIC voluntary prepayment from free surplus)
+        # Step 5: Senior acceleration (holding-level, IIC voluntary prepayment)
         wf_sr_accel = 0.0
-        if slug_settled and remaining > 0:
+        if remaining > 0:
             wf_sr_accel = remaining
             remaining -= wf_sr_accel
         wf['wf_sr_accel'] = wf_sr_accel
@@ -11186,11 +11205,11 @@ if entity == "Catalytic Assets":
             # Section 2: Entity Contributions
             st.subheader("Entity Contributions")
             st.markdown("""
-**How it works:** Cash preserves its **character** through the chain. Each entity sends
-upstream in 3 buckets: **Senior character** (IC Senior P+I + grant prepayments),
-**Mezz character** (IC Mezz P+I + surplus applied to Mezz IC acceleration), and
-**free surplus** (only after entity Mezz IC is fully repaid). Once an entity's IC loans
-are fully repaid, it retains all cash. Cash flows start at M24 (after the grace period).
+**How it works:** Cash flows upstream via **2 pipes only** — Senior IC and Mezz IC.
+Each entity pays contractual IC Senior P+I and IC Mezz P+I first. Any surplus is allocated
+at entity level: **first** accelerate Mezz IC, **then** ZAR leg (if swap), **then** Senior IC.
+Once both IC loans are fully repaid, the entity retains all cash in its FD.
+Cash flows start at M24 (after the grace period).
 """)
             _wf_years = [f"Y{w['year']}" for w in _waterfall]
 
@@ -11239,15 +11258,16 @@ are fully repaid, it retains all cash. Cash flows start at M24 (after the grace 
                         v = w.get(f'{_ek_key}_mz_accel_entity', 0)
                         _ent_rows['Mezz IC Acceleration'][yr] = _eur_fmt.format(v) if v > 0 else '\u2014'
 
-                # Free Surplus (or deficit for LanRED)
-                _ent_rows['Free Surplus'] = {}
+                # Sr IC Acceleration (surplus → Senior IC, after Mezz IC done)
+                _ent_rows['Sr IC Acceleration'] = {}
                 for yr, w in zip(_wf_years, _waterfall):
                     if w.get(f'{_ek_key}_ic_repaid', False):
-                        _ent_rows['Free Surplus'][yr] = '\u2014'
-                    elif _ek_key == 'lanred' and w.get(f'{_ek_key}_free_surplus', 0) == 0 and w[f'{_ek_key}_deficit'] < 0:
-                        _ent_rows['Free Surplus'][yr] = _eur_fmt.format(w[f'{_ek_key}_deficit'])
+                        _ent_rows['Sr IC Acceleration'][yr] = '\u2014'
+                    elif _ek_key == 'lanred' and w.get(f'{_ek_key}_sr_accel_entity', 0) == 0 and w[f'{_ek_key}_deficit'] < 0:
+                        _ent_rows['Sr IC Acceleration'][yr] = _eur_fmt.format(w[f'{_ek_key}_deficit'])
                     else:
-                        _ent_rows['Free Surplus'][yr] = _eur_fmt.format(w.get(f'{_ek_key}_free_surplus', 0))
+                        v = w.get(f'{_ek_key}_sr_accel_entity', 0)
+                        _ent_rows['Sr IC Acceleration'][yr] = _eur_fmt.format(v) if v > 0 else '\u2014'
 
                 # Total upstream
                 _ent_rows['**Total Upstream**'] = {}
@@ -11258,9 +11278,9 @@ are fully repaid, it retains all cash. Cash flows start at M24 (after the grace 
                         total = (w.get(f'{_ek_key}_sr_pi', 0)
                                  + w.get(f'{_ek_key}_mz_pi', 0)
                                  + w.get(f'{_ek_key}_mz_accel_entity', 0)
-                                 + w.get(f'{_ek_key}_free_surplus', 0)
+                                 + w.get(f'{_ek_key}_sr_accel_entity', 0)
                                  + w.get(f'{_ek_key}_prepay', 0))
-                        if _ek_key == 'lanred' and w.get(f'{_ek_key}_free_surplus', 0) == 0 and w[f'{_ek_key}_deficit'] < 0:
+                        if _ek_key == 'lanred' and w.get(f'{_ek_key}_sr_accel_entity', 0) == 0 and w[f'{_ek_key}_deficit'] < 0:
                             total = (w.get(f'{_ek_key}_sr_pi', 0)
                                      + w.get(f'{_ek_key}_mz_pi', 0)
                                      + w.get(f'{_ek_key}_mz_accel_entity', 0))
@@ -11283,7 +11303,7 @@ are fully repaid, it retains all cash. Cash flows start at M24 (after the grace 
                         _vals.append(0)
                     else:
                         _vals.append(w.get(f'{ek_key}_sr_pi', 0) + w.get(f'{ek_key}_mz_pi', 0)
-                                     + w.get(f'{ek_key}_mz_accel_entity', 0) + w.get(f'{ek_key}_free_surplus', 0))
+                                     + w.get(f'{ek_key}_mz_accel_entity', 0) + w.get(f'{ek_key}_sr_accel_entity', 0))
                 fig_ec.add_trace(go.Bar(
                     x=_wf_years, y=_vals,
                     name=ek_label, marker_color=_ec_colors[ek_key],
