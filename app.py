@@ -8944,7 +8944,7 @@ Ops Reserve → OpCo DSRA → Mezz IC Accel (15.25%) →
                             ("Investment Property", "R692.9M", "R620.0M", "R565.0M"),
                             ("Total Equity", "R53.4M", "R62.0M", "R48.5M"),
                             ("Revenue", "R72.5M", "R64.8M", "R62.2M"),
-                            ("Operating Profit", "R42.9M", "R57.8M", "R38.0M"),
+                            ("**EBITDA**", "**R42.9M**", "**R57.8M**", "**R38.0M**"),
                             ("Finance Costs", "R58.5M", "R43.2M", "R31.4M"),
                             ("**Net Profit/(Loss)**", "**(R9.3M)**", "**R15.3M**", "**R5.7M**"),
                             ("D/E Ratio", "13.0x", "10.0x", "11.2x"),
@@ -8982,7 +8982,8 @@ Ops Reserve → OpCo DSRA → Mezz IC Accel (15.25%) →
                                 ("Fair value gains", "R9,540,776", "R28,967,822", "R7,359,937"),
                                 ("Other income", "R427,519", "R69,788", "R38,502"),
                                 ("Operating expenses", "(R39,580,457)", "(R35,945,459)", "(R31,602,751)"),
-                                ("**Operating profit**", "**R42,876,448**", "**R57,844,276**", "**R37,966,123**"),
+                                ("**EBITDA**", "**R42,876,448**", "**R57,844,276**", "**R37,966,123**"),
+                                ("Operating profit", "R42,876,448", "R57,844,276", "R37,966,123"),
                                 ("Investment revenue", "R869,068", "R1,310,422", "R908,718"),
                                 ("Finance costs", "(R58,519,409)", "(R43,220,057)", "(R31,402,269)"),
                                 ("Profit/(Loss) before tax", "(R14,773,893)", "R15,934,641", "R7,472,572"),
@@ -9041,15 +9042,8 @@ Ops Reserve → OpCo DSRA → Mezz IC Accel (15.25%) →
 
                         if _ver_all_nwl and _ver_holding:
                             st.divider()
-                            # Summary table (flat, for quick overview)
                             with st.expander(f"Subsidiary Financial Statements ({len(_ver_subs_nwl)} entities)", expanded=False):
                                 _render_sub_summary_and_toggles(_ver_subs_nwl, "nwl_ver_summ")
-
-                            # Nested tree view
-                            with st.expander("Nested Corporate Hierarchy — Financial Statements", expanded=False):
-                                st.caption("Financial statements organised by ownership hierarchy (parent → child)")
-                                for _child_node in _ver_holding.get("children", []):
-                                    _render_nested_financials(_child_node, _ver_all_nwl, "nwl_ver")
 
                         # ── Email Q&A ──
                         if _guar_cfg:
@@ -9260,25 +9254,8 @@ revenue contracts (Layer 3) upstream through SCLCA to Invest International Capit
                         st.markdown("##### Corporate Structure — Phoenix Group (via VH Properties)")
                         render_svg("guarantor-phoenix.svg", "_none.md")
 
-                        # ── Nested Phoenix Subsidiary Financials ──
-                        _phx_subs_twx = _load_guarantor_jsons("phoenix 2025 financials")
-                        _phx_root_twx = _load_guarantor_jsons("")
-                        _phx_all_twx = {**_phx_subs_twx, **_phx_root_twx}
-                        _guar_cfg_twx = _load_guarantor_config()
-                        _phx_group = _guar_cfg_twx.get("groups", {}).get("phoenix", {})
-                        _phx_holding = _phx_group.get("holding", {})
-
-                        if _phx_all_twx and _phx_holding:
-                            st.divider()
-                            with st.expander(f"Phoenix Subsidiary Financial Statements ({len(_phx_subs_twx)} entities)", expanded=False):
-                                _render_sub_summary_and_toggles(_phx_subs_twx, "twx_phx_summ")
-
-                            with st.expander("Nested Corporate Hierarchy — Financial Statements", expanded=False):
-                                st.caption("Financial statements organised by ownership hierarchy (parent → child)")
-                                for _child_node in _phx_holding.get("children", []):
-                                    _render_nested_financials(_child_node, _phx_all_twx, "twx_phx")
-
                         # ── Email Q&A ──
+                        _guar_cfg_twx = _load_guarantor_config()
                         if _guar_cfg_twx:
                             st.divider()
                             _render_email_qa(_guar_cfg_twx)
@@ -9373,12 +9350,6 @@ revenue contracts (Layer 3) upstream through SCLCA to Invest International Capit
                                 st.divider()
                                 with st.expander(f"Phoenix Group Financial Statements ({len(_phx_subs_twx)} entities)", expanded=False):
                                     _render_sub_summary_and_toggles(_phx_subs_twx, "twx_phx_summ")
-                                if _phx_holding:
-                                    with st.expander("Nested Corporate Hierarchy — Phoenix Group", expanded=False):
-                                        st.caption("Financial statements organised by ownership hierarchy (parent → child)")
-                                        for _child_node_twx in _phx_holding.get("children", []):
-                                            _render_nested_financials(_child_node_twx, _phx_subs_twx, "twx_phx")
-
                     st.divider()
 
                     # Layer 3 — Physical Assets & Revenue Contracts
@@ -10175,9 +10146,37 @@ def _render_sub_financials(data, prefix):
             st.caption("Balance check: PASS")
     with _tp:
         rows = []
+        # Compute EBITDA = operating profit + depreciation
+        _op_cy, _op_py = None, None
+        for _opk in ["operating_profit", "operating_loss", "operating_profit_loss"]:
+            _op_item = pl.get(_opk)
+            if _op_item and isinstance(_op_item, dict) and "values" in _op_item:
+                _op_cy = _op_item["values"][0] if len(_op_item["values"]) > 0 else None
+                _op_py = _op_item["values"][1] if len(_op_item["values"]) > 1 else None
+                break
+        _dep_cy, _dep_py = 0, 0
+        for _dk in ["depreciation", "depreciation_and_amortisation", "depreciation_amortisation"]:
+            _dep_item = pl.get(_dk)
+            if _dep_item and isinstance(_dep_item, dict) and "values" in _dep_item:
+                _dep_cy = abs(_dep_item["values"][0] or 0)
+                _dep_py = abs(_dep_item["values"][1] or 0) if len(_dep_item["values"]) > 1 else 0
+                break
+        _ebitda_cy = (_op_cy + _dep_cy) if _op_cy is not None else None
+        _ebitda_py = (_op_py + _dep_py) if _op_py is not None else None
         for lbl, key in [("Revenue", "revenue"), ("Other income", "other_income"), ("FV adjustments", "other_income_fair_value"),
-                         ("Operating expenses", "operating_expenses"), ("Impairment", "impairment_investments"),
+                         ("Operating expenses", "operating_expenses"), ("Impairment", "impairment_investments")]:
+            item = pl.get(key)
+            if item and isinstance(item, dict):
+                vals = item.get("values", [None, None])
+                cy, py = (vals[0] if len(vals) > 0 else None), (vals[1] if len(vals) > 1 else None)
+                if cy is not None or py is not None:
+                    rows.append((lbl, _fmtr(cy), _fmtr(py)))
+        # Insert EBITDA row (highlighted)
+        if _ebitda_cy is not None:
+            rows.append(("**EBITDA**", f"**{_fmtr(_ebitda_cy)}**", f"**{_fmtr(_ebitda_py)}**"))
+        for lbl, key in [("Depreciation", "depreciation"), ("Depreciation", "depreciation_and_amortisation"),
                          ("**Operating profit/(loss)**", "operating_profit_loss"), ("**Operating profit/(loss)**", "operating_profit"),
+                         ("**Operating loss**", "operating_loss"),
                          ("Investment revenue", "investment_revenue"), ("Finance costs", "finance_costs"),
                          ("Loss on disposal", "loss_on_disposal"),
                          ("PBT", "profit_loss_before_taxation"), ("PBT", "profit_before_taxation"), ("PBT", "loss_before_taxation"),
@@ -10196,8 +10195,29 @@ def _render_sub_financials(data, prefix):
 
 def _render_sub_summary_and_toggles(subs_dict, key_prefix):
     """Render summary table + per-company expanders with write-ups and BS/P&L."""
+    # Pre-compute metrics and sort by EBITDA descending
+    _entity_metrics = []
+    for stem, sdata in subs_dict.items():
+        smeta = sdata.get("metadata", {})
+        sbs = sdata.get("statement_of_financial_position", {})
+        spl = sdata.get("statement_of_comprehensive_income", {})
+        s_ebitda = None
+        for ek in ["operating_profit", "operating_loss", "operating_profit_loss"]:
+            s_ebitda = _gval(spl, ek)
+            if s_ebitda is not None:
+                break
+        if s_ebitda is not None:
+            for dk in ["depreciation", "depreciation_and_amortisation", "depreciation_amortisation"]:
+                _dep = _gval(spl, dk)
+                if _dep is not None:
+                    s_ebitda = s_ebitda + abs(_dep)
+                    break
+        _entity_metrics.append((stem, sdata, s_ebitda or 0))
+    _entity_metrics.sort(key=lambda x: x[2], reverse=True)
+
     summary_rows = []
-    for stem, sdata in sorted(subs_dict.items()):
+    _tot_ta = _tot_te = _tot_rev = _tot_ebitda = _tot_pat = 0
+    for stem, sdata, _ in _entity_metrics:
         smeta = sdata.get("metadata", {})
         sent = smeta.get("entity", {})
         sbs = sdata.get("statement_of_financial_position", {})
@@ -10210,6 +10230,17 @@ def _render_sub_summary_and_toggles(subs_dict, key_prefix):
             s_pat = _gval(spl, pk)
             if s_pat is not None:
                 break
+        s_ebitda = None
+        for ek in ["operating_profit", "operating_loss", "operating_profit_loss"]:
+            s_ebitda = _gval(spl, ek)
+            if s_ebitda is not None:
+                break
+        if s_ebitda is not None:
+            for dk in ["depreciation", "depreciation_and_amortisation", "depreciation_amortisation"]:
+                _dep = _gval(spl, dk)
+                if _dep is not None:
+                    s_ebitda = s_ebitda + abs(_dep)
+                    break
         s_ip = _gval(sbs, "assets", "non_current_assets", "investment_property")
         s_isub = _gval(sbs, "assets", "non_current_assets", "investments_in_subsidiaries")
         flag = ""
@@ -10224,15 +10255,28 @@ def _render_sub_summary_and_toggles(subs_dict, key_prefix):
             flag = " [Pass-thru]"
         elif notes.get("holding_company"):
             flag = " [HoldCo]"
+        _tot_ta += s_ta or 0
+        _tot_te += s_te or 0
+        _tot_rev += s_rev or 0
+        _tot_ebitda += s_ebitda or 0
+        _tot_pat += s_pat or 0
         summary_rows.append((
             sent.get("legal_name", stem) + flag,
             _fmtr(s_ta, millions=True), _fmtr(s_te, millions=True),
             _fmtr(s_ip or s_isub, millions=True),
-            _fmtr(s_rev, millions=True), _fmtr(s_pat, millions=True),
+            _fmtr(s_rev, millions=True), _fmtr(s_ebitda, millions=True),
+            _fmtr(s_pat, millions=True),
         ))
-    _render_fin_table(summary_rows, ["Entity", "Assets", "Equity", "Inv. Prop/Subs", "Revenue", "PAT"])
+    summary_rows.append((
+        "**Total**",
+        f"**{_fmtr(_tot_ta, millions=True)}**", f"**{_fmtr(_tot_te, millions=True)}**",
+        "",
+        f"**{_fmtr(_tot_rev, millions=True)}**", f"**{_fmtr(_tot_ebitda, millions=True)}**",
+        f"**{_fmtr(_tot_pat, millions=True)}**",
+    ))
+    _render_fin_table(summary_rows, ["Entity", "Assets", "Equity", "Inv. Prop/Subs", "Revenue", "EBITDA", "PAT"])
     st.caption("[GC] = Going concern, [-ve] = Negative equity, [HoldCo] = Holding co, [Dormant] = No activity")
-    for stem, sdata in sorted(subs_dict.items()):
+    for stem, sdata, _ in _entity_metrics:
         smeta = sdata.get("metadata", {})
         sent = smeta.get("entity", {})
         sname = sent.get("legal_name", stem)
@@ -14109,7 +14153,7 @@ surplus is allocated at {ek_label} level: Ops Reserve -> OpCo DSRA ->
                     {"Metric": "Investment Property", "Value": "R692.9M"},
                     {"Metric": "Total Equity", "Value": "R53.4M"},
                     {"Metric": "Revenue", "Value": "R72.5M"},
-                    {"Metric": "Operating Profit", "Value": "R42.9M"},
+                    {"Metric": "EBITDA", "Value": "R42.9M"},
                     {"Metric": "Finance Costs", "Value": "R58.5M"},
                     {"Metric": "D/E Ratio", "Value": "13.0x"},
                     {"Metric": "Interest Cover", "Value": "0.73x"},
@@ -15040,14 +15084,14 @@ This creates a financial link between the two guarantor groups that must be disc
         _v4.metric("Interest Cover", "0.73x", "1.34x prior", delta_color="inverse")
         _v5, _v6, _v7, _v8 = st.columns(4)
         _v5.metric("Revenue", "R72.5M", "+11.9% YoY")
-        _v6.metric("Operating Profit", "R42.9M", "-25.8% YoY", delta_color="inverse")
+        _v6.metric("EBITDA", "R42.9M", "-25.8% YoY", delta_color="inverse")
         _v7.metric("Net Profit/(Loss)", "(R9.3M)", "vs R15.3M prior", delta_color="inverse")
         _v8.metric("Total Equity", "R53.4M", "-14.0% YoY", delta_color="inverse")
 
         _ga_fig = go.Figure()
         _ga_years = ["FY2023", "FY2024", "FY2025"]
         _ga_fig.add_trace(go.Bar(x=_ga_years, y=[62.2, 64.8, 72.5], name="Revenue", marker_color="#3B82F6"))
-        _ga_fig.add_trace(go.Bar(x=_ga_years, y=[38.0, 57.8, 42.9], name="Op. Profit", marker_color="#10B981"))
+        _ga_fig.add_trace(go.Bar(x=_ga_years, y=[38.0, 57.8, 42.9], name="EBITDA", marker_color="#10B981"))
         _ga_fig.add_trace(go.Bar(x=_ga_years, y=[-31.4, -43.2, -58.5], name="Finance Costs", marker_color="#EF4444"))
         _ga_fig.add_trace(go.Scatter(x=_ga_years, y=[5.7, 15.3, -9.3], name="Net Profit", mode="lines+markers",
                                      line=dict(color="#F59E0B", width=3)))
@@ -15130,7 +15174,8 @@ This creates a financial link between the two guarantor groups that must be disc
                     ("Revenue", "R72,488,610", "R64,752,125", "R62,170,435"),
                     ("Other income (incl. FV)", "R9,968,295", "R29,037,610", "R7,398,439"),
                     ("Operating expenses", "(R39,580,457)", "(R35,945,459)", "(R31,602,751)"),
-                    ("**Operating profit**", "**R42,876,448**", "**R57,844,276**", "**R37,966,123**"),
+                    ("**EBITDA**", "**R42,876,448**", "**R57,844,276**", "**R37,966,123**"),
+                    ("Operating profit", "R42,876,448", "R57,844,276", "R37,966,123"),
                     ("Investment revenue", "R869,068", "R1,310,422", "R908,718"),
                     ("Finance costs", "(R58,519,409)", "(R43,220,057)", "(R31,402,269)"),
                     ("PBT", "(R14,773,893)", "R15,934,641", "R7,472,572"),
@@ -15161,11 +15206,6 @@ This creates a financial link between the two guarantor groups that must be disc
             st.divider()
             st.subheader(f"Subsidiary Company Financials ({len(_ver_subs)} entities)")
             _render_sub_summary_and_toggles(_ver_subs, "ver_summ")
-            if _ver_holding_ga:
-                with st.expander("Nested Corporate Hierarchy — Veracity", expanded=False):
-                    st.caption("Financial statements organised by ownership hierarchy (parent → child)")
-                    for _child_ga in _ver_holding_ga.get("children", []):
-                        _render_nested_financials(_child_ga, _ver_subs, "ver")
 
         # ── Email Q&A ──
         if _guar_cfg_ga:
@@ -15290,11 +15330,6 @@ FY2024 was profitable (R15.3M PAT with R29M fair value gains), but FY2025 swung 
             st.divider()
             st.subheader(f"Subsidiary Company Financials ({len(_phx_subs)} entities)")
             _render_sub_summary_and_toggles(_phx_subs, "phx_summ")
-            if _phx_holding_ga:
-                with st.expander("Nested Corporate Hierarchy — Phoenix Group", expanded=False):
-                    st.caption("Financial statements organised by ownership hierarchy (parent → child)")
-                    for _child_phx_ga in _phx_holding_ga.get("children", []):
-                        _render_nested_financials(_child_phx_ga, _phx_subs, "phx")
 
         st.divider()
         st.subheader("ECA View")
