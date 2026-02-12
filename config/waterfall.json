@@ -27,14 +27,20 @@
     "note": "Track per year: CC_balance x 5.25% = accruing liability. Also verify via IRR solver."
   },
   "nwl_swap": {
-    "eur_leg_note": "Auto-computed: IC Senior P+I at M24 + M30",
-    "zar_rate": 0.1175,
-    "zar_start_month": 36,
-    "zar_end_note": "Auto-computed: matches last NWL IC Senior repayment month"
+    "eur_leg": "bullet_m24",
+    "eur_leg_note": "Single bullet at M24 (same as FEC timing). IC stays vanilla.",
+    "zar_leg_repayments": 12,
+    "zar_leg_start_month": 36,
+    "zar_rate": 0.0969,
+    "note": "IC stays vanilla. EUR bullet to Investec. ZAR Rand leg 12 semi-annual M36-M102. Rate: Investec quoted 9.69% fixed (Oct 2025)."
   },
   "lanred_swap": {
-    "extended_repayments_sr": 28,
-    "extended_repayments_mz": 20
+    "eur_leg": "follows_ic",
+    "eur_leg_note": "EUR leg mirrors IC Senior (14 semi-annual from M24). IC stays vanilla.",
+    "zar_leg_repayments": 28,
+    "zar_leg_start_month": 24,
+    "zar_rate": 0.0969,
+    "note": "Brownfield+ only. IC stays vanilla. ZAR Rand leg 28 semi-annual (14 years). Rate: Investec quoted 9.69% fixed (Oct 2025)."
   },
   "entity_cascade": {
     "ops_reserve_coverage_pct": 1.0,
@@ -42,7 +48,7 @@
   },
   "surplus_priority_by_seniority": [
     {"name": "mezz_ic_accel", "rate": 0.1525, "character": "mezz"},
-    {"name": "zar_rand_leg", "rate": 0.1175, "character": "senior", "entity": "nwl"},
+    {"name": "zar_rand_leg", "rate": 0.0969, "character": "senior", "entity": "nwl"},
     {"name": "overdraft_repay", "rate": 0.10, "character": "senior", "entity": "lanred"},
     {"name": "sr_ic_accel", "rate": 0.052, "character": "senior"}
   ]

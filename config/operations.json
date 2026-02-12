@@ -259,7 +259,7 @@
       "enabled": true,
       "unit_type": "houses",
       "units_per_year": [20, 80, 130, 156, 156, 156, 156, 156, 156, 156],
-      "price_per_unit_zar": 340000,
+      "price_per_unit_zar": 100000,
       "labor_monthly_phase1_zar": 130000,
       "labor_escalation_pct": 5.0,
       "annual_price_escalation_pct": 5.0,

@@ -18,7 +18,12 @@
       "description": "39% of SA's wastewater treatment plants in critical condition, 20-30% classified as poor",
       "urgent_intervention_plants": 334,
       "source": "DWS 2023 Green Drop Watch Report",
-      "reference_doc": "Chapter 1: National Blockage Premise"
+      "reference_doc": "Chapter 1: National Blockage Premise",
+      "green_drop_compliance_trend": [
+        {"year": "2023", "compliant_pct": 36, "source": "DWS Green Drop Watch 2023"},
+        {"year": "2024", "compliant_pct": 13, "source": "DWS Green Drop Watch 2024"},
+        {"year": "2025", "label": "2025 (AfriForum)", "compliant_pct": 12, "source": "AfriForum Water Report 2025"}
+      ]
     },
     "water_supply": {
       "critical_condition_pct": 29,
@@ -40,7 +45,11 @@
       "reference_doc": "Chapter 1: National Blockage Premise"
     },
     "housing": {
-      "backlog_estimate": "2.5M+ units (implied from social housing chapters)",
+      "annual_need": 178000,
+      "annual_delivered": 25000,
+      "annual_gap": 153000,
+      "backlog_units": 3700000,
+      "backlog_estimate": "3.7M units (Stats SA / DHS)",
       "ptg_72_76_allocation": "300 KLD sewage treatment capacity",
       "land_prep_budget": "R8.6M for PTN 72/76",
       "total_land_prep_budget": "R15M across 3 priority parcels",

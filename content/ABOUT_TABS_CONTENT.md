@@ -21,18 +21,19 @@ Independent monitoring by AfriForum's 2025 Green Drop assessment confirms the sc
 | Limpopo | 18% | 11 |
 | North West | 22% | 18 |
 | Western Cape | 29% | 31 |
+| Gauteng | 13% | 15 |
 
 Even the best-performing province (Western Cape) shows less than one-third of plants operating properly. The DWS analysis further indicates **64% of plants are at high or critical risk** of discharging untreated or partially treated wastewater into rivers, dams, and groundwater.
 
 **Municipal Maintenance Crisis:**
-- Actual spending: **2% of asset value**
-- Required spending: **8% of asset value**
-- **75% underspending** = infrastructure deteriorating 4x faster than replacement
+- Actual spending: **{{maint_actual_pct}}% of asset value**
+- Required spending: **{{maint_required_pct}}% of asset value**
+- **{{maint_underspend_pct}}% underspending** = infrastructure deteriorating {{maint_underspend_multiplier}}x faster than replacement
 
 **The Water Tariff Paradox:**
-- Johannesburg piped water (top tier): **R75/kL**
-- Honeysucker trucks (no piped service): **R1,000/kL**
-- **13x cost penalty** for unserviced areas
+- Johannesburg piped water (top tier): **{{joburg_water_tariff}}**
+- Honeysucker trucks (no piped service): **{{honeysucker_cost}}**
+- **{{tariff_penalty_multiplier}}x cost penalty** for unserviced areas
 
 **The trend is worsening**, not improving. This infrastructure collapse threatens public health, environmental sustainability, and economic development across the country.
 
@@ -50,7 +51,7 @@ Even the best-performing province (Western Cape) shows less than one-third of pl
 
 ### The Technology: MABR vs CAS Comparison
 
-New Water Lanseria uses **MABR (Membrane Aerated Biofilm Reactor)** technology from Oxymem, integrated by Colubris Clean Tech, instead of conventional **CAS (Conventional Activated Sludge)** systems that dominate South Africa's failing infrastructure.
+New Water Lanseria uses **MABR (Membrane Aerated Biofilm Reactor)** technology from OxyMem (a DuPont brand, Ireland), integrated by Colubris Clean Tech (Netherlands), instead of conventional **CAS (Conventional Activated Sludge)** systems that dominate South Africa's failing infrastructure.
 
 **Why MABR?**
 
@@ -82,48 +83,17 @@ Yes. MABR and CAS are complementary, not competitive:
 - **Hybrid Designs**: Some large facilities use CAS for bulk treatment + MABR for polishing to achieve discharge standards
 - **Technology Agnosticism**: NWL's private utility model works with any technology — MABR was chosen for Lanseria due to energy/footprint advantages, but the **financial structure and offtake model** are the true innovations that can revolutionize SA infrastructure
 
-### The Financing: Frontier Funding Framework
 
-**Frontier Funding** is about **capturing returns from mispriced perceived risk**. It's a new financial instrument alongside equity, debt, mezzanine, and insurance that earns return by **arbitraging the gap between how risky something looks and how little risk actually remains after structuring**.
 
-**How Frontier Funding Works:**
+### The Financing: NWL Risk Reduction
 
-**Modular Risk Allocation by Mandate:**
-- **Technology Risk** → EPC Contractor (Colubris) via turnkey delivery, performance guarantees, warranties
-- **Ramp-Up Risk** → Development Bank (DFI) holds timing/market build-up/early revenues risk via flexibility, restructuring tolerance, tariff evolution
-- **Credit Risk** → Export Credit Agency (Atradius) converts local offtaker credit into sovereign-grade exposure
+**Total Prepayments**: {{nwl_prepayments_descr}}
 
-**What Remains: Residual Risk Only**
-- After construction, ramp-up, and credit risk are placed with institutions whose mandate is to carry them
-- Only **residual risk** remains — what **cannot be transferred**
-- This residual risk is **priced, time-bound, and contractually removed** at maturity
+**Pre-Revenue Hedging**: The DSRA (Debt Service Reserve Account) funded by Creation Capital at M24 covers the first two senior debt service payments (M24–M36), meaning **no cash exposure until M36**. Combined with the FEC (Forward Exchange Contract), all ZAR/EUR risk during the ramp-up phase is hedged.
 
-**The Off-Ramp (Exit of Risk):**
-- Risk is carried **only until it can be underwritten**
-- At maturity, cash flows stabilize → Underwriter replaces ECA-supported credit risk → Risk is substituted by underwriting, not rolled
-- Sponsor is paid for **temporary risk exposure**, not for asset ownership
+**Actual Exposure**: After grants prepay at M12 and DSRA covers M24–M36, IIC's first real exposure begins at M36 at a balance of **{{nwl_m36_balance}}** — not the full facility of {{senior_facility}}.
 
-**NWL Frontier Funding Structure:**
-
-| Risk Type | Entry (Construction) | Hold (Ramp-Up) | Exit (Maturity) |
-|-----------|---------------------|----------------|-----------------|
-| **Technology** | EPC absorbs (Colubris turnkey) | EPC warranty active | Sponsor not exposed |
-| **Ramp-Up** | Sponsor not exposed | DFI holds residual risk only | Risk removed by maturity |
-| **Credit** | Sponsor not exposed | ECA (Atradius) covers | Underwriter replaces ECA |
-
-**Payment Structure:**
-- **1-3% premium on residual risk** (not on total capex)
-- Paid as: Cash fee, capitalized into debt, converted to equity, or partly at drawdown
-- Return earned on **time in risk**, not long-term uncertainty
-
-**NWL Specific Implementation:**
-- DSRA (R47.5M) covers first 2 debt service payments (M24-M36) = no cash exposure until M36
-- GEPF bulk fee (R44.8M) + DTIC grant (R25M) prepay EUR 3.24M at M12-M18
-- Atradius covers 95% commercial + 98% political risk on Dutch content (Colubris EUR 1.72M = 21.1% of NWL budget)
-- IIC first real exposure at M36: **EUR 5.2M** (not EUR 13.6M full facility)
-- Residual risk premium: **2% p.a. on EUR 5.2M for 1.67 years** = **EUR 173k total sponsor return**
-
-**This is Frontier Funding: arbitrage reclaimed and shared between sponsor and promoter.**
+**Levelized Cost of Water (LCOW)**: {{lcow_value}} — calculated using the Capital Recovery Factor method at WACC of {{wacc_pct}}, combining sewage treatment ({{sewage_mld}} MLD) and water reuse ({{reuse_mld}} MLD) into {{combined_mld}} MLD total billable volume. Brownfield revenue and grants offset the gross cost, resulting in a competitive net LCOW with healthy margin.
 
 ### Unlocking the Smart City
 
@@ -238,8 +208,8 @@ Lanseria benefits from excellent solar irradiation despite being inland (vs coas
 - Installation complexity (skilled labor shortages, quality control)
 
 **LanRED Model Assumptions**:
-- Total solar + BESS investment: **€2.91M split between solar (€2.0M) and BESS (€0.9M)**
-- European EPC consideration: **BG&E (SYSTRA parent)** can provide EPC for solar in addition to TWX timber construction
+- Total solar + BESS investment: **{{lanred_total_investment}}** (Solar {{lanred_solar_investment}} + BESS {{lanred_bess_investment}})
+- European EPC consideration: **DG&E** can provide EPC for solar
   - Split: 60% European content (panels, inverters, EPC management), 40% Chinese components (BYD batteries, LONGi panels - ECA-compliant under 50% local content rule)
 - Alternative: IBC SOLAR, JUWI South Africa (German EPCs with local presence)
 - Component mix: European EPC integration + BYD batteries (Chinese, ECA-compliant) + SMA/Huawei inverters
@@ -324,7 +294,7 @@ The 2025 University of Pretoria School of Public Management study concluded SA's
 2. **Three-Phase Evolution**:
    - **Phase 1**: 1 house/week (**current status**, pilot + learning ongoing)
    - **Phase 2**: 3 houses/week (**current investment**, €200k Optimat panel equipment)
-   - **Phase 3**: 13 houses/week (full industrial scale, Finnvera feasibility study)
+   - **Phase 3**: 13 houses/week (full industrial scale, BusinessFinland feasibility study)
 
 3. **Integrated EPC+F Model**: Bundling European technology (BG&E as exporter), Finnish timber, and export credit (Finnvera/Atradius) into turnkey financing packages for SA housing developers
 
@@ -367,8 +337,9 @@ TWX leverages European ECAs to finance both **equipment (CoE) and materials (tim
 | EKN | Sweden | Future option | Future phases | 50% of ECV |
 | EIFO | Denmark | Future option | Future phases | 50% of ECV |
 
-**Finnvera's €500k Feasibility Investment:**
-- Finnvera is investing **€500,000 in feasibility studies** because the addressable SA housing market is so large (3.7M unit shortage)
+**BusinessFinland €500k Feasibility Investment:**
+
+- BusinessFinland will be investing **€500,000 in feasibility studies** because the addressable SA housing market is so large (3.7M unit shortage)
 - This demonstrates ECA confidence in the business model and market opportunity
 - Full Phase 3 program potential if feasibility proves successful
 
@@ -376,11 +347,11 @@ TWX leverages European ECAs to finance both **equipment (CoE) and materials (tim
 
 | Supplier | Item | Amount (EUR) | Content Split |
 |----------|------|--------------|---------------|
-| BG&E | Centre of Excellence | 1,662,124 | 60% Finland (€997k) + 30% France (€499k) + 10% SA (€166k) |
-| Optimat | Panel Equipment (Phase 2) | 200,000 | 100% Dutch (Netherlands) |
-| **Total TWX Budget** | | **2,032,571** | |
-| **Finnish Content** | | **997,274** | **49.1%** (qualifies for Finnvera) |
-| **Dutch Content** | | **200,000** | **100%** (qualifies for Atradius) |
+| Greenblock | Centre of Excellence | {{twx_coe_amount}} | {{twx_coe_content_split}} |
+| Optimat | Panel Equipment (Phase 2) | {{twx_panel_amount}} | 100% Dutch (Netherlands) |
+| **Total TWX Budget** | | **{{twx_total_budget}}** | |
+| **Finnish Content** | | **{{twx_finnish_content}}** | **{{twx_finnish_pct}}** (qualifies for BusinessFinland) |
+| **Dutch Content** | | **{{twx_dutch_content}}** | **100%** (qualifies for Atradius) |
 
 ### The Technology: DfMA Timber Construction
 
@@ -427,15 +398,17 @@ TWX's impact extends to the national housing crisis:
 
 **Export Finance Unlocking**:
 - Finnish timber industry seeks SA market access (low domestic demand post-construction cycle peak)
-- Finnvera's €500k feasibility investment demonstrates **willingness to invest in market studies** due to massive addressable market
+- BusinessFinland €500k feasibility investment demonstrates **willingness to invest in market studies** due to massive addressable market through phase 3 (fully automated)
 - Alternative ECAs (France, Italy, Sweden, Denmark) create competition, lowering costs
 
 **Contractor Replacement**:
+
 - TWX model eliminates dependency on traditional contractors (quality/speed/cost failures)
 - Government becomes **off-taker** (buying finished units) instead of project manager (tendering to contractors)
 - Social Housing Regulatory Authority (SHRA) can accredit TWX as approved supplier, streamlining subsidy access
 
 **Skills Transfer**:
+
 - CoE trains SA workers on timber construction, CNC operation, factory management
 - Creates **middle-skill jobs** (more valuable than low-skill construction labor) in high-unemployment areas
 - Timber industry ecosystem develops (treatment facilities, logistics, maintenance) generating multiplier effects
@@ -474,17 +447,19 @@ The name reflects SCLCA's strategic purpose: **unlocking Smart City Lanseria dev
 Lanseria DevCo (Pty) Ltd
 └── Smart City Lanseria Catalytic Assets (SCLCA) - 100% owned
     ├── New Water Lanseria (NWL) - 100% owned
-    │   └── IC Loan: €10.7M (Senior €9.1M + Mezz €1.6M)
+    │   └── IC Loan: {{nwl_ic_total}} (Senior {{nwl_ic_senior}} + Mezz {{nwl_ic_mezz}})
     │   └── Assets: 2 MLD MABR plant, sewer reticulation
     │
     ├── LanRED (Pty) Ltd - 100% owned
-    │   └── IC Loan: €3.2M (Senior €2.7M + Mezz €460k)
-    │   └── Assets: Solar PV (€2.0M) + BESS (€0.9M)
+    │   └── IC Loan: {{lanred_ic_total}} (Senior {{lanred_ic_senior}} + Mezz {{lanred_ic_mezz}})
+    │   └── Assets: Solar PV + BESS
     │
     └── Timberworx (Pty) Ltd - 100% owned
-        └── IC Loan: €2.0M (Senior €1.7M + Mezz €288k)
-        └── Assets: CoE (€1.66M) + Panel Equipment (€200k)
+        └── IC Loan: {{twx_ic_total}} (Senior {{twx_ic_senior}} + Mezz {{twx_ic_mezz}})
+        └── Assets: CoE + Panel Equipment
 ```
+
+
 
 **Key Structural Features**:
 
@@ -527,7 +502,7 @@ Frontier Funding is a **new financial instrument** that captures returns from **
 
 | Phase | NWL | LanRED | TWX |
 |-------|-----|--------|-----|
-| **Construction** | EPC (Colubris) holds technology risk | EPC holds technology risk | EPC (BG&E) holds technology risk |
+| **Construction** | EPC (Colubris) holds technology risk | EPC holds technology risk | EPC (GreenBlock) holds technology risk |
 | **Ramp-Up** | DFI (Invest International) holds timing/market risk | DFI holds timing/market risk | DFI holds timing/market risk |
 | **Maturity** | Underwriter replaces ECA credit support | Underwriter replaces ECA credit support | Underwriter replaces ECA credit support |
 | **Sponsor Payment** | 2% p.a. on residual risk only | 2% p.a. on residual risk only | 2% p.a. on residual risk only |
@@ -578,43 +553,17 @@ SCLCA is the **infrastructure backbone** that makes Smart City Lanseria viable:
 
 These crises create **opportunity** for integrated solutions that bundle infrastructure + housing + economic activation in ways government cannot deliver alone.
 
-### Corporate Structure: Four Divisions
+### Corporate Structure: Five Divisions
 
-Smart City Lanseria operates through **four strategic divisions**:
+Lanseria DevCo operates as a **Supreme Demand Orchestrator** through **SCLCA** (Smart City Lanseria Catalytic Assets), deploying **five strategic divisions**:
 
-```
-Lanseria DevCo (Pty) Ltd (Supreme Demand Orchestrator)
-│
-├── 1. UTILITIES DIVISION
-│   └── Smart City Lanseria Catalytic Assets (SCLCA)
-│       ├── New Water Lanseria (NWL)
-│       ├── LanRED Renewable Energy
-│       └── Timberworx (TWX) Housing
-│
-├── 2. INFRASTRUCTURE DIVISION
-│   ├── Roads & Bridges PropCo
-│   ├── Fiber/Telecom OpCo
-│   └── Public Transport Integration
-│
-├── 3. LAND & DEV DIVISION
-│   ├── Lanseria Landowners Consortium (LLC) ← Land bank, options, zoning
-│   ├── PropCo(s) - Vertical development
-│   └── Tensanting Co - Lease management
-│
-└── 4. ANCHORS & AUXILIARIES DIVISION
-    ├── GEPF Land Development (Primary Anchor)
-    ├── NBI Youth Centres (TWX pipeline)
-    └── Commercial Tenants (Office/Retail/Industrial)
-```
+1. **New Water Lanseria (NWL)** — Water treatment & reuse (2 MLD MABR capacity)
+2. **LanRED Renewable Energy** — Embedded generation (2.4 MWp Solar + BESS)
+3. **Timberworx (TWX)** — Modular housing (DfMA timber panel fabrication)
+4. **IWMSA** — Integrated Waste Management South Africa
+5. **Cradle Cloud** — Sovereign cloud services & data sovereignty
 
-**Division Roles**:
-
-1. **Utilities (SCLCA)**: Provide water, power, housing infrastructure (modeled in this financial model)
-2. **Infrastructure**: Roads, bridges, fiber, transport (separate financing, not in current model)
-3. **Land & Dev**: Own land (LLC), develop vertically (PropCos), manage tenancies (Tensanting Co)
-4. **Anchors & Aux**: Secure long-term offtakers for utilities and property (GEPF, NBI, etc.)
-
-**Critical Note**: **Lanseria Landowners Consortium (LLC)** sits under Land & Dev Division and holds land options/economic rights. LLC **cannot apply for subsidies or Frontier Funding** because it's a land entity (not eligible for operational infrastructure financing).
+**NWL, LanRED and Timberworx** are the Phase 1 catalytic assets modeled in this financial model. IWMSA and Cradle Cloud represent future expansion divisions under the same holding structure.
 
 ### Demand Orchestration: Two Supply Modes
 
@@ -697,32 +646,3 @@ Smart City Lanseria is a **template for national replication**:
 - Critical infrastructure gets built where it otherwise wouldn't
 - **Frontier Funding doesn't just improve projects. It expands the investable universe.**
 
----
-
-## Technical Notes
-
-**Graphics Needed for Implementation**:
-1. NWL: Wastewater crisis trend graph (2023: 64% → 2024: 87% → 2025: 88%)
-2. NWL: Frontier Funding risk allocation diagram (Construction → Ramp-Up → Maturity)
-3. LanRED: Demand orchestration flowchart (local modular vs regional bulk)
-4. LanRED: Tariff comparison chart (Eskom/Joburg vs LanRED vs Time-of-Use arbitrage)
-5. TWX: Housing delivery velocity (178k needed/year vs 25k delivered vs TWX potential)
-6. TWX: JV partnership structure (BG&E + Greenblock + Finnish timber around TWX core)
-7. SCLCA: Corporate structure tree (Lanseria DevCo → SCLCA → 3 opcos with IC loans)
-8. Smart City: Four divisions diagram (Utilities, Infrastructure, Land & Dev, Anchors & Aux)
-
----
-
-**END OF ABOUT TABS CONTENT**
-
-**Document Status:** Final draft for financial model ABOUT tabs
-**Key Corrections Incorporated:**
-- Frontier Funding properly defined per PRA (perceived risk arbitrage, not catalytic capital alone)
-- Greenblock JV partnership explained (on-site erect + finish, asset rental model)
-- BG&E can provide solar EPC in addition to timber
-- Finnish feasibility study is €500k investment due to addressable market size
-- CoE initially serves NWL operations (water treatment training)
-- LanRED rooftop control prevents fragmentation and ensures equitable access
-- TWX Phase 1 is current/ongoing, Phase 2 is current investment
-- Lanseria Airport substation is "must-run" (never down)
-- All superfluous content removed (financial performance tables, redundant ECA sections, etc.)

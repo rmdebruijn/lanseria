@@ -61,11 +61,7 @@ Power purchase agreements (PPAs) with Lanseria tenants, grid savings contracts (
 
 ### Summary
 
-Timberworx is a **service company** within the Lanseria Smart City development — it shall operate 
-
-a pre-fab manufacturing facility catering to a large pipeline of timber houses and buildings (within the smart city area)
-
-and the the Centre of Excellence (CoE) which shall serves as a training and awareness center for water and timber applications, and demonstrating timber construction technologies at the same time.
+Timberworx is a **service company** within the Lanseria Smart City development. It shall operate a pre-fab manufacturing facility catering to a large pipeline of timber houses and buildings within the Smart City area, and the Centre of Excellence (CoE) which serves as a training and awareness centre for water and timber applications, demonstrating timber construction technologies.
 
 ### Investment Thesis
 
@@ -76,7 +72,7 @@ Timberworx addresses the housing and construction deficit in South Africa throug
 
 ### Revenue Model
 
-1. **House/panel fabrication sales** — R340k/house service fee (6% p.a. escalation), permanent revenue stream. Timberworx is a service company: labour only, no raw material cost
+1. **House/panel fabrication sales** — R100k/house service fee (5% p.a. escalation), permanent revenue stream. Timberworx is a service company: labour only, no raw material cost
 2. **CoE rental & training income** — Lease income from CoE facility + training programme fees. Ceases at Year 4 when CoE is sold to LLC at 10% premium
 
 ---
