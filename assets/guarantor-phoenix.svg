@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 780" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="12">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 640" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="12">
   <defs>
     <style>
       .box { rx: 6; ry: 6; stroke-width: 1.5; }
@@ -9,6 +9,7 @@
       .line-solid { stroke: #9CA3AF; stroke-width: 1.5; fill: none; }
       .line-dashed { stroke: #9CA3AF; stroke-width: 1.5; fill: none; stroke-dasharray: 5,3; }
       .tag { font-size: 8px; font-weight: 600; }
+      .tag-lc { font-size: 7.5px; font-weight: 600; }
     </style>
   </defs>
 
@@ -48,33 +49,36 @@
   <line x1="750" y1="272" x2="750" y2="290" class="line-solid"/>
   <line x1="960" y1="272" x2="960" y2="290" class="line-solid"/>
 
-  <!-- Phoenix Property Fund SA -->
-  <rect x="30" y="290" width="220" height="52" class="box" fill="#FFF7ED" stroke="#F97316" stroke-width="2"/>
+  <!-- Phoenix Property Fund SA — Holding (grey) -->
+  <rect x="30" y="290" width="220" height="56" class="box" fill="#FFFFFF" stroke="#D1D5DB"/>
   <text x="140" y="309" text-anchor="middle" class="label-bold">Phoenix Property Fund SA</text>
   <text x="140" y="322" text-anchor="middle" class="label-sm">100% — HoldCo for 6 retail centres</text>
-  <rect x="90" y="328" width="100" height="13" rx="3" fill="#F97316"/>
-  <text x="140" y="338" text-anchor="middle" class="tag" fill="white">-VE EQUITY</text>
+  <rect x="90" y="330" width="100" height="12" rx="3" fill="#9CA3AF"/>
+  <text x="140" y="339" text-anchor="middle" class="tag-lc" fill="white">HOLDING</text>
 
-  <!-- Renovo Property Fund -->
-  <rect x="400" y="290" width="200" height="52" class="box" fill="#FFFFFF" stroke="#D1D5DB"/>
+  <!-- Renovo Property Fund — Holding (grey) -->
+  <rect x="400" y="290" width="200" height="56" class="box" fill="#FFFFFF" stroke="#D1D5DB"/>
   <text x="500" y="309" text-anchor="middle" class="label-bold">Renovo Property Fund</text>
   <text x="500" y="322" text-anchor="middle" class="label-sm">100% — HoldCo for Madelief</text>
-  <text x="500" y="335" text-anchor="middle" class="label-sm" fill="#9CA3AF">VPI cross-ownership</text>
+  <rect x="450" y="330" width="100" height="12" rx="3" fill="#9CA3AF"/>
+  <text x="500" y="339" text-anchor="middle" class="tag-lc" fill="white">HOLDING</text>
 
-  <!-- PRAAM -->
-  <rect x="650" y="290" width="200" height="52" class="box" fill="#FFFFFF" stroke="#D1D5DB"/>
+  <!-- PRAAM — Cash Generating (green) -->
+  <rect x="650" y="290" width="200" height="56" class="box" fill="#FFFFFF" stroke="#D1D5DB"/>
   <text x="750" y="309" text-anchor="middle" class="label-bold">PRAAM</text>
   <text x="750" y="322" text-anchor="middle" class="label-sm">100% — Asset management</text>
-  <text x="750" y="335" text-anchor="middle" class="label-sm" fill="#9CA3AF">+ intercompany lending</text>
+  <rect x="700" y="330" width="100" height="12" rx="3" fill="#16A34A"/>
+  <text x="750" y="339" text-anchor="middle" class="tag-lc" fill="white">CASH GENERATING</text>
 
-  <!-- Chartwell Co-Owner -->
-  <rect x="870" y="290" width="180" height="52" class="box" fill="#FFFFFF" stroke="#D1D5DB"/>
+  <!-- Chartwell Co-Owner — Holding (grey) -->
+  <rect x="870" y="290" width="180" height="56" class="box" fill="#FFFFFF" stroke="#D1D5DB"/>
   <text x="960" y="309" text-anchor="middle" class="label-bold">Chartwell Co-Owner</text>
   <text x="960" y="322" text-anchor="middle" class="label-sm">100% — Pass-through</text>
-  <text x="960" y="335" text-anchor="middle" class="label-sm" fill="#9CA3AF">for Chartwell co-ownership</text>
+  <rect x="910" y="330" width="100" height="12" rx="3" fill="#9CA3AF"/>
+  <text x="960" y="339" text-anchor="middle" class="tag-lc" fill="white">HOLDING</text>
 
   <!-- Phoenix Prop Fund -> 6 retail centres -->
-  <line x1="140" y1="342" x2="140" y2="365" class="line-solid"/>
+  <line x1="140" y1="346" x2="140" y2="365" class="line-solid"/>
   <line x1="70" y1="365" x2="770" y2="365" class="line-solid"/>
   <line x1="70" y1="365" x2="70" y2="383" class="line-solid"/>
   <line x1="210" y1="365" x2="210" y2="383" class="line-solid"/>
@@ -84,81 +88,95 @@
   <line x1="770" y1="365" x2="770" y2="383" class="line-dashed"/>
 
   <!-- 6 Retail Centres -->
-  <!-- Ridgeview (GC, -ve) -->
-  <rect x="5" y="383" width="130" height="95" class="box" fill="#FEF2F2" stroke="#DC2626" stroke-width="2"/>
+  <!-- Ridgeview — Distressed (red) -->
+  <rect x="5" y="383" width="130" height="72" class="box" fill="#FFFFFF" stroke="#D1D5DB"/>
   <text x="70" y="400" text-anchor="middle" class="label-bold" font-size="10">Ridgeview Centre</text>
   <text x="70" y="414" text-anchor="middle" class="label-sm">100% — R185M</text>
   <text x="70" y="428" text-anchor="middle" class="label-sm">Midrand</text>
-  <rect x="20" y="448" width="100" height="13" rx="3" fill="#DC2626"/>
-  <text x="70" y="458" text-anchor="middle" class="tag" fill="white">GC + -VE EQUITY</text>
+  <rect x="20" y="439" width="100" height="12" rx="3" fill="#DC2626"/>
+  <text x="70" y="448" text-anchor="middle" class="tag-lc" fill="white">DISTRESSED</text>
 
-  <!-- Brackenfell (-ve) -->
-  <rect x="145" y="383" width="130" height="95" class="box" fill="#FFF7ED" stroke="#F97316" stroke-width="2"/>
+  <!-- Brackenfell — Growth (purple) -->
+  <rect x="145" y="383" width="130" height="72" class="box" fill="#FFFFFF" stroke="#D1D5DB"/>
   <text x="210" y="400" text-anchor="middle" class="label-bold" font-size="10">Brackenfell Corner</text>
   <text x="210" y="414" text-anchor="middle" class="label-sm">100% — R259M</text>
   <text x="210" y="428" text-anchor="middle" class="label-sm">Brackenfell CT</text>
-  <rect x="160" y="448" width="100" height="13" rx="3" fill="#F97316"/>
-  <text x="210" y="458" text-anchor="middle" class="tag" fill="white">-VE EQUITY</text>
+  <rect x="160" y="439" width="100" height="12" rx="3" fill="#8B5CF6"/>
+  <text x="210" y="448" text-anchor="middle" class="tag-lc" fill="white">GROWTH</text>
 
-  <!-- Chartwell (GC, -ve) -->
-  <rect x="285" y="383" width="130" height="95" class="box" fill="#FEF2F2" stroke="#DC2626" stroke-width="2"/>
+  <!-- Chartwell — Distressed (red) -->
+  <rect x="285" y="383" width="130" height="72" class="box" fill="#FFFFFF" stroke="#D1D5DB"/>
   <text x="350" y="400" text-anchor="middle" class="label-bold" font-size="10">Chartwell Corner</text>
   <text x="350" y="414" text-anchor="middle" class="label-sm">100% — R104M</text>
   <text x="350" y="428" text-anchor="middle" class="label-sm">Fourways JHB</text>
-  <rect x="300" y="448" width="100" height="13" rx="3" fill="#DC2626"/>
-  <text x="350" y="458" text-anchor="middle" class="tag" fill="white">GC + -VE EQUITY</text>
+  <rect x="300" y="439" width="100" height="12" rx="3" fill="#DC2626"/>
+  <text x="350" y="448" text-anchor="middle" class="tag-lc" fill="white">DISTRESSED</text>
 
-  <!-- Jukskei (OK) -->
-  <rect x="425" y="383" width="130" height="95" class="box" fill="#FFFFFF" stroke="#D1D5DB"/>
+  <!-- Jukskei — Stalled (orange) -->
+  <rect x="425" y="383" width="130" height="72" class="box" fill="#FFFFFF" stroke="#D1D5DB"/>
   <text x="490" y="400" text-anchor="middle" class="label-bold" font-size="10">Jukskei Meander</text>
   <text x="490" y="414" text-anchor="middle" class="label-sm">100% — R84M</text>
   <text x="490" y="428" text-anchor="middle" class="label-sm">Midrand JHB</text>
+  <rect x="440" y="439" width="100" height="12" rx="3" fill="#F97316"/>
+  <text x="490" y="448" text-anchor="middle" class="tag-lc" fill="white">STALLED</text>
 
-  <!-- Olivedale (-ve) -->
-  <rect x="565" y="383" width="130" height="95" class="box" fill="#FFF7ED" stroke="#F97316" stroke-width="2"/>
+  <!-- Olivedale — Growth (purple) -->
+  <rect x="565" y="383" width="130" height="72" class="box" fill="#FFFFFF" stroke="#D1D5DB"/>
   <text x="630" y="400" text-anchor="middle" class="label-bold" font-size="10">Olivedale Corner</text>
   <text x="630" y="414" text-anchor="middle" class="label-sm">100% — R132M</text>
   <text x="630" y="428" text-anchor="middle" class="label-sm">Olivedale JHB</text>
-  <rect x="580" y="448" width="100" height="13" rx="3" fill="#F97316"/>
-  <text x="630" y="458" text-anchor="middle" class="tag" fill="white">-VE EQUITY</text>
+  <rect x="580" y="439" width="100" height="12" rx="3" fill="#8B5CF6"/>
+  <text x="630" y="448" text-anchor="middle" class="tag-lc" fill="white">GROWTH</text>
 
   <!-- Silva Terrace (50%, no AFS) -->
-  <rect x="705" y="383" width="130" height="95" class="box" fill="#E5E7EB" stroke="#9CA3AF" stroke-dasharray="5,3"/>
+  <rect x="705" y="383" width="130" height="72" class="box" fill="#E5E7EB" stroke="#9CA3AF" stroke-dasharray="5,3"/>
   <text x="770" y="400" text-anchor="middle" class="label-bold" font-size="10">Silva Terrace</text>
   <text x="770" y="414" text-anchor="middle" class="label-sm">50% — Retail</text>
-  <rect x="720" y="448" width="100" height="13" rx="3" fill="#9CA3AF"/>
-  <text x="770" y="458" text-anchor="middle" class="tag" fill="white">NO AFS</text>
+  <rect x="720" y="439" width="100" height="12" rx="3" fill="#9CA3AF"/>
+  <text x="770" y="448" text-anchor="middle" class="tag" fill="white">NO AFS</text>
 
   <!-- Renovo -> Madelief (routed right to avoid retail row) -->
-  <line x1="500" y1="342" x2="500" y2="356" class="line-solid"/>
+  <line x1="500" y1="346" x2="500" y2="356" class="line-solid"/>
   <line x1="500" y1="356" x2="870" y2="356" class="line-solid"/>
-  <line x1="870" y1="356" x2="870" y2="510" class="line-solid"/>
-  <line x1="870" y1="510" x2="590" y2="510" class="line-solid"/>
-  <rect x="410" y="500" width="180" height="48" class="box" fill="#FFFFFF" stroke="#D1D5DB"/>
-  <text x="500" y="520" text-anchor="middle" class="label-bold">Madelief Shopping Centre</text>
-  <text x="500" y="535" text-anchor="middle" class="label-sm">100% — R141M retail centre</text>
+  <line x1="870" y1="356" x2="870" y2="485" class="line-solid"/>
+  <line x1="870" y1="485" x2="590" y2="485" class="line-solid"/>
+  <rect x="410" y="475" width="180" height="48" class="box" fill="#FFFFFF" stroke="#D1D5DB"/>
+  <text x="500" y="495" text-anchor="middle" class="label-bold">Madelief Shopping Centre</text>
+  <text x="500" y="508" text-anchor="middle" class="label-sm">100% — R141M retail centre</text>
+  <rect x="434" y="513" width="132" height="12" rx="3" fill="#16A34A"/>
+  <text x="500" y="522" text-anchor="middle" class="tag-lc" fill="white">CASH GENERATING</text>
 
   <!-- Legend -->
-  <rect x="20" y="680" width="1060" height="70" rx="6" fill="#F9FAFB" stroke="#E5E7EB"/>
-  <text x="40" y="700" class="label-bold" font-size="11">Legend:</text>
+  <rect x="20" y="545" width="1060" height="80" rx="6" fill="#F9FAFB" stroke="#E5E7EB"/>
+  <text x="40" y="565" class="label-bold" font-size="11">Legend:</text>
 
-  <line x1="40" y1="720" x2="70" y2="720" class="line-solid"/>
-  <text x="78" y="724" class="label-sm">Subsidiary (>50% or control)</text>
+  <line x1="40" y1="578" x2="70" y2="578" class="line-solid"/>
+  <text x="78" y="582" class="label-sm">Subsidiary (>50% or control)</text>
+  <line x1="250" y1="578" x2="280" y2="578" class="line-dashed"/>
+  <text x="288" y="582" class="label-sm">50% or less</text>
+  <rect x="400" y="571" width="16" height="14" rx="3" fill="#DBEAFE" stroke="#2563EB" stroke-width="1.5"/>
+  <text x="422" y="582" class="label-sm">TWX Guarantor</text>
+  <rect x="530" y="571" width="16" height="14" rx="3" fill="#E5E7EB" stroke="#9CA3AF" stroke-width="1.5"/>
+  <text x="552" y="582" class="label-sm">No AFS / Dormant</text>
 
-  <line x1="250" y1="720" x2="280" y2="720" class="line-dashed"/>
-  <text x="288" y="724" class="label-sm">50% or less</text>
+  <!-- Lifecycle legend -->
+  <text x="40" y="600" class="label-bold" font-size="11">Lifecycle:</text>
+  <rect x="110" y="590" width="88" height="14" rx="3" fill="#16A34A"/>
+  <text x="154" y="601" text-anchor="middle" class="tag" fill="white">CASH GENERATING</text>
+  <rect x="206" y="590" width="60" height="14" rx="3" fill="#8B5CF6"/>
+  <text x="236" y="601" text-anchor="middle" class="tag" fill="white">GROWTH</text>
+  <rect x="274" y="590" width="70" height="14" rx="3" fill="#F59E0B"/>
+  <text x="309" y="601" text-anchor="middle" class="tag" fill="white">STABILISING</text>
+  <rect x="352" y="590" width="70" height="14" rx="3" fill="#0EA5E9"/>
+  <text x="387" y="601" text-anchor="middle" class="tag" fill="white">EARLY-STAGE</text>
+  <rect x="430" y="590" width="60" height="14" rx="3" fill="#F97316"/>
+  <text x="460" y="601" text-anchor="middle" class="tag" fill="white">STALLED</text>
+  <rect x="498" y="590" width="60" height="14" rx="3" fill="#DC2626"/>
+  <text x="528" y="601" text-anchor="middle" class="tag" fill="white">DISTRESSED</text>
+  <rect x="566" y="590" width="70" height="14" rx="3" fill="#06B6D4"/>
+  <text x="601" y="601" text-anchor="middle" class="tag" fill="white">REVENUE ONLY</text>
+  <rect x="644" y="590" width="50" height="14" rx="3" fill="#9CA3AF"/>
+  <text x="669" y="601" text-anchor="middle" class="tag" fill="white">HOLDING</text>
 
-  <rect x="400" y="713" width="16" height="14" rx="3" fill="#DBEAFE" stroke="#2563EB" stroke-width="1.5"/>
-  <text x="422" y="724" class="label-sm">TWX Guarantor</text>
-
-  <rect x="530" y="713" width="16" height="14" rx="3" fill="#FEF2F2" stroke="#DC2626" stroke-width="1.5"/>
-  <text x="552" y="724" class="label-sm">Going Concern</text>
-
-  <rect x="660" y="713" width="16" height="14" rx="3" fill="#FFF7ED" stroke="#F97316" stroke-width="1.5"/>
-  <text x="682" y="724" class="label-sm">Negative Equity</text>
-
-  <rect x="800" y="713" width="16" height="14" rx="3" fill="#E5E7EB" stroke="#9CA3AF" stroke-width="1.5"/>
-  <text x="822" y="724" class="label-sm">No AFS / Dormant</text>
-
-  <text x="40" y="740" class="label-sm">Source: Mark van Houten, confirmed 01/03/2025. Phoenix Group: 6 retail centres + Renovo/Madelief + PRAAM asset management.</text>
+  <text x="40" y="625" class="label-sm">Source: Mark van Houten, confirmed 01/03/2025. Lifecycle assessed from AFS + Dec 2025 management accounts.</text>
 </svg>

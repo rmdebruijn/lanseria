@@ -4,20 +4,17 @@ cookie:
   name: sclca_fm_auth
 credentials:
   usernames:
-    Saskia:
-      email: s.bruinders@nexusnovus.com
-      first_name: Saskia
-      last_name: bruinders
-      password: $2b$12$Ws1.iQ56Uh/cCtyhW9Scju36bWBkroUt554jA8wa2TQz6S9n5rHyW
+    Carl:
+      email: carl@terayoncapital.com
+      first_name: Carl
+      last_name: Liebenberg
+      password: $2b$12$NxIMJV7uVeK9ocO2cyoTpeCk/4ydGRqL93V7948Ep9yRMVjGnuxv6
       permissions:
         can_manage_users: false
         entities:
         - '*'
         mgmt_pages:
-        - Summary
-        - Strategy
-        - Tasks
-        - CP & CS
+        - '*'
         tabs:
         - '*'
       roles:
@@ -80,6 +77,24 @@ credentials:
       password: $2b$12$wOuXzxmw8WSpP8WX5rsUg.HhJ5UCY0B7CtEZ82o3ZqYEcnrEFxnQu
       roles:
       - admin
+    saskia:
+      email: s.bruinders@nexusnovus.com
+      first_name: Saskia
+      last_name: bruinders
+      password: $2b$12$Ws1.iQ56Uh/cCtyhW9Scju36bWBkroUt554jA8wa2TQz6S9n5rHyW
+      permissions:
+        can_manage_users: false
+        entities:
+        - '*'
+        mgmt_pages:
+        - Summary
+        - Strategy
+        - Tasks
+        - CP & CS
+        tabs:
+        - '*'
+      roles:
+      - promotor_opco
     siza:
       email: sizakelem@crosspointproperty.co.za
       first_name: Sizakele

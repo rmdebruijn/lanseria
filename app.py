@@ -18,6 +18,22 @@ import math
 import yaml
 import streamlit_authenticator as stauth
 
+# Guarantor analysis engine
+ga = None
+try:
+    import sys as _sys
+    _ga_dirs = [
+        Path(__file__).resolve().parent / "scripts",
+        Path(__file__).resolve().parent.parent.parent / "scripts",
+    ]
+    # Keep model-local scripts first on sys.path (version-controlled app domain).
+    for _d in reversed(_ga_dirs):
+        if _d.exists() and str(_d) not in _sys.path:
+            _sys.path.insert(0, str(_d))
+    import guarantor_analysis as ga
+except ImportError:
+    ga = None
+
 # Config directory
 CONFIG_DIR = Path(__file__).parent / "config"
 LOGO_DIR = Path(__file__).parent / "assets" / "logos"
@@ -1012,8 +1028,13 @@ def _build_all_entity_ic_schedules(nwl_swap_enabled=False, lanred_swap_enabled=F
         dsra_alloc = {'nwl': 1.0}
         # IC Senior: dsra_amount = principal-aligned P1 (so balances match facility)
         # IC Mezz: dsra_drawdown = pre_revenue_hedge (full cash amount from CC)
-        entity_dsra_sr = _ic_dsra_p1 * dsra_alloc.get(ek, 0.0)
-        entity_dsra_mz = pre_revenue_hedge_total * dsra_alloc.get(ek, 0.0)
+        # When swap active: suppress DSRA entirely (no CC 2nd draw, no DSRA sizing)
+        if ek == 'nwl' and nwl_swap_enabled:
+            entity_dsra_sr = 0.0
+            entity_dsra_mz = 0.0
+        else:
+            entity_dsra_sr = _ic_dsra_p1 * dsra_alloc.get(ek, 0.0)
+            entity_dsra_mz = pre_revenue_hedge_total * dsra_alloc.get(ek, 0.0)
 
         # IC schedule is ALWAYS vanilla (14 Sr / 10 Mz) regardless of swap selection.
         # Swap instruments (EUR+ZAR legs) are separate — wired in waterfall, not IC schedules.
@@ -1114,7 +1135,11 @@ def _render_entity_cascade_diagram(entity_label, show_swap=False, show_od_lend=F
     else:
         dot += '        S2 -> SURP;\n'
     dot += '        SURP -> P1;\n'
-    if show_swap:
+    if show_swap and show_od_repay:
+        # Both swap and OD repay: P1 → P2 (ZAR) → P3 (OD) → P4
+        dot += f'        P2 [label="ZAR Rand Leg\\n(9.69%)", fillcolor="#F59E0B", fontcolor="#1a1a1a"];\n'
+        dot += '        P1 -> P2 -> P3 -> P4;\n'
+    elif show_swap:
         dot += f'        P2 [label="ZAR Rand Leg\\n(9.69%)", fillcolor="#F59E0B", fontcolor="#1a1a1a"];\n'
         dot += '        P1 -> P2 -> P4;\n'
     elif show_od_repay:
@@ -1175,7 +1200,8 @@ def _get_next_sr_pi(entity_sr_sched, after_month):
 
 
 def _compute_entity_waterfall_inputs(entity_key, ops_annual, entity_sr_sched, entity_mz_sched,
-                                      *, lanred_deficit_vector=None, nwl_swap_schedule=None):
+                                      *, lanred_deficit_vector=None, nwl_swap_schedule=None,
+                                      lanred_swap_schedule=None):
     """Entity surplus computation with character-preserving allocation (v3.1).
 
     Full entity-level cascade:
@@ -1185,7 +1211,7 @@ def _compute_entity_waterfall_inputs(entity_key, ops_annual, entity_sr_sched, en
       3. LanRED overdraft lending (NWL only, if deficit vector provided)
       Surplus priority (by rate, highest first):
         P1. Accelerate Mezz IC (15.25%, Mezz character)
-        P2. ZAR Rand Leg (9.69%, NWL only if swap active, Senior character)
+        P2. ZAR Rand Leg (9.69%, if swap active for entity, Senior character)
         P3. Overdraft repayment (10%, LanRED only)
         P4. Accelerate Senior IC (5.20%, Senior character)
       After both IC = 0 → Entity FD (retained locally)
@@ -1316,16 +1342,22 @@ def _compute_entity_waterfall_inputs(entity_key, ops_annual, entity_sr_sched, en
             mz_ic_bal -= mz_accel_entity
             remaining -= mz_accel_entity
 
-        # P2: ZAR Rand Leg (9.69%, NWL only, if swap active, Senior character)
+        # P2: ZAR Rand Leg (9.69%, if swap active, Senior character)
         zar_leg_payment = 0.0
-        if entity_key == 'nwl' and nwl_swap_schedule and remaining > 0:
+        _swap_sched_for_entity = None
+        if entity_key == 'nwl' and nwl_swap_schedule:
+            _swap_sched_for_entity = nwl_swap_schedule
+        elif entity_key == 'lanred' and lanred_swap_schedule:
+            _swap_sched_for_entity = lanred_swap_schedule
+
+        if _swap_sched_for_entity and remaining > 0:
             # Sum ZAR leg payments due this year (in EUR)
             zar_due_this_year = 0.0
-            for r in nwl_swap_schedule.get('schedule', []):
+            for r in _swap_sched_for_entity.get('schedule', []):
                 if (yi * 12 + 1) <= r['month'] <= (yi + 1) * 12:
                     zar_due_this_year += r['payment']
             # Convert ZAR to EUR
-            fx = nwl_swap_schedule.get('zar_amount', 1) / max(nwl_swap_schedule.get('eur_amount', 1), 1) if nwl_swap_schedule.get('eur_amount', 0) > 0 else 1
+            fx = _swap_sched_for_entity.get('zar_amount', 1) / max(_swap_sched_for_entity.get('eur_amount', 1), 1) if _swap_sched_for_entity.get('eur_amount', 0) > 0 else 1
             zar_due_eur = zar_due_this_year / fx if fx > 0 else 0
             zar_leg_payment = min(remaining, zar_due_eur)
             remaining -= zar_leg_payment
@@ -1384,46 +1416,69 @@ def _compute_entity_waterfall_inputs(entity_key, ops_annual, entity_sr_sched, en
 
 
 def _build_nwl_swap_schedule(swap_amount_eur, fx_rate, last_sr_month=102):
-    """EUR→ZAR cross-currency swap schedule.
+    """EUR→ZAR cross-currency swap schedule (NWL).
 
-    EUR leg (asset): swap_amount_eur = IC Senior P+I at M24 + M30.
-    ZAR leg (liability): NWL repays Investec semi-annually from start_month to last_sr_month.
-    Returns dict with schedule rows and summary.
+    EUR leg (asset): bullet delivery at M24. Compounds at IIC rate during grace.
+    ZAR leg (liability): P_constant profile (constant principal + declining interest).
+    IDC compounding on both legs during grace period (M0→start_month).
     """
     _wf_cfg = load_config("waterfall")
     _swap_cfg = _wf_cfg.get("nwl_swap", {})
     zar_rate = _swap_cfg.get("zar_rate", 0.0969)
-    start_month = _swap_cfg.get("zar_start_month", 36)
-    # Tenor: number of semi-annual periods from start_month to last_sr_month (inclusive)
+    start_month = _swap_cfg.get("zar_leg_start_month", 36)
+    eur_rate = structure['sources']['senior_debt']['interest']['rate']  # 4.70%
     tenor = max(1, (last_sr_month - start_month) // 6 + 1)
-    zar_amount = swap_amount_eur * fx_rate
-    semi_rate = zar_rate / 2.0
-    # Level annuity (P+I constant)
-    if semi_rate > 0:
-        annuity = zar_amount * semi_rate / (1 - (1 + semi_rate) ** -tenor)
-    else:
-        annuity = zar_amount / tenor
+    zar_amount_initial = swap_amount_eur * fx_rate
+    semi_rate_zar = zar_rate / 2.0
+    semi_rate_eur = eur_rate / 2.0
 
     schedule = []
-    bal = zar_amount
+
+    # --- IDC phase: ZAR leg compounds from M0 to start_month ---
+    grace_periods = start_month // 6  # e.g. M36 / 6 = 6 semi-annual periods
+    zar_bal = zar_amount_initial
+    for gi in range(grace_periods):
+        month = gi * 6
+        opening = zar_bal
+        interest = opening * semi_rate_zar
+        zar_bal = opening + interest  # Capitalize
+        schedule.append({
+            'period': -(grace_periods - gi), 'month': month,
+            'opening': opening, 'interest': interest,
+            'principal': 0.0, 'payment': 0.0,
+            'closing': zar_bal, 'phase': 'idc',
+        })
+
+    # --- EUR leg IDC: compounds from M0 to M24 (bullet delivery) ---
+    eur_grace_periods = 24 // 6  # 4 semi-annual periods
+    eur_bal = swap_amount_eur
+    for _ in range(eur_grace_periods):
+        eur_bal = eur_bal * (1 + semi_rate_eur)
+    eur_amount_idc = eur_bal  # IDC-inflated EUR at M24
+
+    # --- Repayment phase: P_constant on IDC-inflated ZAR balance ---
+    p_constant = zar_bal / tenor
     for i in range(tenor):
         month = start_month + i * 6
-        opening = bal
-        interest = opening * semi_rate
-        principal = annuity - interest
-        bal = opening - principal
+        opening = zar_bal
+        interest = opening * semi_rate_zar
+        principal = p_constant
+        payment = principal + interest
+        zar_bal = opening - principal
         schedule.append({
             'period': i + 1, 'month': month,
             'opening': opening, 'interest': interest,
-            'principal': principal, 'payment': annuity,
-            'closing': max(bal, 0),
+            'principal': principal, 'payment': payment,
+            'closing': max(zar_bal, 0), 'phase': 'repayment',
         })
     return {
         'eur_amount': swap_amount_eur,
-        'zar_amount': zar_amount,
+        'eur_amount_idc': eur_amount_idc,
+        'eur_rate': eur_rate,
+        'zar_amount': zar_amount_initial,
+        'zar_amount_idc': zar_bal + p_constant * tenor,  # IDC-inflated opening for repayment
         'zar_rate': zar_rate,
-        'annuity_zar': annuity,
-        'annuity_eur': annuity / fx_rate,
+        'p_constant_zar': p_constant,
         'tenor': tenor,
         'start_month': start_month,
         'schedule': schedule,
@@ -1433,40 +1488,67 @@ def _build_nwl_swap_schedule(swap_amount_eur, fx_rate, last_sr_month=102):
 def _build_lanred_swap_schedule(eur_amount, fx_rate):
     """LanRED EUR→ZAR swap schedule (Brownfield+ only).
 
-    EUR leg: follows IC schedule (14 semi-annual from M24).
-    ZAR leg: 28 semi-annual from M24 at Investec quoted rate.
+    EUR leg: follows IC Senior schedule (14 semi-annual from M24). Compounds at IIC rate during grace.
+    ZAR leg: P_constant profile, 28 semi-annual from M24.
+    IDC compounding on both legs during grace period (M0→start_month).
     """
     _wf_cfg = load_config("waterfall")
     _swap_cfg = _wf_cfg.get("lanred_swap", {})
     zar_rate = _swap_cfg.get("zar_rate", 0.0969)
     zar_repayments = _swap_cfg.get("zar_leg_repayments", 28)
     start_month = _swap_cfg.get("zar_leg_start_month", 24)
-    zar_amount = eur_amount * fx_rate
-    semi_rate = zar_rate / 2.0
-    if semi_rate > 0:
-        annuity = zar_amount * semi_rate / (1 - (1 + semi_rate) ** -zar_repayments)
-    else:
-        annuity = zar_amount / zar_repayments
+    eur_rate = structure['sources']['senior_debt']['interest']['rate']  # 4.70%
+    zar_amount_initial = eur_amount * fx_rate
+    semi_rate_zar = zar_rate / 2.0
+    semi_rate_eur = eur_rate / 2.0
+
     schedule = []
-    bal = zar_amount
+
+    # --- IDC phase: ZAR leg compounds from M0 to start_month ---
+    grace_periods = start_month // 6  # e.g. M24 / 6 = 4
+    zar_bal = zar_amount_initial
+    for gi in range(grace_periods):
+        month = gi * 6
+        opening = zar_bal
+        interest = opening * semi_rate_zar
+        zar_bal = opening + interest
+        schedule.append({
+            'period': -(grace_periods - gi), 'month': month,
+            'opening': opening, 'interest': interest,
+            'principal': 0.0, 'payment': 0.0,
+            'closing': zar_bal, 'phase': 'idc',
+        })
+
+    # --- EUR leg IDC: compounds from M0 to M24 ---
+    eur_grace_periods = 24 // 6  # 4 semi-annual periods
+    eur_bal = eur_amount
+    for _ in range(eur_grace_periods):
+        eur_bal = eur_bal * (1 + semi_rate_eur)
+    eur_amount_idc = eur_bal
+
+    # --- Repayment phase: P_constant on IDC-inflated ZAR balance ---
+    p_constant = zar_bal / zar_repayments
     for i in range(zar_repayments):
         month = start_month + i * 6
-        opening = bal
-        interest = opening * semi_rate
-        principal = annuity - interest
-        bal = opening - principal
+        opening = zar_bal
+        interest = opening * semi_rate_zar
+        principal = p_constant
+        payment = principal + interest
+        zar_bal = opening - principal
         schedule.append({
             'period': i + 1, 'month': month,
             'opening': opening, 'interest': interest,
-            'principal': principal, 'payment': annuity,
-            'closing': max(bal, 0),
+            'principal': principal, 'payment': payment,
+            'closing': max(zar_bal, 0), 'phase': 'repayment',
         })
     return {
         'eur_amount': eur_amount,
-        'zar_amount': zar_amount,
+        'eur_amount_idc': eur_amount_idc,
+        'eur_rate': eur_rate,
+        'zar_amount': zar_amount_initial,
+        'zar_amount_idc': zar_bal + p_constant * zar_repayments,
         'zar_rate': zar_rate,
-        'annuity_zar': annuity,
-        'annuity_eur': annuity / fx_rate,
+        'p_constant_zar': p_constant,
         'tenor': zar_repayments,
         'start_month': start_month,
         'schedule': schedule,
@@ -2677,10 +2759,21 @@ def build_sub_annual_model(entity_key):
     # Pre-Revenue Hedge allocated 100% to NWL
     dsra_alloc = {'nwl': 1.0}
     entity_dsra_pct = dsra_alloc.get(entity_key, 0.0)
-    # IC Senior: principal-aligned P1 (so balances match facility)
-    entity_dsra_sr = _ic_dsra_p1 * entity_dsra_pct
-    # IC Mezz: full pre_revenue_hedge (cash amount from CC)
-    entity_dsra_mz = pre_revenue_hedge_total * entity_dsra_pct
+    # Swap awareness: suppress DSRA when swap active for this entity
+    _nwl_swap_on = (entity_key == 'nwl'
+                    and st.session_state.get("sclca_nwl_hedge", "CC DSRA \u2192 FEC") == "Cross-Currency Swap")
+    _lanred_swap_on = (entity_key == 'lanred'
+                       and st.session_state.get("lanred_scenario", "Greenfield") != "Greenfield"
+                       and st.session_state.get("sclca_lanred_hedge", "No Hedging") == "Cross-Currency Swap")
+    _entity_swap_active = _nwl_swap_on or _lanred_swap_on
+    if _nwl_swap_on:
+        entity_dsra_sr = 0.0
+        entity_dsra_mz = 0.0
+    else:
+        # IC Senior: principal-aligned P1 (so balances match facility)
+        entity_dsra_sr = _ic_dsra_p1 * entity_dsra_pct
+        # IC Mezz: full pre_revenue_hedge (cash amount from CC)
+        entity_dsra_mz = pre_revenue_hedge_total * entity_dsra_pct
 
     sr_schedule = build_simple_ic_schedule(
         sr_principal, total_sr, sr_repayments, sr_rate, sr_drawdowns, sr_periods, sr_prepayments,
@@ -2732,6 +2825,18 @@ def build_sub_annual_model(entity_key):
     gepf_prepay_total = financing.get('prepayments', {}).get('gepf_bulk_services', {}).get('amount_eur', 0)
     gepf_prepay_entity = gepf_prepay_total * entity_prepay_pct
 
+    # --- Build swap schedule if active (BUILDER logic) ---
+    _swap_sched = None
+    if _entity_swap_active:
+        if entity_key == 'nwl':
+            # NWL: swap notional = pre_revenue_hedge (sized at facility level)
+            _swap_eur_notional = pre_revenue_hedge_total
+            _last_sr = max((r['Month'] for r in sr_schedule if r['Month'] >= 24 and abs(r.get('Principle', 0)) > 0), default=102)
+            _swap_sched = _build_nwl_swap_schedule(_swap_eur_notional, FX_RATE, last_sr_month=_last_sr)
+        elif entity_key == 'lanred':
+            _swap_eur_notional = entity_data['senior_portion']
+            _swap_sched = _build_lanred_swap_schedule(_swap_eur_notional, FX_RATE)
+
     # Aggregate semi-annual → annual (months 0-11 = Y1, etc.)
     annual = []
     accumulated_depr = 0.0
@@ -2770,7 +2875,93 @@ def build_sub_annual_model(entity_key):
         # P&L (subsidiary perspective: interest is expense)
         a['ie_sr'] = sr_interest
         a['ie_mz'] = mz_interest
-        a['ie'] = sr_interest + mz_interest
+
+        # --- Swap leg computation (BUILDER: stamps fields for listeners) ---
+        if _entity_swap_active and _swap_sched:
+            _swap_schedule = _swap_sched['schedule']
+            _swap_eur_rate = _swap_sched.get('eur_rate', 0.047)
+            _semi_eur = _swap_eur_rate / 2.0
+            _swap_zar_rate = _swap_sched['zar_rate']
+            _semi_zar = _swap_zar_rate / 2.0
+
+            # EUR leg balance at year-end
+            if entity_key == 'nwl':
+                # NWL: EUR bullet at M24 (Y2). Before M24: grows with IDC. After M24: 0.
+                if y_end <= 24:
+                    # During grace: EUR grows at IIC rate
+                    _eur_periods_in_year = 2  # two semi-annual in a year
+                    _eur_opening = _swap_sched['eur_amount'] if yi == 0 else annual[-1].get('swap_eur_bal', _swap_sched['eur_amount'])
+                    _swap_eur_bal = _eur_opening * (1 + _semi_eur) ** _eur_periods_in_year
+                    _swap_eur_interest = _swap_eur_bal - _eur_opening  # Capitalized (IDC)
+                    _swap_eur_interest_cash = 0.0  # IDC = not cash
+                else:
+                    _swap_eur_bal = 0.0  # Bullet delivered at M24
+                    _swap_eur_interest = 0.0
+                    _swap_eur_interest_cash = 0.0
+            else:
+                # LanRED: EUR follows IC Senior — amortizes from M24
+                if y_end <= 24:
+                    _eur_opening = _swap_sched['eur_amount'] if yi == 0 else annual[-1].get('swap_eur_bal', _swap_sched['eur_amount'])
+                    _swap_eur_bal = _eur_opening * (1 + _semi_eur) ** 2
+                    _swap_eur_interest = _swap_eur_bal - _eur_opening
+                    _swap_eur_interest_cash = 0.0
+                else:
+                    # After M24: EUR amortizes with IC Senior (same P_constant schedule)
+                    _eur_cum_repaid = sum(abs(r.get('Principle', 0)) for r in sr_schedule if 24 <= r['Month'] < y_end)
+                    _swap_eur_bal = max(_swap_sched['eur_amount_idc'] - _eur_cum_repaid, 0)
+                    # EUR interest income = earned on remaining EUR balance (cash after grace)
+                    _eur_opening_yr = annual[-1].get('swap_eur_bal', _swap_sched['eur_amount_idc']) if yi > 0 else _swap_sched['eur_amount_idc']
+                    _swap_eur_interest = sum(
+                        max(_eur_opening_yr - sum(abs(r2.get('Principle', 0)) for r2 in sr_schedule if 24 <= r2['Month'] < r.get('Month', 0)), 0) * _semi_eur
+                        for r in sr_schedule if y_start <= r['Month'] < y_end and r['Month'] >= 24
+                    ) if _eur_opening_yr > 0 else 0.0
+                    _swap_eur_interest_cash = _swap_eur_interest
+
+            # ZAR leg balance at year-end and payments this year
+            _zar_bal_end = _swap_sched['zar_amount']  # Default: initial notional
+            for _sr in _swap_schedule:
+                if _sr['month'] < y_end:
+                    _zar_bal_end = _sr['closing']
+
+            # ZAR interest and principal this year (from schedule rows)
+            _swap_zar_interest_yr = sum(
+                r['interest'] for r in _swap_schedule if y_start <= r['month'] < y_end
+            )
+            _swap_zar_principal_yr = sum(
+                r['principal'] for r in _swap_schedule if y_start <= r['month'] < y_end and r.get('phase') == 'repayment'
+            )
+            _swap_zar_interest_cash = sum(
+                r['interest'] for r in _swap_schedule if y_start <= r['month'] < y_end and r.get('phase') == 'repayment'
+            )
+            _swap_zar_payment_yr = _swap_zar_principal_yr + _swap_zar_interest_cash
+
+            a['swap_eur_bal'] = _swap_eur_bal
+            a['swap_zar_bal'] = _zar_bal_end  # ZAR (for BS: convert to EUR at display)
+            a['swap_eur_interest'] = _swap_eur_interest  # P&L: positive (income)
+            a['swap_eur_interest_cash'] = _swap_eur_interest_cash
+            a['swap_zar_interest'] = _swap_zar_interest_yr  # P&L: negative (expense)
+            a['swap_zar_interest_cash'] = _swap_zar_interest_cash  # CF: cash interest
+            a['swap_zar_p'] = _swap_zar_principal_yr  # CF: principal (ZAR, convert to EUR)
+            a['swap_zar_total'] = _swap_zar_payment_yr  # CF: total ZAR payment
+            # Convert swap ZAR CF to EUR for inclusion in cf_net
+            a['cf_swap_zar_i'] = _swap_zar_interest_cash / FX_RATE
+            a['cf_swap_zar_p'] = _swap_zar_principal_yr / FX_RATE
+            a['cf_swap_zar'] = _swap_zar_payment_yr / FX_RATE
+        else:
+            a['swap_eur_bal'] = 0.0
+            a['swap_zar_bal'] = 0.0
+            a['swap_eur_interest'] = 0.0
+            a['swap_eur_interest_cash'] = 0.0
+            a['swap_zar_interest'] = 0.0
+            a['swap_zar_interest_cash'] = 0.0
+            a['swap_zar_p'] = 0.0
+            a['swap_zar_total'] = 0.0
+            a['cf_swap_zar_i'] = 0.0
+            a['cf_swap_zar_p'] = 0.0
+            a['cf_swap_zar'] = 0.0
+
+        # Total interest expense includes swap (net: ZAR expense - EUR income, post-grace only)
+        a['ie'] = sr_interest + mz_interest + a['cf_swap_zar_i'] - a['swap_eur_interest_cash']
 
         # Operating model — load first (need coe_sold flag for TWX depreciation)
         op = ops_annual[yi] if ops_annual else {}
@@ -2833,7 +3024,7 @@ def build_sub_annual_model(entity_key):
         # --- Cash from Operations = EBITDA + DSRA Interest - Tax ---
         a['cf_ops'] = a['ebitda'] + a['ii_dsra'] - a['cf_tax']
         a['cf_operating_pre_debt'] = a['ebitda']
-        a['cf_after_debt_service'] = a['cf_ops'] - a['cf_ds']
+        a['cf_after_debt_service'] = a['cf_ops'] - a['cf_ds'] - a['cf_swap_zar']
         # --- Equity injection (Y1 only) ---
         a['cf_equity'] = entity_equity if yi == 0 else 0.0
         # --- Grants: DTIC only (GEPF is already in EBITDA as rev_bulk_services) ---
@@ -2845,7 +3036,8 @@ def build_sub_annual_model(entity_key):
                        + a['cf_draw'] - a['cf_capex']         # Construction (nets to 0 for non-DSRA)
                        + a['cf_grants'] - a['cf_prepay']      # DTIC + IIC - Prepay
                        + a['cf_ops']                           # EBITDA + DSRA interest - Tax
-                       - a['cf_ie'] - a['cf_pr'])              # Debt service
+                       - a['cf_ie'] - a['cf_pr']               # IC Debt service
+                       - a['cf_swap_zar'])                      # Swap ZAR leg (0 when no swap)
         cumulative_pat += a['pat']
         cumulative_fcf += a['cf_net']
 
@@ -2863,10 +3055,13 @@ def build_sub_annual_model(entity_key):
         _cum_grants += a['cf_grants']
         a['bs_fixed_assets'] = max(min(_cum_capex, depreciable_base_total) - accumulated_depr, 0)
         a['bs_dsra'] = _dsra_fd_bal  # DSRA FD (can be negative during early ops)
-        a['bs_assets'] = a['bs_fixed_assets'] + a['bs_dsra']
+        # Swap EUR leg is an ASSET (receivable), ZAR leg is a LIABILITY
+        a['bs_swap_eur'] = a['swap_eur_bal']  # EUR value
+        a['bs_swap_zar'] = a['swap_zar_bal'] / FX_RATE  # Convert ZAR to EUR
+        a['bs_assets'] = a['bs_fixed_assets'] + a['bs_dsra'] + a['bs_swap_eur']
         a['bs_sr'] = max(sr_closing, 0)  # Senior IC liability (lower due to DSRA)
         a['bs_mz'] = max(mz_closing, 0)  # Mezz IC liability (higher due to DSRA)
-        a['bs_debt'] = a['bs_sr'] + a['bs_mz']
+        a['bs_debt'] = a['bs_sr'] + a['bs_mz'] + a['bs_swap_zar']
         a['bs_equity_sh'] = entity_equity  # Shareholder equity (constant)
         a['bs_equity'] = a['bs_assets'] - a['bs_debt']
         a['bs_retained'] = a['bs_equity'] - a['bs_equity_sh']
@@ -2884,6 +3079,8 @@ def build_sub_annual_model(entity_key):
         "ops_annual": ops_annual,
         "depreciable_base": depreciable_base_total,
         "entity_equity": entity_equity,
+        "swap_schedule": _swap_sched,
+        "swap_active": _entity_swap_active,
     }
 
 
@@ -3483,6 +3680,8 @@ This means:
     _sub_ops_annual = _sub_model["ops_annual"]
     _sub_depr_base = _sub_model["depreciable_base"]
     _sub_entity_equity = _sub_model["entity_equity"]
+    _sub_swap_active = _sub_model.get("swap_active", False)
+    _sub_swap_sched = _sub_model.get("swap_schedule", None)
     _years = [f"Y{a['year']}" for a in _sub_annual]
 
     # --- FACILITIES ---
@@ -3602,9 +3801,14 @@ This means:
                     })
 
                 nwl_sr_balance_for_repay = nwl_sr_balance
-                nwl_sr_hedge_p1 = pre_revenue_hedge  # Pre-Revenue Hedge: 2×(P+I) at M24
-                nwl_sr_balance_after_hedge = nwl_sr_balance_for_repay - nwl_sr_hedge_p1
-                nwl_sr_new_p = nwl_sr_balance_after_hedge / (nwl_sr_num_repayments - 2)
+                if _sub_swap_active:
+                    nwl_sr_hedge_p1 = 0.0
+                    nwl_sr_balance_after_hedge = nwl_sr_balance_for_repay
+                    nwl_sr_new_p = nwl_sr_balance_for_repay / nwl_sr_num_repayments  # bal÷14 vanilla
+                else:
+                    nwl_sr_hedge_p1 = pre_revenue_hedge  # Pre-Revenue Hedge: 2×(P+I) at M24
+                    nwl_sr_balance_after_hedge = nwl_sr_balance_for_repay - nwl_sr_hedge_p1
+                    nwl_sr_new_p = nwl_sr_balance_after_hedge / (nwl_sr_num_repayments - 2)
 
                 for i in range(1, nwl_sr_num_repayments + 1):
                     period = i
@@ -3612,7 +3816,10 @@ This means:
                     year = month / 12
                     opening = nwl_sr_balance
                     interest = opening * senior_ic_rate / 2
-                    if period == 1:
+                    if _sub_swap_active:
+                        principle = -nwl_sr_new_p  # vanilla P_constant
+                        dsra_note = ""
+                    elif period == 1:
                         principle = -nwl_sr_hedge_p1
                         dsra_note = " *"
                     elif period == 2:
@@ -3657,9 +3864,22 @@ This means:
                     render_table(df_nwl_idc, {"Draw Down": "€{:,.0f}", "IDC": "€{:,.0f}"})
 
                 with col_nwl_hedge:
-                    st.markdown("**Pre-Revenue Hedge**")
-                    st.caption("2×(P+I) at M24 — one shot")
-                    st.markdown(f"""
+                    if _sub_swap_active:
+                        st.markdown("**Cross-Currency Swap**")
+                        st.caption("Swap active — vanilla P_constant")
+                        st.markdown(f"""
+                | Item | Detail |
+                |------|--------|
+                | Hedge mode | Cross-Currency Swap |
+                | P1/P2 override | None (vanilla) |
+                | P_constant | €{nwl_sr_new_p:,.0f} |
+                | Periods | {nwl_sr_num_repayments} × P_constant |
+                """)
+                        st.caption("DSRA sizing suppressed — swap replaces FEC hedge")
+                    else:
+                        st.markdown("**Pre-Revenue Hedge**")
+                        st.caption("2×(P+I) at M24 — one shot")
+                        st.markdown(f"""
                 | Item | Amount |
                 |------|--------|
                 | Hedge Amount | €{nwl_sr_hedge_p1:,.0f} |
@@ -3667,12 +3887,24 @@ This means:
                 | M24 Repayment | €{nwl_sr_hedge_p1 + nwl_sr_balance_for_repay * senior_ic_rate / 2:,.0f} |
                 | M30 (I only) | €{nwl_sr_balance_after_hedge * senior_ic_rate / 2:,.0f} |
                 """)
-                    st.caption("Hedge amount identical to facility level")
+                        st.caption("Hedge amount identical to facility level")
 
                 with col_nwl_repay:
-                    st.markdown("**Repayment Structure**")
-                    st.caption("After prepayments, 12 periods remain")
-                    st.markdown(f"""
+                    if _sub_swap_active:
+                        st.markdown("**Repayment Structure**")
+                        st.caption(f"Vanilla: {nwl_sr_num_repayments} periods (bal÷{nwl_sr_num_repayments})")
+                        st.markdown(f"""
+                | Item | Amount |
+                |------|--------|
+                | **P-1 Prepay** | €{nwl_prepayment:,.0f} |
+                | Balance for repay | €{nwl_sr_balance_for_repay:,.0f} |
+                | **P_constant** (bal÷{nwl_sr_num_repayments}) | €{nwl_sr_new_p:,.0f} |
+                """)
+                        st.caption("Repayment = Principle + Interest")
+                    else:
+                        st.markdown("**Repayment Structure**")
+                        st.caption("After prepayments, 12 periods remain")
+                        st.markdown(f"""
                 | Item | Amount |
                 |------|--------|
                 | **P-1 Prepay** | €{nwl_prepayment:,.0f} |
@@ -3681,13 +3913,14 @@ This means:
                 | Balance after hedge | €{nwl_sr_balance_after_hedge:,.0f} |
                 | **New P** (bal÷12) | €{nwl_sr_new_p:,.0f} |
                 """)
-                    st.caption("Repayment = Principle + Interest")
+                        st.caption("Repayment = Principle + Interest")
 
                 st.divider()
 
                 # Mezz IC Facility
                 with st.container(border=True):
-                    st.markdown(f"**Mezz IC** — {mezz_ic_rate*100:.2f}% | {mezz_ic_reps} semi-annual *(receives Pre-Revenue Hedge drawdown)*")
+                    _mezz_ic_note = "*(swap active — no DSRA draw)*" if _sub_swap_active else "*(receives Pre-Revenue Hedge drawdown)*"
+                    st.markdown(f"**Mezz IC** — {mezz_ic_rate*100:.2f}% | {mezz_ic_reps} semi-annual {_mezz_ic_note}")
 
                 nwl_mezz_pro_rata = loans["nwl"]["mezz_portion"] / mezz_total
                 nwl_mz_rows = []
@@ -3707,8 +3940,10 @@ This means:
                         "Principle": 0, "Repayment": 0, "Movement": movement, "Closing": nwl_mz_balance
                     })
 
+                # Suppress DSRA drawdown when CCS active (number → 0, schedule still renders)
+                _nwl_dsra_draw = 0.0 if _sub_swap_active else pre_revenue_hedge
                 nwl_mz_balance_before_dsra = nwl_mz_balance
-                nwl_mz_balance_with_dsra = nwl_mz_balance_before_dsra + pre_revenue_hedge
+                nwl_mz_balance_with_dsra = nwl_mz_balance_before_dsra + _nwl_dsra_draw
                 nwl_mz_p_per = nwl_mz_balance_with_dsra / mezz_ic_reps
 
                 for i in range(1, mezz_ic_reps + 1):
@@ -3717,8 +3952,8 @@ This means:
                     opening = nwl_mz_balance
 
                     if i == 1:
-                        draw_down = pre_revenue_hedge
-                        dsra_note = " *"
+                        draw_down = _nwl_dsra_draw
+                        dsra_note = " *" if _nwl_dsra_draw > 0 else ""
                     else:
                         draw_down = 0
                         dsra_note = ""
@@ -3738,12 +3973,50 @@ This means:
                 df_nwl_mezz = pd.DataFrame(nwl_mz_rows)
                 render_table(df_nwl_mezz, ic_format)
 
-                st.caption(f"""
+                if _sub_swap_active:
+                    st.caption(f"""
                 **NWL Mezz IC Notes:**
-                - **P1 (*):** Pre-Revenue Hedge €{pre_revenue_hedge:,.0f} (increases NWL's Mezz liability)
-                - **Repayments:** P = €{nwl_mz_p_per:,.0f} on total (original + IDC + DSRA)
-                - DSRA flows: NWL Mezz ↑ → SCLCA Mezz ↑ → FEC → SCLCA Senior ↓ → NWL Senior ↓
-                """)
+                - **DSRA drawdown suppressed** — Cross-Currency Swap active (no CC 2nd Mezz draw)
+                - **Repayments:** P = \u20ac{nwl_mz_p_per:,.0f} on original balance (no DSRA inflation)
+                    """)
+                else:
+                    st.caption(f"""
+                **NWL Mezz IC Notes:**
+                - **P1 (*):** Pre-Revenue Hedge \u20ac{pre_revenue_hedge:,.0f} (increases NWL's Mezz liability)
+                - **Repayments:** P = \u20ac{nwl_mz_p_per:,.0f} on total (original + IDC + DSRA)
+                - DSRA flows: NWL Mezz \u2191 \u2192 SCLCA Mezz \u2191 \u2192 FEC \u2192 SCLCA Senior \u2193 \u2192 NWL Senior \u2193
+                    """)
+
+                # ── ZAR Rand Leg (NWL) ──
+                if _sub_swap_active and _sub_swap_sched:
+                    with st.container(border=True):
+                        _zr = _sub_swap_sched['zar_rate']
+                        _zt = _sub_swap_sched['tenor']
+                        _zsm = _sub_swap_sched['start_month']
+                        st.markdown(f"**Swap ZAR Rand Leg (Liability)** — {_zr*100:.2f}% | "
+                                    f"{_zt} semi-annual from M{_zsm} | P_constant")
+
+                        _zar_rows = []
+                        for row in _sub_swap_sched['schedule']:
+                            _zar_rows.append({
+                                "Period": row['period'], "Month": row['month'],
+                                "Year": row['month'] / 12,
+                                "Opening": row['opening'], "Interest": row['interest'],
+                                "Principal": row.get('principal', 0),
+                                "Payment": row.get('payment', 0),
+                                "Closing": row['closing'],
+                            })
+
+                        render_table(pd.DataFrame(_zar_rows), {
+                            "Year": "{:.1f}",
+                            "Opening": "R{:,.0f}", "Interest": "R{:,.0f}",
+                            "Principal": "R{:,.0f}", "Payment": "R{:,.0f}",
+                            "Closing": "R{:,.0f}",
+                        })
+                        st.caption(f"ZAR leg: Investec quoted {_zr*100:.2f}% fixed. "
+                                   f"P_constant = R{_sub_swap_sched['p_constant_zar']:,.0f}/period. "
+                                   f"IDC compounded M0→M{_zsm}.")
+
             elif entity_key == "lanred":
                 if _facility_logo.exists():
                     _ll, _lt = st.columns([1, 12])
@@ -3774,6 +4047,36 @@ This means:
                         mezz_ic_rate, mezz_ic_drawdown_schedule, mezz_ic_periods
                     ))
                     render_table(df_lanred_mezz, ic_format)
+
+                # ── ZAR Rand Leg (LanRED) ──
+                if _sub_swap_active and _sub_swap_sched:
+                    with st.container(border=True):
+                        _zr_lr = _sub_swap_sched['zar_rate']
+                        _zt_lr = _sub_swap_sched['tenor']
+                        _zsm_lr = _sub_swap_sched['start_month']
+                        st.markdown(f"**Swap ZAR Rand Leg (Liability)** — {_zr_lr*100:.2f}% | "
+                                    f"{_zt_lr} semi-annual from M{_zsm_lr} | P_constant")
+
+                        _zar_lr_rows = []
+                        for row in _sub_swap_sched['schedule']:
+                            _zar_lr_rows.append({
+                                "Period": row['period'], "Month": row['month'],
+                                "Year": row['month'] / 12,
+                                "Opening": row['opening'], "Interest": row['interest'],
+                                "Principal": row.get('principal', 0),
+                                "Payment": row.get('payment', 0),
+                                "Closing": row['closing'],
+                            })
+
+                        render_table(pd.DataFrame(_zar_lr_rows), {
+                            "Year": "{:.1f}",
+                            "Opening": "R{:,.0f}", "Interest": "R{:,.0f}",
+                            "Principal": "R{:,.0f}", "Payment": "R{:,.0f}",
+                            "Closing": "R{:,.0f}",
+                        })
+                        st.caption(f"ZAR leg: Investec quoted {_zr_lr*100:.2f}% fixed. "
+                                   f"P_constant = R{_sub_swap_sched['p_constant_zar']:,.0f}/period. "
+                                   f"IDC compounded M0→M{_zsm_lr}.")
 
                 st.divider()
                 st.markdown("#### Equity Stake")
@@ -3892,6 +4195,10 @@ This means:
                     else:
                         st.session_state["lanred_eca_atradius"] = True
                         st.session_state["lanred_eca_exporter"] = True
+                        # Reset hedge to "No Hedging" when switching to Greenfield
+                        st.session_state["sclca_lanred_hedge"] = "No Hedging"
+                        st.session_state["_ds_lanred_hedge_entity"] = "No Hedging"
+                        st.session_state["_wf_lanred_hedge"] = "No Hedging"
 
                 with st.container(border=True):
                     st.subheader("LanRED Energy Scenario")
@@ -4393,48 +4700,71 @@ This means:
 """)
                     st.caption(f"Entity fees: €{_ck_fees_total:,.0f} (structure.json: €{breakdown.get('fees', 0):,.0f})")
 
-            # ── FINANCIAL ASSET ──────────────────────────────────────
-            st.subheader("Financial Asset — Pre-Revenue Hedge")
+            # ── FINANCIAL ASSET: Swap EUR Leg (only when CCS active) ──
+            if _sub_swap_active and _sub_swap_sched:
+                st.subheader("Financial Asset \u2014 Swap EUR Leg")
+                with st.container(border=True):
+                    _eur_rate = _sub_swap_sched['eur_rate']
+                    _semi_eur = _eur_rate / 2
+                    _delivery_label = 'Bullet M24' if entity_key == 'nwl' else '14 semi-annual from M24'
+                    st.markdown(f"**Swap EUR Leg (Asset)** — {_eur_rate*100:.2f}% | {_delivery_label}")
 
-            # Compute DSRA sizing (same logic as build_sub_annual_model)
-            _fa_sr_detail = financing['loan_detail']['senior']
-            _fa_sr_bal = (_fa_sr_detail['loan_drawdown_total']
-                         + _fa_sr_detail['rolled_up_interest_idc']
-                         - _fa_sr_detail['grant_proceeds_to_early_repayment']
-                         - _fa_sr_detail['gepf_bulk_proceeds'])
-            _fa_sr_rate = structure['sources']['senior_debt']['interest']['rate']
-            _fa_sr_num = structure['sources']['senior_debt']['repayments']
-            _fa_sr_p = _fa_sr_bal / _fa_sr_num
-            _fa_sr_i_m24 = _fa_sr_bal * _fa_sr_rate / 2
-            _fa_dsra_total = 2 * (_fa_sr_p + _fa_sr_i_m24)
+                    _eur_rows = []
+                    _eur_bal = _sub_swap_sched['eur_amount']
+                    # IDC phase: 4 periods (M0-M18)
+                    for gi in range(4):
+                        _m = gi * 6
+                        _op = _eur_bal
+                        _idc = _op * _semi_eur
+                        _eur_bal = _op + _idc
+                        _eur_rows.append({
+                            "Period": -(4 - gi), "Month": _m, "Year": _m / 12,
+                            "Opening": _op, "Interest": _idc,
+                            "Principle": 0, "Movement": _idc, "Closing": _eur_bal
+                        })
 
-            # DSRA allocation (100% NWL)
-            _fa_dsra_alloc = {'nwl': 1.0}
-            _fa_entity_dsra = _fa_dsra_total * _fa_dsra_alloc.get(entity_key, 0.0)
+                    # Delivery phase
+                    if entity_key == 'nwl':
+                        # Bullet at M24 — entire IDC-inflated balance delivered
+                        _int_m24 = _eur_bal * _semi_eur
+                        _eur_rows.append({
+                            "Period": 1, "Month": 24, "Year": 2.0,
+                            "Opening": _eur_bal, "Interest": _int_m24,
+                            "Principle": -_eur_bal, "Movement": -_eur_bal, "Closing": 0
+                        })
+                    else:
+                        # LanRED: P_constant over 14 periods (follows IC Senior)
+                        _eur_p = _eur_bal / 14
+                        for ri in range(14):
+                            _m = 24 + ri * 6
+                            _op = _eur_bal
+                            _ii = _op * _semi_eur
+                            _eur_bal = _op - _eur_p
+                            _eur_rows.append({
+                                "Period": ri + 1, "Month": _m, "Year": _m / 12,
+                                "Opening": _op, "Interest": _ii,
+                                "Principle": -_eur_p, "Movement": -_eur_p,
+                                "Closing": max(_eur_bal, 0)
+                            })
 
-            with st.container(border=True):
-                if _fa_entity_dsra > 0:
-                    _fa_c1, _fa_c2, _fa_c3 = st.columns(3)
-                    with _fa_c1:
-                        st.metric("Pre-Revenue Hedge", f"€{_fa_entity_dsra:,.0f}")
-                    with _fa_c2:
-                        st.metric("Interest Rate", f"{DSRA_RATE*100:.0f}% p.a.")
-                    with _fa_c3:
-                        st.metric("Funded by", "Creation Capital (Mezz)")
+                    render_table(pd.DataFrame(_eur_rows), {
+                        "Year": "{:.1f}", "Opening": "\u20ac{:,.0f}", "Interest": "\u20ac{:,.0f}",
+                        "Principle": "\u20ac{:,.0f}", "Movement": "\u20ac{:,.0f}", "Closing": "\u20ac{:,.0f}"
+                    })
 
-                    _fa_rows = [
-                        {"Item": "Facility Senior Balance (M24)", "Amount": f"€{_fa_sr_bal:,.0f}"},
-                        {"Item": "Pre-Revenue Hedge Amount", "Amount": f"€{_fa_dsra_total:,.0f}"},
-                        {"Item": f"{name} allocation (100%)", "Amount": f"€{_fa_entity_dsra:,.0f}"},
-                    ]
-                    render_table(pd.DataFrame(_fa_rows))
-
-                    st.caption(
-                        "**Flow:** CC 2nd Mezz draw → Holding Mezz ↑ → NWL Mezz IC ↑ → NWL Sr IC ↓ → Holding Senior facility payoff. "
-                        "Net effect: Senior ↓, Mezz ↑, total debt unchanged."
-                    )
-                else:
-                    st.info(f"No Pre-Revenue Hedge for {name}. Pre-Revenue Hedge is allocated 100% to NWL.")
+                    if entity_key == 'nwl':
+                        st.caption(
+                            f"EUR placed into swap at inception (\u20ac{_sub_swap_sched['eur_amount']:,.0f}). "
+                            f"Earns IIC rate ({_eur_rate*100:.2f}%) during grace. "
+                            f"Bullet delivery to IIC at M24 (\u20ac{_sub_swap_sched['eur_amount_idc']:,.0f}). "
+                            "After M24: EUR leg = 0 (fully delivered)."
+                        )
+                    else:
+                        st.caption(
+                            f"EUR placed into swap at inception (\u20ac{_sub_swap_sched['eur_amount']:,.0f}). "
+                            f"Earns IIC rate ({_eur_rate*100:.2f}%) during grace. "
+                            "Amortises with IC Senior schedule (14 semi-annual from M24)."
+                        )
 
             # ── FIXED DEPOSIT SCHEDULE ──────────────────────────
             with st.container(border=True):
@@ -6366,6 +6696,9 @@ split is well-balanced: BESS provides grid independence and peak shaving while P
             _pnl_section('FINANCE COSTS')
             _pnl_line('Senior interest', 'ie_sr', -1.0)
             _pnl_line('Mezz interest', 'ie_mz', -1.0)
+            if _sub_swap_active:
+                _pnl_line('Swap ZAR interest', 'cf_swap_zar_i', -1.0)
+                _pnl_line('Swap EUR interest income', 'swap_eur_interest_cash')
             _pnl_line('Finance Costs', 'ie', -1.0, row_type='total')
 
             # FINANCE INCOME
@@ -6464,7 +6797,7 @@ split is well-balanced: BESS provides grid independence and peak shaving while P
             total_ds = sum(a['cf_ds'] for a in _sub_annual)
             total_fcf = sum(a['cf_after_debt_service'] for a in _sub_annual)
             total_net = sum(a['cf_net'] for a in _sub_annual)
-            dscr_vals = [a['cf_ops'] / a['cf_ds'] if a['cf_ds'] > 0 else None for a in _sub_annual]
+            dscr_vals = [a['cf_ops'] / (a['cf_ds'] + a.get('cf_swap_zar', 0)) if (a['cf_ds'] + a.get('cf_swap_zar', 0)) > 0 else None for a in _sub_annual]
             dscr_valid = [d for d in dscr_vals if d is not None]
             avg_dscr = sum(dscr_valid) / len(dscr_valid) if dscr_valid else 0
             dsra_y10 = _sub_annual[-1].get('dsra_bal', 0)
@@ -6698,9 +7031,17 @@ split is well-balanced: BESS provides grid independence and peak shaving while P
             _cf_line('Total Debt Service', 'cf_ds', -1.0, row_type='total')
             _cf_spacer()
 
+            # --- SWAP HEDGE (only when swap active) ---
+            if _sub_swap_active:
+                _cf_section('SWAP HEDGE')
+                _cf_line('Swap ZAR Interest', 'cf_swap_zar_i', -1.0)
+                _cf_line('Swap ZAR Principal', 'cf_swap_zar_p', -1.0)
+                _cf_line('Total Swap Payment', 'cf_swap_zar', -1.0, row_type='total')
+                _cf_spacer()
+
             # --- NET CASH FLOW ---
             _cf_section('NET CASH FLOW')
-            _cf_line('Free CF (Ops − DS)', 'cf_after_debt_service', row_type='total')
+            _cf_line('Free CF (Ops − DS − Swap)', 'cf_after_debt_service', row_type='total') if _sub_swap_active else _cf_line('Free CF (Ops − DS)', 'cf_after_debt_service', row_type='total')
             _cf_line('Period Cash Flow', 'cf_net', row_type='total')
             _cf_computed('→ to Fixed Deposit',
                          [-a.get('cf_net', 0) for a in _sub_annual], row_type='sub')
@@ -6718,12 +7059,14 @@ split is well-balanced: BESS provides grid independence and peak shaving while P
             _cf_section('COVERAGE')
             dscr_display = []
             for a in _sub_annual:
-                if a['cf_ds'] > 0:
-                    dscr_display.append(f"{a['cf_ops'] / a['cf_ds']:.2f}x")
+                _total_ds_swap = a['cf_ds'] + a.get('cf_swap_zar', 0)
+                if _total_ds_swap > 0:
+                    dscr_display.append(f"{a['cf_ops'] / _total_ds_swap:.2f}x")
                 else:
                     dscr_display.append('n/a')
             avg_dscr_str = f"{avg_dscr:.2f}x" if dscr_valid else 'n/a'
-            _cf_rows.append(('DSCR (Ops CF / Debt Service)', dscr_display + [avg_dscr_str], 'line'))
+            _dscr_label = 'DSCR (Ops CF / (DS + Swap))' if _sub_swap_active else 'DSCR (Ops CF / Debt Service)'
+            _cf_rows.append((_dscr_label, dscr_display + [avg_dscr_str], 'line'))
 
             # Build styled HTML table
             _fmt = _eur_fmt
@@ -6964,7 +7307,7 @@ NWL benefits from **two grant-funded prepayments** that reduce Senior IC exposur
                 # ZAR leg: M0 = +draw (green, we receive ZAR), M36+ = -repayments (red, we pay ZAR)
                 _zar_total = _ds_swap_sched['zar_amount'] if _ds_swap_sched else 0
                 _zar_tenor = _ds_swap_sched['tenor'] if _ds_swap_sched else 12
-                _zar_per_period = _zar_total / _zar_tenor if _zar_tenor > 0 else 0
+                _zar_per_period = _ds_swap_sched.get('p_constant_zar', _zar_total / _zar_tenor) if _ds_swap_sched and _zar_tenor > 0 else 0
                 _zar_pi_map = {0: _zar_total}
                 for _zi in range(_zar_tenor):
                     _zar_pi_map[_ds_zar_start + _zi * 6] = -_zar_per_period
@@ -7431,14 +7774,177 @@ Entity FD grows as retained cash.
                     }
                     st.dataframe(pd.DataFrame(_swap_summary).set_index('Metric'), use_container_width=True)
 
-            else:
-                # ── Generic entity cascade (LanRED / TWX) ──
+            elif entity_key == 'lanred':
+                # ════════════════════════════════════════════════════
+                # Section 0: LanRED Hedging Strategy
+                # ════════════════════════════════════════════════════
+                _lr_is_bf = _state_str("lanred_scenario", "Greenfield") == "Brownfield+"
+                _lr_hedge_current = st.session_state.get("sclca_lanred_hedge", "No Hedging")
+
+                st.subheader("LanRED FX Hedging")
+
+                # Force "No Hedging" when Greenfield — reset ALL shadow keys
+                if not _lr_is_bf and _lr_hedge_current == "Cross-Currency Swap":
+                    st.session_state["sclca_lanred_hedge"] = "No Hedging"
+                    st.session_state["_ds_lanred_hedge_entity"] = "No Hedging"
+                    st.session_state["_wf_lanred_hedge"] = "No Hedging"
+                    _lr_hedge_current = "No Hedging"
+
+                st.radio(
+                    "Select hedging mechanism",
+                    ["No Hedging", "Cross-Currency Swap"],
+                    key="_ds_lanred_hedge_entity",
+                    horizontal=True,
+                    index=1 if (_lr_is_bf and _lr_hedge_current == "Cross-Currency Swap") else 0,
+                    disabled=not _lr_is_bf,
+                    on_change=lambda: st.session_state.update(
+                        sclca_lanred_hedge=st.session_state.get("_ds_lanred_hedge_entity", "No Hedging"))
+                        if _state_str("lanred_scenario", "Greenfield") == "Brownfield+" else None,
+                )
+
+                if not _lr_is_bf:
+                    st.caption("Cross-Currency Swap requires **Brownfield+** scenario. "
+                               "Switch to Brownfield+ in the Operations tab or SCLCA Waterfall to enable.")
+                else:
+                    _lr_ds_swap_on = st.session_state.get("_ds_lanred_hedge_entity", _lr_hedge_current) == "Cross-Currency Swap"
+                    if _lr_ds_swap_on:
+                        st.caption("Swap active — IC schedules are vanilla. ZAR Rand Leg is a separate liability.")
+                    else:
+                        st.caption("No FX hedging — LanRED's EUR IC loans are unhedged. Revenue in ZAR, debt service in EUR.")
+
+                st.divider()
+
+                # ════════════════════════════════════════════════════
+                # Section 1: LanRED Entity Cascade (swap-aware)
+                # ════════════════════════════════════════════════════
+                _lr_ds_swap_active = (_lr_is_bf
+                    and st.session_state.get("_ds_lanred_hedge_entity", _lr_hedge_current) == "Cross-Currency Swap")
+
                 st.caption("Entity-level surplus allocation: IC debt service → Ops Reserve → OpCo DSRA → Surplus priority → Entity FD")
 
                 _render_entity_cascade_diagram(
                     name,
-                    show_od_repay=(entity_key == 'lanred'),
+                    show_swap=_lr_ds_swap_active,
+                    show_od_repay=True,
                 )
+
+                _ent_wf = _compute_entity_waterfall_inputs(
+                    entity_key, _sub_ops_annual,
+                    _sub_sr_schedule, _sub_mz_schedule,
+                    lanred_swap_schedule=_sub_swap_sched if _lr_ds_swap_active else None)
+                _ds_years = [f"Y{yi+1}" for yi in range(10)]
+
+                st.markdown(f"""
+After contractual IC debt service, **{name}** allocates surplus:
+Ops Reserve → OpCo DSRA → Mezz IC Accel (15.25%) →
+{'ZAR Rand Leg (9.69%) → ' if _lr_ds_swap_active else ''}OD Repayment (10%) → Sr IC Accel (5.20%) → Entity FD.
+""")
+
+                with st.expander("Full Cascade Detail", expanded=False):
+                    _ds_rows = {}
+                    _ds_row_defs = [
+                        ('EBITDA', 'ebitda'), ('Tax', 'tax'),
+                        ('IC Senior P+I', 'sr_pi'), ('IC Mezz P+I', 'mz_pi'),
+                        ('Ops Reserve Fill', 'ops_reserve_fill'),
+                        ('OpCo DSRA Fill', 'opco_dsra_fill'),
+                        ('Mezz IC Acceleration', 'mz_accel_entity'),
+                    ]
+                    if _lr_ds_swap_active:
+                        _ds_row_defs.append(('ZAR Rand Leg', 'zar_leg_payment'))
+                    _ds_row_defs.extend([
+                        ('Sr IC Acceleration', 'sr_accel_entity'),
+                        ('Entity FD Fill', 'entity_fd_fill'),
+                    ])
+                    for _row_label, _row_key in _ds_row_defs:
+                        _ds_rows[_row_label] = [
+                            _eur_fmt.format(_ent_wf[yi].get(_row_key, 0))
+                            if abs(_ent_wf[yi].get(_row_key, 0)) > 0.5 else '—'
+                            for yi in range(10)]
+                    st.dataframe(pd.DataFrame(_ds_rows, index=_ds_years).T, use_container_width=True)
+
+                    st.markdown("**Balances**")
+                    _ds_bal_rows = {}
+                    for _row_label, _row_key in [
+                        ('Ops Reserve Bal', 'ops_reserve_bal'),
+                        ('OpCo DSRA Bal', 'opco_dsra_bal'),
+                        ('Mezz IC Bal', 'mz_ic_bal'),
+                        ('Senior IC Bal', 'sr_ic_bal'),
+                        ('Entity FD Bal', 'entity_fd_bal'),
+                    ]:
+                        _ds_bal_rows[_row_label] = [
+                            _eur_fmt.format(_ent_wf[yi].get(_row_key, 0))
+                            for yi in range(10)]
+                    st.dataframe(pd.DataFrame(_ds_bal_rows, index=_ds_years).T, use_container_width=True)
+
+                fig_ds = go.Figure()
+                _ds_colors = [
+                    ('IC Senior P+I', 'sr_pi', '#1E3A5F'),
+                    ('IC Mezz P+I', 'mz_pi', '#7C3AED'),
+                    ('Ops Reserve', 'ops_reserve_fill', '#0D9488'),
+                    ('OpCo DSRA', 'opco_dsra_fill', '#2563EB'),
+                    ('Mezz IC Accel', 'mz_accel_entity', '#A855F7'),
+                ]
+                if _lr_ds_swap_active:
+                    _ds_colors.append(('ZAR Rand Leg', 'zar_leg_payment', '#F59E0B'))
+                _ds_colors.extend([
+                    ('Sr IC Accel', 'sr_accel_entity', '#3B82F6'),
+                    ('Entity FD', 'entity_fd_fill', '#059669'),
+                ])
+                for _lbl, _fld, _clr in _ds_colors:
+                    _vs = [_ent_wf[yi].get(_fld, 0) for yi in range(10)]
+                    if any(v > 0 for v in _vs):
+                        fig_ds.add_trace(go.Bar(x=_ds_years, y=_vs, name=_lbl, marker_color=_clr))
+                _ds_deficits = [_ent_wf[yi].get('deficit', 0) for yi in range(10)]
+                if any(d < 0 for d in _ds_deficits):
+                    fig_ds.add_trace(go.Bar(x=_ds_years, y=_ds_deficits, name='Deficit', marker_color='#EF4444'))
+                fig_ds.update_layout(
+                    barmode='relative', title=f'{name} — Cascade Allocation',
+                    yaxis_title='EUR', height=400,
+                    legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+                )
+                st.plotly_chart(fig_ds, use_container_width=True)
+
+                # ════════════════════════════════════════════════════
+                # Section 2: LanRED Swap Details (only when swap active)
+                # ════════════════════════════════════════════════════
+                if _lr_ds_swap_active and _sub_swap_sched:
+                    st.divider()
+                    st.subheader("LanRED Swap Cost Details")
+                    _lr_swap_cfg = load_config("waterfall").get("lanred_swap", {})
+                    _lr_zar_rate = _lr_swap_cfg.get('zar_rate', 0.0969)
+                    _lr_zar_reps = _lr_swap_cfg.get('zar_leg_repayments', 28)
+
+                    _lr_sc1, _lr_sc2 = st.columns(2)
+                    with _lr_sc1:
+                        st.markdown("**EUR Asset Leg**")
+                        _lr_eur_amt = _sub_swap_sched.get('eur_amount', 0)
+                        _lr_eur_idc = _sub_swap_sched.get('eur_amount_idc', _lr_eur_amt)
+                        st.metric("EUR Notional", f"€{_lr_eur_amt:,.0f}")
+                        st.caption(f"Follows IC Senior repayment cadence (14 semi-annual from M24)")
+                    with _lr_sc2:
+                        st.markdown("**ZAR Liability Leg**")
+                        _lr_zar_amt = _sub_swap_sched.get('zar_amount', 0)
+                        st.metric("ZAR Notional", f"R{_lr_zar_amt:,.0f}")
+                        st.caption(f"{_lr_zar_reps} semi-annual payments at {_lr_zar_rate*100:.2f}% p.a.")
+
+                    with st.expander("ZAR Leg Amortisation Schedule", expanded=False):
+                        _lr_swap_df = pd.DataFrame(_sub_swap_sched['schedule'])
+                        _lr_swap_df['month'] = _lr_swap_df['month'].astype(int)
+                        for _col_name in ['opening', 'interest', 'principal', 'payment', 'closing']:
+                            _lr_swap_df[_col_name] = _lr_swap_df[_col_name].map(lambda x: f"R{x:,.0f}")
+                        _lr_swap_df = _lr_swap_df.rename(columns={
+                            'period': 'Period', 'month': 'Month',
+                            'opening': 'Opening (ZAR)', 'interest': 'Interest (ZAR)',
+                            'principal': 'Principal (ZAR)', 'payment': 'Payment (ZAR)',
+                            'closing': 'Closing (ZAR)',
+                        })
+                        st.dataframe(_lr_swap_df.set_index('Period'), use_container_width=True)
+
+            else:
+                # ── Generic entity cascade (TWX) ──
+                st.caption("Entity-level surplus allocation: IC debt service → Ops Reserve → OpCo DSRA → Surplus priority → Entity FD")
+
+                _render_entity_cascade_diagram(name)
 
                 _ent_wf = _compute_entity_waterfall_inputs(
                     entity_key, _sub_ops_annual,
@@ -7447,8 +7953,7 @@ Entity FD grows as retained cash.
 
                 st.markdown(f"""
 After contractual IC debt service, **{name}** allocates surplus:
-Ops Reserve → OpCo DSRA → Mezz IC Accel (15.25%) →
-{'OD Repayment (10%) → ' if entity_key == 'lanred' else ''}Sr IC Accel (5.20%) → Entity FD.
+Ops Reserve → OpCo DSRA → Mezz IC Accel (15.25%) → Sr IC Accel (5.20%) → Entity FD.
 """)
 
                 with st.expander("Full Cascade Detail", expanded=False):
@@ -7526,7 +8031,7 @@ Ops Reserve → OpCo DSRA → Mezz IC Accel (15.25%) →
             terminal_equity = _bs_last['bs_equity']
 
             # 4. DSCR Range from repayment years (where debt service > 0)
-            dscr_vals = [(i+1, a['cf_ops'] / a['cf_ds']) for i, a in enumerate(_sub_annual) if a.get('cf_ds', 0) > 0]
+            dscr_vals = [(i+1, a['cf_ops'] / (a['cf_ds'] + a.get('cf_swap_zar', 0))) for i, a in enumerate(_sub_annual) if (a.get('cf_ds', 0) + a.get('cf_swap_zar', 0)) > 0]
             dscr_min = min(dscr_vals, key=lambda x: x[1]) if dscr_vals else None
             dscr_max = max(dscr_vals, key=lambda x: x[1]) if dscr_vals else None
 
@@ -7565,9 +8070,15 @@ Ops Reserve → OpCo DSRA → Mezz IC Accel (15.25%) →
             def _bs_spacer():
                 _bs_rows.append(('', [None] * _ncols_bs, 'spacer'))
 
+            # --- BS is a LISTENER: reads pre-computed values from annual model ---
             _bs_section('OPERATING ASSETS')
             _bs_line('Fixed Assets (Net)', 'bs_fixed_assets')
             _bs_line('Total Operating Assets', 'bs_fixed_assets', row_type='total')
+
+            if _sub_swap_active:
+                _bs_spacer()
+                _bs_section('SWAP EUR LEG (Asset)')
+                _bs_line('Currency Swap: EUR Leg', 'bs_swap_eur')
 
             _bs_spacer()
             _bs_section('DSRA FIXED DEPOSIT')
@@ -7580,6 +8091,8 @@ Ops Reserve → OpCo DSRA → Mezz IC Accel (15.25%) →
             _bs_section('LIABILITIES')
             _bs_line('Senior IC Loan', 'bs_sr')
             _bs_line('Mezz IC Loan', 'bs_mz')
+            if _sub_swap_active:
+                _bs_line('Currency Swap: ZAR Leg', 'bs_swap_zar')
             _bs_line('Total Debt', 'bs_debt', row_type='total')
 
             _bs_spacer()
@@ -7599,7 +8112,7 @@ Ops Reserve → OpCo DSRA → Mezz IC Accel (15.25%) →
             _bs_rows.append(('RE = PAT + Grants', gap_display, 'line'))
             # Show warning if any gap > €1
             if any(abs(v) >= 1.0 for v in gap_vals):
-                st.warning(f"BS Gap detected: RE ≠ Cumulative PAT + Grants. Max gap: €{max(abs(v) for v in gap_vals):,.0f}")
+                st.warning(f"BS Gap detected: RE \u2260 Cumulative PAT + Grants. Max gap: \u20ac{max(abs(v) for v in gap_vals):,.0f}")
 
             # Build styled HTML table
             _fmt = _eur_fmt
@@ -9322,37 +9835,59 @@ Ops Reserve → OpCo DSRA → Mezz IC Accel (15.25%) →
                             ]
                             _render_fin_table(_gpl, ["", "FY2025", "FY2024", "FY2023"])
 
-                        # -- Underlying Properties --
-                        with st.expander("Underlying Property Portfolio (8 properties, FY2025)", expanded=False):
-                            _gprop = [
-                                ("Morningside Ext 5", "Uvongo Falls No 26", "R336,919,312", "48.6%", "Residential development"),
-                                ("Mastiff Sandton", "Mistraline", "R160,500,000", "23.2%", "Commercial + PV solar"),
-                                ("Bellville Cape Town", "New in FY2025", "R74,200,000", "10.7%", "Commercial acquisition"),
-                                ("Tyrwhitt Sections", "Providence Property", "R49,640,700", "7.2%", "Residential (new FY2024)"),
-                                ("Longmeadow Gauteng", "Erf 86 Longmeadow", "R46,723,682", "6.7%", "Commercial + PV solar"),
-                                ("Saxonwold JHB (4 units)", "Aquaside Trading", "R17,600,000", "2.5%", "Residential rental"),
-                                ("George Cape Town", "Aquaside Trading", "R4,500,000", "0.6%", "Residential"),
-                                ("Randpark Ridge", "BBP Unit 1 Phase 2", "R2,803,913", "0.4%", "Commercial"),
-                            ]
-                            _render_fin_table(_gprop, ["Property", "Held By", "Value (ZAR)", "% Portfolio", "Type / Income"])
-                            st.caption("Total: R692,887,607. All pledged as security. Top 2 = 71.8% concentration.")
+                        # ── Load subsidiary data + mgmt accounts FIRST (needed for portfolio lifecycle) ──
+                        _ver_subs_nwl = _load_guarantor_jsons("veracity 2025 financials")
+                        _ver_root_nwl = _load_guarantor_jsons("")
+                        _ver_all_nwl = {**_ver_subs_nwl, **_ver_root_nwl}
+                        _guar_cfg = _load_guarantor_config()
+                        _ver_group = _guar_cfg.get("groups", {}).get("veracity", {})
+                        _ver_holding = _ver_group.get("holding", {})
+                        _nwl_mgmt = _load_mgmt_accounts("veracity")
+                        _nwl_guar_lookup = _build_guarantor_entity_lookup(_guar_cfg)
 
-                        # -- Subsidiaries --
-                        with st.expander("Veracity Subsidiaries & Associates", expanded=False):
-                            _gsub = [
-                                ("Aquaside Trading", "100%", "Saxonwold (4 units) + George", "Residential rentals"),
-                                ("BBP Unit 1 Phase 2", "100%", "Randpark Ridge", "Commercial rental"),
-                                ("Cornerstone Property Group", "50%", "HoldCo for Ireo Project 10", "Holding"),
-                                ("  Ireo Project 10 (formerly Chepstow)", "sub of Cornerstone", "Industrial, Bellville CT", "Industrial"),
-                                ("Erf 86 Longmeadow", "100%", "Longmeadow + PV solar", "Commercial rental"),
-                                ("Providence Property", "100%", "Tyrwhitt Sections", "Residential rental"),
-                                ("  Manappu Investments (associate)", "20%", "50 units Tyrwhitt JHB", "Residential rental"),
-                                ("Sun Property", "50%", "HoldCo for 6 On Kloof", "Holding"),
-                                ("  6 On Kloof (associate)", "25%", "46 units Sea Point CT", "Hotel/apartments"),
-                                ("Uvongo Falls No 26", "50%", "Morningside Ext 5 (R337M)", "Residential dev [GC]"),
-                                ("Mistraline (associate)", "33%", "Industrial, Linbro Park JHB", "Commercial + PV solar"),
-                            ]
-                            _render_fin_table(_gsub, ["Entity", "Ownership", "Asset Base", "Income Type"])
+                        # -- Underlying Portfolio & Subsidiaries (lifecycle from algo) --
+                        _gport_static = {
+                            "UvongoFallsNo26": ("50%", "Morningside Ext 5", "Residential dev"),
+                            "MistralinePtyLtd": ("33%", "Mastiff Sandton", "Commercial + PV solar"),
+                            "IreoProject10": ("sub of Cornerstone", "Bellville CT", "Industrial (new FY2025)"),
+                            "ProvidencePropertyInvestments": ("100%", "Tyrwhitt Sections", "Residential rental"),
+                            "Erf86LongmeadowBusinessEstate": ("100%", "Longmeadow Gauteng", "Commercial + PV solar"),
+                            "AquasideTrading": ("100%", "Saxonwold + George", "Residential rental"),
+                            "BBPUnit1PhaseII": ("100%", "Randpark Ridge", "Commercial rental"),
+                            "CornerstonePropertyGroup": ("50%", "HoldCo for Ireo", "Holding"),
+                            "SunPropertyInvestments": ("50%", "HoldCo for 6 On Kloof", "Holding"),
+                            "6OnKloof": ("25%", "Sea Point CT (46 units)", "Hotel/apartments"),
+                        }
+                        _gport = []
+                        _total_val = 0
+                        for _ps, _sd in _ver_subs_nwl.items():
+                            _pm = _sd.get("metadata", {}).get("entity", {})
+                            _pbs = _sd.get("statement_of_financial_position", {})
+                            _pname = _pm.get("legal_name", _ps)
+                            _pip = _gval(_pbs, "assets", "non_current_assets", "investment_property")
+                            _pip = _pip or _gval(_pbs, "assets", "non_current_assets", "investment_property_at_fair_value")
+                            _pta = _gval(_pbs, "assets", "total_assets")
+                            _pval = _pip or _pta or 0
+                            _total_val += abs(_pval) if _pval else 0
+                            _mgmt_e = None
+                            if _nwl_mgmt:
+                                for _ms, _af in _MGMT_TO_AFS_MAP.items():
+                                    if _af == _ps and _ms in _nwl_mgmt:
+                                        _mgmt_e = _nwl_mgmt[_ms]
+                                        break
+                            _plc_stage, _, _plc_color = _compute_lifecycle_stage(_sd, mgmt_data=_mgmt_e)
+                            _static = _gport_static.get(_ps, ("", "", ""))
+                            _gport.append((_pname, _static[0], _static[1], _fmtr(_pval, millions=True) if _pval else "—",
+                                           _pval, _static[2], _plc_stage, _plc_color))
+                        _gport.sort(key=lambda x: abs(x[4]) if x[4] else 0, reverse=True)
+                        _gport_rows = []
+                        for _r in _gport:
+                            _pct = f"{abs(_r[4]) / _total_val * 100:.1f}%" if _total_val > 0 and _r[4] else "—"
+                            _pill = _lifecycle_pill_html(_r[6], _r[7])
+                            _gport_rows.append((_r[0], _r[1], _r[2], _r[3], _pct, _r[5], _pill))
+                        with st.expander(f"Underlying Portfolio & Subsidiaries ({len(_gport)} entities)", expanded=False):
+                            _render_fin_table(_gport_rows, ["Entity", "Ownership", "Property", "Value", "% Portfolio", "Type", "Lifecycle"])
+                            st.caption(f"Total portfolio: {_fmtr(_total_val, millions=True)}. All pledged as security.")
 
                         st.caption("Source: Audited AFS FY2023-FY2025, KCE Accountants and Auditors Inc.")
 
@@ -9361,19 +9896,11 @@ Ops Reserve → OpCo DSRA → Mezz IC Accel (15.25%) →
                         st.markdown("##### Corporate Structure — Veracity Property Holdings")
                         render_svg("guarantor-veracity.svg", "_none.md")
 
-                        # ── Nested Subsidiary Financials (driven by guarantor.json) ──
-                        _ver_subs_nwl = _load_guarantor_jsons("veracity 2025 financials")
-                        # Also load root-level VPH JSON
-                        _ver_root_nwl = _load_guarantor_jsons("")
-                        _ver_all_nwl = {**_ver_subs_nwl, **_ver_root_nwl}
-                        _guar_cfg = _load_guarantor_config()
-                        _ver_group = _guar_cfg.get("groups", {}).get("veracity", {})
-                        _ver_holding = _ver_group.get("holding", {})
-
+                        # ── Entity Factsheets (flat, no outer expander) ──
                         if _ver_all_nwl and _ver_holding:
                             st.divider()
-                            with st.expander(f"Subsidiary Financial Statements ({len(_ver_subs_nwl)} entities)", expanded=False):
-                                _render_sub_summary_and_toggles(_ver_subs_nwl, "nwl_ver_summ")
+                            st.markdown(f"##### Entity Factsheets ({len(_ver_subs_nwl)} entities)")
+                            _render_sub_summary_and_toggles(_ver_subs_nwl, "nwl_ver_summ", mgmt_dict=_nwl_mgmt, guar_lookup=_nwl_guar_lookup)
 
                         # ── Email Q&A ──
                         if _guar_cfg:
@@ -9671,15 +10198,69 @@ revenue contracts (Layer 3) upstream through SCLCA to Invest International Capit
 
                             st.caption("Guarantee entity: VH Properties (40% in Phoenix Group). Part of VH Investments Trust.")
 
-                            # ── Per-Entity Subsidiary Financials (nested, from L4 JSONs) ──
+                            # ── Load Phoenix subsidiary data + mgmt accounts ──
                             _phx_subs_twx = _load_guarantor_jsons("Phoenix group")
                             _guar_cfg_twx = _load_guarantor_config()
                             _phx_group = _guar_cfg_twx.get("groups", {}).get("phoenix", {})
                             _phx_holding = _phx_group.get("holding", {})
+                            _twx_mgmt = _load_mgmt_accounts("phoenix")
+                            _twx_guar_lookup = _build_guarantor_entity_lookup(_guar_cfg_twx)
+
+                            # ── Phoenix Portfolio Table (lifecycle from algo) ──
                             if _phx_subs_twx:
+                                _phx_static = {
+                                    "PhoenixPropertyFundSA": ("100%", "HoldCo for 6 retail centres", "Holding"),
+                                    "RidgeviewCentre": ("100%", "Ridgeview Mall, Midrand", "Retail centre"),
+                                    "BrackenfellCorner": ("100%", "Brackenfell Corner, CT", "Retail centre"),
+                                    "ChartwellCorner": ("100%", "Fourways, JHB", "Retail centre"),
+                                    "JukskeiMeander": ("100%", "Midrand, JHB", "Retail centre"),
+                                    "OlivedaleCorner": ("100%", "Olivedale, JHB", "Retail centre"),
+                                    "RenovoPropertyFund": ("100%", "HoldCo for Madelief", "Holding"),
+                                    "MadeliefShoppingCentre": ("100%", "Madelief, Vaal", "Retail centre"),
+                                    "PRAAM": ("100%", "Asset management", "Services"),
+                                    "ChartwellCoOwner": ("100%", "Chartwell co-ownership", "Pass-through"),
+                                    "PhoenixSpecialistPropertyFund": ("100%", "Dormant shell", "Dormant"),
+                                }
+                                _phx_port = []
+                                _phx_total = 0
+                                for _ps, _sd in _phx_subs_twx.items():
+                                    _pm = _sd.get("metadata", {}).get("entity", {})
+                                    _pbs = _sd.get("statement_of_financial_position", {})
+                                    _pname = _pm.get("legal_name", _ps)
+                                    _pip = _gval(_pbs, "assets", "non_current_assets", "investment_property")
+                                    _pip = _pip or _gval(_pbs, "assets", "non_current_assets", "investment_property_at_fair_value")
+                                    _pta = _gval(_pbs, "assets", "total_assets")
+                                    _pval = _pip or _pta or 0
+                                    _phx_total += abs(_pval) if _pval else 0
+                                    _mgmt_e = None
+                                    if _twx_mgmt:
+                                        for _ms, _af in _MGMT_TO_AFS_MAP.items():
+                                            if _af == _ps and _ms in _twx_mgmt:
+                                                _mgmt_e = _twx_mgmt[_ms]
+                                                break
+                                    _plc_stage, _, _plc_color = _compute_lifecycle_stage(_sd, mgmt_data=_mgmt_e)
+                                    _static = _phx_static.get(_ps, ("", "", ""))
+                                    _phx_port.append((_pname, _static[0], _static[1], _fmtr(_pval, millions=True) if _pval else "—",
+                                                      _pval, _static[2], _plc_stage, _plc_color))
+                                _phx_port.sort(key=lambda x: abs(x[4]) if x[4] else 0, reverse=True)
+                                _phx_port_rows = []
+                                for _r in _phx_port:
+                                    _pct = f"{abs(_r[4]) / _phx_total * 100:.1f}%" if _phx_total > 0 and _r[4] else "—"
+                                    _pill = _lifecycle_pill_html(_r[6], _r[7])
+                                    _phx_port_rows.append((_r[0], _r[1], _r[2], _r[3], _pct, _r[5], _pill))
+                                with st.expander(f"Phoenix Portfolio & Subsidiaries ({len(_phx_port)} entities)", expanded=False):
+                                    _render_fin_table(_phx_port_rows, ["Entity", "Ownership", "Property", "Value", "% Portfolio", "Type", "Lifecycle"])
+                                    st.caption(f"Total portfolio: {_fmtr(_phx_total, millions=True)}. VH Properties holds 40% in Phoenix Group.")
+
+                                # ── SVG Organogram ──
                                 st.divider()
-                                with st.expander(f"Phoenix Group Financial Statements ({len(_phx_subs_twx)} entities)", expanded=False):
-                                    _render_sub_summary_and_toggles(_phx_subs_twx, "twx_phx_summ")
+                                st.markdown("##### Corporate Structure — Phoenix Group")
+                                render_svg("guarantor-phoenix.svg", "_none.md")
+
+                                # ── Entity Factsheets (flat, no outer expander) ──
+                                st.divider()
+                                st.markdown(f"##### Entity Factsheets ({len(_phx_subs_twx)} entities)")
+                                _render_sub_summary_and_toggles(_phx_subs_twx, "twx_phx_summ", mgmt_dict=_twx_mgmt, guar_lookup=_twx_guar_lookup)
                     st.divider()
 
                     # Layer 3 — Physical Assets & Revenue Contracts
@@ -10293,6 +10874,21 @@ st.markdown("""
         color: #1e40af;
     }
 
+    /* Subtle active tab emphasis */
+    div[data-baseweb="tab-list"] button[role="tab"] {
+        border-radius: 8px 8px 0 0 !important;
+        transition: background-color 0.15s ease, color 0.15s ease !important;
+    }
+    div[data-baseweb="tab-list"] button[role="tab"][aria-selected="true"] {
+        background: #eff6ff !important;
+        color: #1e3a8a !important;
+        box-shadow: inset 0 -2px 0 #93c5fd !important;
+        font-weight: 600 !important;
+    }
+    div[data-baseweb="tab-list"] button[role="tab"]:not([aria-selected="true"]) {
+        color: #475569 !important;
+    }
+
 </style>
 """, unsafe_allow_html=True)
 
@@ -10423,104 +11019,119 @@ _ENTITY_WRITEUPS = {
     "RidgeviewCentre_2025_structured": "Retail centre in Midrand. R185M property. GOING CONCERN — negative equity (-R21.6M), R18.4M loss. Sale agreement with bondholder. R224M liabilities. Via Phoenix Prop Fund SA.",
 }
 
-def _render_sub_financials(data, prefix):
-    """Render BS / P&L tabs from a structured JSON."""
+def _render_sub_financials(data, prefix, ncols=3):
+    """Render BS / P&L tabs from a structured JSON. Supports 2 or 3 columns."""
     bs = data.get("statement_of_financial_position") or {}
     pl = data.get("statement_of_comprehensive_income") or {}
     meta = data.get("metadata") or {}
     clbl = meta.get("presentation_columns", ["CY", "PY"])
+    # Ensure we have column headers for 3 cols
+    if ncols >= 3 and len(clbl) < 3:
+        clbl = list(clbl) + ["—"] * (3 - len(clbl))
+
+    def _val3(item):
+        """Extract up to 3 values from an item dict."""
+        if not item or not isinstance(item, dict):
+            return (None, None, None)
+        vals = item.get("values", [])
+        cy = vals[0] if len(vals) > 0 else None
+        py = vals[1] if len(vals) > 1 else None
+        py2 = vals[2] if len(vals) > 2 else None
+        return (cy, py, py2)
+
+    def _row3(lbl, cy, py, py2, bold=False):
+        """Build a row tuple with 2 or 3 value columns."""
+        if bold:
+            r = (lbl, f"**{_fmtr(cy)}**", f"**{_fmtr(py)}**")
+            return r + (f"**{_fmtr(py2)}**",) if ncols >= 3 else r
+        r = (lbl, _fmtr(cy), _fmtr(py))
+        return r + (_fmtr(py2),) if ncols >= 3 else r
+
+    def _blank_row():
+        return ("", "", "") + ("",) * (ncols - 2) if ncols >= 3 else ("", "", "")
+
     _tb, _tp = st.tabs(["Balance Sheet", "P&L"])
     with _tb:
         rows = []
         nca = bs.get("assets", {}).get("non_current_assets", {})
         for lbl, key in [("Investment property", "investment_property"), ("Other financial assets", "other_financial_assets"),
                          ("Investments in subsidiaries", "investments_in_subsidiaries"), ("Loans to shareholders", "loans_to_shareholders"), ("Deferred tax", "deferred_tax")]:
-            item = nca.get(key)
-            if item and isinstance(item, dict):
-                vals = item.get("values", [None, None])
-                cy, py = (vals[0] if len(vals) > 0 else None), (vals[1] if len(vals) > 1 else None)
-                if cy is not None or py is not None:
-                    rows.append((lbl, _fmtr(cy), _fmtr(py)))
+            cy, py, py2 = _val3(nca.get(key))
+            if cy is not None or py is not None:
+                rows.append(_row3(lbl, cy, py, py2))
         nca_t = _gval(bs, "assets", "non_current_assets", "total")
         nca_tp = _gval(bs, "assets", "non_current_assets", "total", idx=1)
+        nca_tp2 = _gval(bs, "assets", "non_current_assets", "total", idx=2)
         if nca_t:
-            rows.append(("**Total NCA**", f"**{_fmtr(nca_t)}**", f"**{_fmtr(nca_tp)}**"))
+            rows.append(_row3("**Total NCA**", nca_t, nca_tp, nca_tp2, bold=True))
         ca = bs.get("assets", {}).get("current_assets", {})
         for lbl, key in [("Trade & other receivables", "trade_and_other_receivables"), ("Cash & equivalents", "cash_and_cash_equivalents")]:
-            item = ca.get(key)
-            if item and isinstance(item, dict):
-                vals = item.get("values", [None, None])
-                cy, py = (vals[0] if len(vals) > 0 else None), (vals[1] if len(vals) > 1 else None)
-                if cy is not None or py is not None:
-                    rows.append((lbl, _fmtr(cy), _fmtr(py)))
+            cy, py, py2 = _val3(ca.get(key))
+            if cy is not None or py is not None:
+                rows.append(_row3(lbl, cy, py, py2))
         ta = _gval(bs, "assets", "total_assets")
         ta_p = _gval(bs, "assets", "total_assets", idx=1)
-        rows.append(("**Total Assets**", f"**{_fmtr(ta)}**", f"**{_fmtr(ta_p)}**"))
-        rows.append(("", "", ""))
+        ta_p2 = _gval(bs, "assets", "total_assets", idx=2)
+        rows.append(_row3("**Total Assets**", ta, ta_p, ta_p2, bold=True))
+        rows.append(_blank_row())
         eq = bs.get("equity_and_liabilities", {}).get("equity", {})
         for lbl, key in [("Share capital", "share_capital"), ("Retained income", "retained_income"), ("Accumulated loss", "accumulated_loss")]:
-            item = eq.get(key)
-            if item and isinstance(item, dict):
-                vals = item.get("values", [None, None])
-                cy, py = (vals[0] if len(vals) > 0 else None), (vals[1] if len(vals) > 1 else None)
-                if cy is not None or py is not None:
-                    rows.append((lbl, _fmtr(cy), _fmtr(py)))
+            cy, py, py2 = _val3(eq.get(key))
+            if cy is not None or py is not None:
+                rows.append(_row3(lbl, cy, py, py2))
         te = _gval(bs, "equity_and_liabilities", "equity", "total_equity")
         te_p = _gval(bs, "equity_and_liabilities", "equity", "total_equity", idx=1)
-        rows.append(("**Total Equity**", f"**{_fmtr(te)}**", f"**{_fmtr(te_p)}**"))
+        te_p2 = _gval(bs, "equity_and_liabilities", "equity", "total_equity", idx=2)
+        rows.append(_row3("**Total Equity**", te, te_p, te_p2, bold=True))
         ncl = bs.get("equity_and_liabilities", {}).get("non_current_liabilities", {})
         for lbl, key in [("Other financial liabilities", "other_financial_liabilities"), ("Loans from group", "loans_from_group_companies")]:
-            item = ncl.get(key)
-            if item and isinstance(item, dict):
-                vals = item.get("values", [None, None])
-                cy, py = (vals[0] if len(vals) > 0 else None), (vals[1] if len(vals) > 1 else None)
-                if cy is not None or py is not None:
-                    rows.append((lbl, _fmtr(cy), _fmtr(py)))
+            cy, py, py2 = _val3(ncl.get(key))
+            if cy is not None or py is not None:
+                rows.append(_row3(lbl, cy, py, py2))
         cl = bs.get("equity_and_liabilities", {}).get("current_liabilities", {})
         for lbl, key in [("Trade & other payables", "trade_and_other_payables"), ("Provisions", "provisions")]:
-            item = cl.get(key)
-            if item and isinstance(item, dict):
-                vals = item.get("values", [None, None])
-                cy, py = (vals[0] if len(vals) > 0 else None), (vals[1] if len(vals) > 1 else None)
-                if cy is not None or py is not None:
-                    rows.append((lbl, _fmtr(cy), _fmtr(py)))
+            cy, py, py2 = _val3(cl.get(key))
+            if cy is not None or py is not None:
+                rows.append(_row3(lbl, cy, py, py2))
         tel = _gval(bs, "equity_and_liabilities", "total_equity_and_liabilities")
         tel_p = _gval(bs, "equity_and_liabilities", "total_equity_and_liabilities", idx=1)
-        rows.append(("**Total E&L**", f"**{_fmtr(tel)}**", f"**{_fmtr(tel_p)}**"))
-        _render_fin_table(rows, ["Line Item", clbl[0], clbl[1]])
+        tel_p2 = _gval(bs, "equity_and_liabilities", "total_equity_and_liabilities", idx=2)
+        rows.append(_row3("**Total E&L**", tel, tel_p, tel_p2, bold=True))
+        hdr = ["Line Item"] + clbl[:ncols]
+        _render_fin_table(rows, hdr)
         cs = meta.get("verification_checksums", {}).get("cy_2025", {})
         if cs.get("balance_check"):
             st.caption("Balance check: PASS")
     with _tp:
         rows = []
         # Compute EBITDA = operating profit + depreciation
-        _op_cy, _op_py = None, None
+        _op_cy, _op_py, _op_py2 = None, None, None
         for _opk in ["operating_profit", "operating_loss", "operating_profit_loss"]:
             _op_item = pl.get(_opk)
             if _op_item and isinstance(_op_item, dict) and "values" in _op_item:
                 _op_cy = _op_item["values"][0] if len(_op_item["values"]) > 0 else None
                 _op_py = _op_item["values"][1] if len(_op_item["values"]) > 1 else None
+                _op_py2 = _op_item["values"][2] if len(_op_item["values"]) > 2 else None
                 break
-        _dep_cy, _dep_py = 0, 0
+        _dep_cy, _dep_py, _dep_py2 = 0, 0, 0
         for _dk in ["depreciation", "depreciation_and_amortisation", "depreciation_amortisation"]:
             _dep_item = pl.get(_dk)
             if _dep_item and isinstance(_dep_item, dict) and "values" in _dep_item:
                 _dep_cy = abs(_dep_item["values"][0] or 0)
                 _dep_py = abs(_dep_item["values"][1] or 0) if len(_dep_item["values"]) > 1 else 0
+                _dep_py2 = abs(_dep_item["values"][2] or 0) if len(_dep_item["values"]) > 2 else 0
                 break
         _ebitda_cy = (_op_cy + _dep_cy) if _op_cy is not None else None
         _ebitda_py = (_op_py + _dep_py) if _op_py is not None else None
+        _ebitda_py2 = (_op_py2 + _dep_py2) if _op_py2 is not None else None
         for lbl, key in [("Revenue", "revenue"), ("Other income", "other_income"), ("FV adjustments", "other_income_fair_value"),
                          ("Operating expenses", "operating_expenses"), ("Impairment", "impairment_investments")]:
-            item = pl.get(key)
-            if item and isinstance(item, dict):
-                vals = item.get("values", [None, None])
-                cy, py = (vals[0] if len(vals) > 0 else None), (vals[1] if len(vals) > 1 else None)
-                if cy is not None or py is not None:
-                    rows.append((lbl, _fmtr(cy), _fmtr(py)))
+            cy, py, py2 = _val3(pl.get(key))
+            if cy is not None or py is not None:
+                rows.append(_row3(lbl, cy, py, py2))
         # Insert EBITDA row (highlighted)
         if _ebitda_cy is not None:
-            rows.append(("**EBITDA**", f"**{_fmtr(_ebitda_cy)}**", f"**{_fmtr(_ebitda_py)}**"))
+            rows.append(_row3("**EBITDA**", _ebitda_cy, _ebitda_py, _ebitda_py2, bold=True))
         for lbl, key in [("Depreciation", "depreciation"), ("Depreciation", "depreciation_and_amortisation"),
                          ("**Operating profit/(loss)**", "operating_profit_loss"), ("**Operating profit/(loss)**", "operating_profit"),
                          ("**Operating loss**", "operating_loss"),
@@ -10529,24 +11140,20 @@ def _render_sub_financials(data, prefix):
                          ("PBT", "profit_loss_before_taxation"), ("PBT", "profit_before_taxation"), ("PBT", "loss_before_taxation"),
                          ("Taxation", "taxation"),
                          ("**Profit/(Loss)**", "profit_loss_for_the_year"), ("**Profit**", "profit_for_the_year"), ("**Loss**", "loss_for_the_year")]:
-            item = pl.get(key)
-            if item and isinstance(item, dict):
-                vals = item.get("values", [None, None])
-                cy, py = (vals[0] if len(vals) > 0 else None), (vals[1] if len(vals) > 1 else None)
-                if cy is not None or py is not None:
-                    rows.append((lbl, _fmtr(cy), _fmtr(py)))
+            cy, py, py2 = _val3(pl.get(key))
+            if cy is not None or py is not None:
+                rows.append(_row3(lbl, cy, py, py2))
         if rows:
-            _render_fin_table(rows, ["Line Item", clbl[0], clbl[1]])
+            hdr = ["Line Item"] + clbl[:ncols]
+            _render_fin_table(rows, hdr)
         else:
             st.info("No P&L data (dormant entity)")
 
-def _render_sub_summary_and_toggles(subs_dict, key_prefix):
-    """Render summary table + per-company expanders with write-ups and BS/P&L."""
+def _render_sub_summary_and_toggles(subs_dict, key_prefix, mgmt_dict=None, guar_lookup=None):
+    """Render per-entity factsheet expanders (sorted by EBITDA desc). No summary table — shown earlier."""
     # Pre-compute metrics and sort by EBITDA descending
     _entity_metrics = []
     for stem, sdata in subs_dict.items():
-        smeta = sdata.get("metadata", {})
-        sbs = sdata.get("statement_of_financial_position", {})
         spl = sdata.get("statement_of_comprehensive_income", {})
         s_ebitda = None
         for ek in ["operating_profit", "operating_loss", "operating_profit_loss"]:
@@ -10562,96 +11169,9 @@ def _render_sub_summary_and_toggles(subs_dict, key_prefix):
         _entity_metrics.append((stem, sdata, s_ebitda or 0))
     _entity_metrics.sort(key=lambda x: x[2], reverse=True)
 
-    summary_rows = []
-    _tot_ta = _tot_te = _tot_rev = _tot_ebitda = _tot_pat = 0
     for stem, sdata, _ in _entity_metrics:
-        smeta = sdata.get("metadata", {})
-        sent = smeta.get("entity", {})
-        sbs = sdata.get("statement_of_financial_position", {})
-        spl = sdata.get("statement_of_comprehensive_income", {})
-        s_ta = _gval(sbs, "assets", "total_assets")
-        s_te = _gval(sbs, "equity_and_liabilities", "equity", "total_equity")
-        s_rev = _gval(spl, "revenue")
-        s_pat = None
-        for pk in ["profit_loss_for_the_year", "profit_for_the_year", "loss_for_the_year"]:
-            s_pat = _gval(spl, pk)
-            if s_pat is not None:
-                break
-        s_ebitda = None
-        for ek in ["operating_profit", "operating_loss", "operating_profit_loss"]:
-            s_ebitda = _gval(spl, ek)
-            if s_ebitda is not None:
-                break
-        if s_ebitda is not None:
-            for dk in ["depreciation", "depreciation_and_amortisation", "depreciation_amortisation"]:
-                _dep = _gval(spl, dk)
-                if _dep is not None:
-                    s_ebitda = s_ebitda + abs(_dep)
-                    break
-        s_ip = _gval(sbs, "assets", "non_current_assets", "investment_property")
-        s_isub = _gval(sbs, "assets", "non_current_assets", "investments_in_subsidiaries")
-        flag = ""
-        notes = smeta.get("notes", {})
-        if smeta.get("going_concern") is False:
-            flag = " [GC]"
-        elif notes.get("negative_equity"):
-            flag = " [-ve]"
-        elif notes.get("dormant_entity"):
-            flag = " [Dormant]"
-        elif notes.get("pass_through_entity"):
-            flag = " [Pass-thru]"
-        elif notes.get("holding_company"):
-            flag = " [HoldCo]"
-        _tot_ta += s_ta or 0
-        _tot_te += s_te or 0
-        _tot_rev += s_rev or 0
-        _tot_ebitda += s_ebitda or 0
-        _tot_pat += s_pat or 0
-        summary_rows.append((
-            sent.get("legal_name", stem) + flag,
-            _fmtr(s_ta, millions=True), _fmtr(s_te, millions=True),
-            _fmtr(s_ip or s_isub, millions=True),
-            _fmtr(s_rev, millions=True), _fmtr(s_ebitda, millions=True),
-            _fmtr(s_pat, millions=True),
-        ))
-    summary_rows.append((
-        "**Total**",
-        f"**{_fmtr(_tot_ta, millions=True)}**", f"**{_fmtr(_tot_te, millions=True)}**",
-        "",
-        f"**{_fmtr(_tot_rev, millions=True)}**", f"**{_fmtr(_tot_ebitda, millions=True)}**",
-        f"**{_fmtr(_tot_pat, millions=True)}**",
-    ))
-    _render_fin_table(summary_rows, ["Entity", "Assets", "Equity", "Inv. Prop/Subs", "Revenue", "EBITDA", "PAT"])
-    st.caption("[GC] = Going concern, [-ve] = Negative equity, [HoldCo] = Holding co, [Dormant] = No activity")
-    for stem, sdata, _ in _entity_metrics:
-        smeta = sdata.get("metadata", {})
-        sent = smeta.get("entity", {})
-        sname = sent.get("legal_name", stem)
-        s_ta = _gval(sdata.get("statement_of_financial_position", {}), "assets", "total_assets")
-        tag = ""
-        notes = smeta.get("notes", {})
-        if smeta.get("going_concern") is False:
-            tag = " -- GOING CONCERN"
-        elif notes.get("negative_equity"):
-            tag = " -- Negative Equity"
-        elif notes.get("dormant_entity"):
-            tag = " -- Dormant"
-        elif notes.get("pass_through_entity"):
-            tag = " -- Pass-through"
-        elif notes.get("holding_company"):
-            tag = " -- Holding Company"
-        with st.expander(f"{sname} ({_fmtr(s_ta, millions=True)}){tag}", expanded=False):
-            wu = _ENTITY_WRITEUPS.get(stem, "")
-            if wu:
-                st.markdown(f"*{wu}*")
-            sc1, sc2 = st.columns(2)
-            sc1.caption(f"Reg: {sent.get('registration_number', 'N/A')}")
-            sc2.caption(f"{smeta.get('auditor', {}).get('designation', '')} by {smeta.get('auditor', {}).get('name', '')}")
-            if smeta.get("going_concern") is False:
-                st.error(smeta.get("going_concern_note", "Going concern doubt noted by directors."))
-            if notes.get("dormant_entity"):
-                st.warning(notes.get("dormant_comment", "Dormant shell entity."))
-            _render_sub_financials(sdata, f"{key_prefix}_{stem}")
+        wu = _ENTITY_WRITEUPS.get(stem, "")
+        _render_entity_factsheet(stem, sdata, wu, mgmt_dict=mgmt_dict, guar_lookup=guar_lookup)
 
 
 def _render_nested_financials(node, subs_dict, key_prefix, depth=0):
@@ -10723,6 +11243,1762 @@ def _render_email_qa(guarantor_config):
                 st.markdown(f"**A ({item['from']}, {item['date']}):** {item['a']}")
 
 
+# --- Management accounts directory mapping ---
+# __file__ = .../bLAN_sWTP_NWL_no8433/11. Financial Model/model/app.py
+# .parent.parent.parent = .../bLAN_sWTP_NWL_no8433/
+_PROJECT_ROOT = Path(__file__).parent.parent.parent
+_MGMT_VERACITY_DIR = _PROJECT_ROOT / "context" / "Guarantor" / "veracity 2025 financials" / "FW_ Management accounts Veracity Property Holding companies"
+_MGMT_PHOENIX_DIR = _PROJECT_ROOT / "context" / "Guarantor" / "Phoenix group" / "FW_ Phoenix management accounts"
+_CONTEXT_GUARANTOR_ROOT = _PROJECT_ROOT / "context" / "Guarantor"
+
+# Map mgmt account JSON stems to AFS entity stems for cross-referencing
+_MGMT_TO_AFS_MAP = {
+    # Veracity
+    "AquasideTrading_2026_structured": "AquasideTrading_2025_structured",
+    "MistralinePtyLtd_2026_structured": "Mistraline_2025_structured",
+    "Erf86LongmeadowBusinessEstate_2026_structured": "Erf86LongmeadowBusinessEstate_2025_structured",
+    "ProvidencePropertyInvestmentsPtyLtd_2026_structured": "ProvidencePropertyInvestments_2025_structured",
+    # Phoenix
+    "JukskeiMeanderPtyLtd_2026_structured": "JukskeiMeander_2025_structured",
+    "MADELIEFSHOPPINGCENTREPROPRIETARYLIMITED_2026_structured": "MadeliefShoppingCentre_2025_structured",
+    "OlivedaleCornerPtyLtd_2025_structured": "OlivedaleCorner_2025_structured",
+    "PRAAMPtyLtd_2026_structured": "PRAAM_2025_structured",
+    "RidgeviewCentrePtyLtd_2025_structured": "RidgeviewCentre_2025_structured",
+    "ChartwellCoOwnershipCompanyPtyLtd_2025_structured": "ChartwellCoOwner_2025_structured",
+    "ChartwellCornerPtyLtd_2026_structured": "ChartwellCorner_2025_structured",
+    "BrackenfellCornerPtyLtd_2025_structured": "BrackenfellCorner_2025_structured",
+}
+
+
+def _load_vph_3yr():
+    """Merge VPH 2024 + 2025 JSONs into 3-year arrays.
+    FY2025 = 2025_structured → values[0]
+    FY2024 = 2025_structured → values[1] (== 2024_structured → values[0])
+    FY2023 = 2024_structured → values[1]
+    Returns dict with same structure but values arrays of length 3.
+    """
+    p25 = _CONTEXT_GUARANTOR_ROOT / "VeracityPropertyHoldings_2025_structured.json"
+    p24 = _CONTEXT_GUARANTOR_ROOT / "VeracityPropertyHoldings_2024_structured.json"
+    d25, d24 = {}, {}
+    if p25.exists():
+        with open(p25, 'r') as f:
+            d25 = json.load(f)
+    if p24.exists():
+        with open(p24, 'r') as f:
+            d24 = json.load(f)
+    return d25, d24
+
+
+def _load_mgmt_accounts(group_key):
+    """Load management account structured JSONs for a group. Returns dict {stem: data}."""
+    target = _MGMT_VERACITY_DIR if group_key == "veracity" else _MGMT_PHOENIX_DIR
+    out = {}
+    if target.exists():
+        for fp in sorted(target.glob("*_structured.json")):
+            with open(fp, 'r') as fh:
+                out[fp.stem] = json.load(fh)
+    return out
+
+
+def _mgmt_extract_revenue(data):
+    """Extract total revenue from mgmt accounts (various formats). Returns (current, prior) or (None, None)."""
+    def _abs_or_none(v):
+        return abs(v) if v and v != 0 else None
+
+    # 1. Standard P&L format (statement_of_comprehensive_income.revenue)
+    pl = data.get("statement_of_comprehensive_income", {})
+    rev_item = pl.get("revenue", {})
+    if isinstance(rev_item, dict):
+        tot = rev_item.get("total_revenue")
+        if tot and isinstance(tot, dict) and "values" in tot:
+            vals = tot["values"]
+            return (_abs_or_none(vals[0]) if len(vals) > 0 else None,
+                    _abs_or_none(vals[1]) if len(vals) > 1 else None)
+        if "values" in rev_item:
+            vals = rev_item["values"]
+            return (_abs_or_none(vals[0]) if len(vals) > 0 else None,
+                    _abs_or_none(vals[1]) if len(vals) > 1 else None)
+        # Sum individual revenue line items with values arrays (e.g. Madelief, Olivedale)
+        cy_sum, py_sum = 0, 0
+        has_items = False
+        for k, v in rev_item.items():
+            if isinstance(v, dict) and "values" in v:
+                vals = v["values"]
+                if len(vals) > 0 and vals[0] is not None:
+                    cy_sum += abs(vals[0])
+                    has_items = True
+                if len(vals) > 1 and vals[1] is not None:
+                    py_sum += abs(vals[1])
+        if has_items:
+            return (cy_sum if cy_sum > 0 else None, py_sum if py_sum > 0 else None)
+
+    # 2. GL summary format (general_ledger_summary.revenue_accounts)
+    gl = data.get("general_ledger_summary", {})
+    rev_accts = gl.get("revenue_accounts", {})
+    if rev_accts:
+        cy_total = sum(abs(v.get("current_year_total", 0) or 0) for v in rev_accts.values() if isinstance(v, dict))
+        py_total = sum(abs(v.get("prior_year_total", 0) or 0) for v in rev_accts.values() if isinstance(v, dict))
+        return (cy_total if cy_total > 0 else None, py_total if py_total > 0 else None)
+
+    # 3. Trial balance format (trial_balance_data — income_accounts or revenue_accounts)
+    tb = data.get("trial_balance_data", {})
+    for tb_key in ["income_accounts", "revenue_accounts"]:
+        inc = tb.get(tb_key, {})
+        if inc:
+            cy_total = sum(abs(v.get("current_ytd", 0) or v.get("cy_ytd", 0) or 0) for v in inc.values() if isinstance(v, dict))
+            py_total = sum(abs(v.get("prior_ytd", 0) or v.get("py_ytd", 0) or 0) for v in inc.values() if isinstance(v, dict))
+            if cy_total > 0 or py_total > 0:
+                return (cy_total if cy_total > 0 else None, py_total if py_total > 0 else None)
+
+    # 4. extraction_notes.revenue_summary_* (Brackenfell format)
+    en = data.get("extraction_notes", {})
+    if isinstance(en, dict):
+        for en_key in sorted(en.keys()):
+            if en_key.startswith("revenue_summary_"):
+                rev_dict = en[en_key]
+                if isinstance(rev_dict, dict):
+                    cy = sum(abs(v) for k, v in rev_dict.items() if isinstance(v, (int, float)) and v != 0)
+                    if cy > 0:
+                        return (cy, None)
+
+    # 5. partial_data_extracted.revenue_indicators (Aquaside — fragmented)
+    partial = data.get("partial_data_extracted", {})
+    rev_ind = partial.get("revenue_indicators", {})
+    if rev_ind:
+        cy = sum(abs(v.get(next((k for k in v if "current" in k.lower()), ""), 0) or 0)
+                 for v in rev_ind.values() if isinstance(v, dict))
+        if cy > 0:
+            return (cy, None)
+
+    # 6. Fallback: other_income as revenue (for entities like Providence that
+    #    classify rental/AirBnB income under "Other Income" not "Sales")
+    oi = pl.get("other_income", {})
+    if isinstance(oi, dict):
+        tot = oi.get("total_other_income")
+        if tot and isinstance(tot, dict) and "values" in tot:
+            vals = tot["values"]
+            cy_val = _abs_or_none(vals[0]) if len(vals) > 0 else None
+            py_val = _abs_or_none(vals[1]) if len(vals) > 1 else None
+            if cy_val:
+                return (cy_val, py_val)
+
+    return (None, None)
+
+
+def _mgmt_extract_opex(data):
+    """Extract operating expenses from mgmt accounts. Returns (current, prior) or (None, None)."""
+    def _abs_or_none(v):
+        return abs(v) if v and v != 0 else None
+
+    # 1. Standard P&L format — nested operating_expenses with total
+    pl = data.get("statement_of_comprehensive_income", {})
+    opex = pl.get("operating_expenses", {})
+    if isinstance(opex, dict):
+        tot = opex.get("total_operating_expenses")
+        if tot and isinstance(tot, dict) and "values" in tot:
+            vals = tot["values"]
+            return (_abs_or_none(vals[0]) if len(vals) > 0 else None,
+                    _abs_or_none(vals[1]) if len(vals) > 1 else None)
+        # Sum individual opex line items
+        cy_sum, py_sum = 0, 0
+        has_items = False
+        for k, v in opex.items():
+            if isinstance(v, dict) and "values" in v:
+                vals = v["values"]
+                if len(vals) > 0 and vals[0] is not None:
+                    cy_sum += abs(vals[0])
+                    has_items = True
+                if len(vals) > 1 and vals[1] is not None:
+                    py_sum += abs(vals[1])
+        if has_items:
+            return (cy_sum if cy_sum > 0 else None, py_sum if py_sum > 0 else None)
+
+    # 2. P&L-level operating_expenses_total (Chartwell Corner format)
+    opex_tot = pl.get("operating_expenses_total")
+    if opex_tot and isinstance(opex_tot, dict) and "values" in opex_tot:
+        vals = opex_tot["values"]
+        return (_abs_or_none(vals[0]) if len(vals) > 0 else None,
+                _abs_or_none(vals[1]) if len(vals) > 1 else None)
+
+    # 3. GL format — cost accounts
+    gl = data.get("general_ledger_summary", {})
+    cost = gl.get("cost_accounts", {})
+    if cost:
+        cy = sum(abs(v.get("current_year_total", 0) or 0) for v in cost.values() if isinstance(v, dict))
+        py = sum(abs(v.get("prior_year_total", 0) or 0) for v in cost.values() if isinstance(v, dict))
+        return (cy if cy > 0 else None, py if py > 0 else None)
+
+    # 4. Trial balance format — operating_expense_accounts or cost_of_sales_accounts
+    tb = data.get("trial_balance_data", {})
+    for tb_key in ["operating_expense_accounts", "operating_expenses_accounts", "cost_of_sales_accounts"]:
+        accts = tb.get(tb_key, {})
+        if accts:
+            cy = sum(abs(v.get("current_ytd", 0) or v.get("cy_ytd", 0) or 0) for v in accts.values() if isinstance(v, dict))
+            py = sum(abs(v.get("prior_ytd", 0) or v.get("py_ytd", 0) or 0) for v in accts.values() if isinstance(v, dict))
+            if cy > 0 or py > 0:
+                return (cy if cy > 0 else None, py if py > 0 else None)
+
+    return (None, None)
+
+
+def _mgmt_extract_cost_of_sales(data):
+    """Extract cost of sales totals from mgmt accounts. Returns (current, prior) or (None, None)."""
+    def _abs_or_none(v):
+        return abs(v) if v and v != 0 else None
+
+    pl = data.get("statement_of_comprehensive_income", {})
+    cos = pl.get("cost_of_sales", {})
+    if isinstance(cos, dict):
+        tot = cos.get("total_cost_of_sales")
+        if tot and isinstance(tot, dict) and "values" in tot:
+            vals = tot["values"]
+            return (_abs_or_none(vals[0]) if len(vals) > 0 else None,
+                    _abs_or_none(vals[1]) if len(vals) > 1 else None)
+        cy_sum, py_sum = 0, 0
+        has_items = False
+        for v in cos.values():
+            if isinstance(v, dict) and "values" in v:
+                vals = v["values"]
+                if len(vals) > 0 and vals[0] is not None:
+                    cy_sum += abs(vals[0])
+                    has_items = True
+                if len(vals) > 1 and vals[1] is not None:
+                    py_sum += abs(vals[1])
+        if has_items:
+            return (cy_sum if cy_sum > 0 else None, py_sum if py_sum > 0 else None)
+
+    return (None, None)
+
+
+def _mgmt_extract_other_income(data):
+    """Extract other income totals from mgmt accounts. Returns (current, prior) or (None, None)."""
+    def _abs_or_none(v):
+        return abs(v) if v and v != 0 else None
+
+    pl = data.get("statement_of_comprehensive_income", {})
+    oi = pl.get("other_income", {})
+    if isinstance(oi, dict):
+        tot = oi.get("total_other_income")
+        if tot and isinstance(tot, dict) and "values" in tot:
+            vals = tot["values"]
+            return (_abs_or_none(vals[0]) if len(vals) > 0 else None,
+                    _abs_or_none(vals[1]) if len(vals) > 1 else None)
+        cy_sum, py_sum = 0, 0
+        has_items = False
+        for v in oi.values():
+            if isinstance(v, dict) and "values" in v:
+                vals = v["values"]
+                if len(vals) > 0 and vals[0] is not None:
+                    cy_sum += abs(vals[0])
+                    has_items = True
+                if len(vals) > 1 and vals[1] is not None:
+                    py_sum += abs(vals[1])
+        if has_items:
+            return (cy_sum if cy_sum > 0 else None, py_sum if py_sum > 0 else None)
+
+    return (None, None)
+
+
+# Keys that indicate non-recurring / extraordinary Other Income items (property disposals,
+# asset sales, revaluation gains).  These should be EXCLUDED from recurring EBITDA.
+_NON_RECURRING_OI_KEYS = {
+    "sale_of_asset", "sale_of_assets", "sale_of_property", "sale_of_solar_system",
+    "profit_on_disposal", "profit_on_disposal_of_assets", "loss_on_disposal",
+    "profit_on_sale", "profit_on_sale_of_asset", "profit_on_sale_of_property",
+    "fair_value_adjustment", "fair_value_adjustments", "revaluation_gain",
+    "profit_loss_on_disposal", "profit_share",
+}
+
+
+def _mgmt_extract_other_income_recurring(data):
+    """Extract RECURRING other income (excluding asset sales / disposals / revaluations).
+
+    Returns ((recurring_cy, recurring_py), (non_recurring_cy, non_recurring_py)).
+    """
+    pl = data.get("statement_of_comprehensive_income", {})
+    oi = pl.get("other_income", {})
+    if not isinstance(oi, dict):
+        return ((None, None), (None, None))
+
+    rec_cy, rec_py = 0.0, 0.0
+    nr_cy, nr_py = 0.0, 0.0
+    found = False
+    for k, v in oi.items():
+        if not isinstance(v, dict) or "values" not in v:
+            continue
+        # Skip total/summary keys — these are sums, not individual items
+        if k in ("total_other_income", "total", "note"):
+            continue
+        vals = v["values"]
+        is_nr = k in _NON_RECURRING_OI_KEYS or "sale_of" in k or "disposal" in k or "fair_value" in k
+        cy_val = abs(vals[0]) if len(vals) > 0 and vals[0] is not None else 0.0
+        py_val = abs(vals[1]) if len(vals) > 1 and vals[1] is not None else 0.0
+        if cy_val or py_val:
+            found = True
+        if is_nr:
+            nr_cy += cy_val
+            nr_py += py_val
+        else:
+            rec_cy += cy_val
+            rec_py += py_val
+
+    if not found:
+        return ((None, None), (None, None))
+    return ((rec_cy if rec_cy > 0 else None, rec_py if rec_py > 0 else None),
+            (nr_cy if nr_cy > 0 else None, nr_py if nr_py > 0 else None))
+
+
+def _mgmt_extract_finance_charges(data):
+    """Extract finance charges from within operating_expenses. Returns (current, prior) or (None, None).
+
+    GL trial balances classify finance charges under 'Expenses' category,
+    so they appear inside operating_expenses. This function isolates them
+    so EBITDA can be computed correctly (EBITDA excludes finance charges).
+    """
+    pl = data.get("statement_of_comprehensive_income", {})
+    opex = pl.get("operating_expenses", {})
+    if not isinstance(opex, dict):
+        return (None, None)
+
+    _FC_KEYS = {"finance_charges", "finance_charges_vukile", "finance_charges_absa",
+                "finance_charges_nedbank", "finance_charges_bmg", "finance_charges_fedgroup",
+                "finance_costs", "interest_paid", "interest_payable", "interest_payable_broll",
+                "interest_on_loan", "loan_interest"}
+    cy_sum, py_sum = 0.0, 0.0
+    found = False
+    for k, v in opex.items():
+        if not isinstance(v, dict) or "values" not in v:
+            continue
+        is_fc = k in _FC_KEYS or "finance_charge" in k.lower() or "interest_paid" in k.lower()
+        if not is_fc:
+            continue
+        vals = v["values"]
+        if len(vals) > 0 and vals[0] is not None:
+            cy_sum += abs(vals[0])
+            found = True
+        if len(vals) > 1 and vals[1] is not None:
+            py_sum += abs(vals[1])
+    return (cy_sum if found else None, py_sum if found else None)
+
+
+def _mgmt_extract_operating_profit(data):
+    """Extract operating profit from mgmt accounts. Returns (current, prior) or (None, None).
+
+    Computes: Revenue + Other Income - COS - OpEx (full, including finance charges).
+    For EBITDA, callers should add back finance charges separately.
+    """
+    rev_cy, rev_py = _mgmt_extract_revenue(data)
+    cos_cy, cos_py = _mgmt_extract_cost_of_sales(data)
+    oi_cy, oi_py = _mgmt_extract_other_income(data)
+    opex_cy, opex_py = _mgmt_extract_opex(data)
+    has_cy = any(v is not None for v in [rev_cy, cos_cy, oi_cy, opex_cy])
+    has_py = any(v is not None for v in [rev_py, cos_py, oi_py, opex_py])
+    if has_cy or has_py:
+        cy = ((rev_cy or 0) + (oi_cy or 0) - (cos_cy or 0) - (opex_cy or 0)) if has_cy else None
+        py = ((rev_py or 0) + (oi_py or 0) - (cos_py or 0) - (opex_py or 0)) if has_py else None
+        return (cy, py)
+
+    # Fallback: direct line item if category totals were not extractable.
+    pl = data.get("statement_of_comprehensive_income", {})
+    for key in ["operating_profit_loss", "operating_profit", "operating_loss", "gross_profit"]:
+        item = pl.get(key)
+        if item and isinstance(item, dict) and "values" in item:
+            vals = item["values"]
+            return (vals[0] if len(vals) > 0 else None, vals[1] if len(vals) > 1 else None)
+
+    return (None, None)
+
+
+def _mgmt_compute_ebitda(data):
+    """Compute RECURRING EBITDA from mgmt accounts.
+
+    EBITDA = Revenue + Recurring Other Income - COS - OpEx(excl FC) + FC add-back
+           = Operating Profit + Finance Charges (add back) - Non-Recurring OI
+
+    Fast path: if the extraction script pre-computed ebitda_recurring and
+    non_recurring_other_income, use those directly (avoids re-classification bugs).
+
+    Fallback: compute from raw P&L items (for older JSONs without pre-computed values).
+
+    Returns ((ebitda_cy, ebitda_py), (nr_oi_cy, nr_oi_py)).
+    Second tuple contains the non-recurring OI that was excluded.
+    """
+    pl = data.get("statement_of_comprehensive_income", {})
+
+    # Fast path: pre-computed by extraction script (v2+)
+    ebitda_pre = pl.get("ebitda_recurring")
+    nr_pre = pl.get("non_recurring_other_income")
+    if ebitda_pre and isinstance(ebitda_pre, dict) and "values" in ebitda_pre:
+        vals_e = ebitda_pre["values"]
+        e_cy = vals_e[0] if len(vals_e) > 0 else None
+        e_py = vals_e[1] if len(vals_e) > 1 else None
+        nr_cy, nr_py = None, None
+        if nr_pre and isinstance(nr_pre, dict) and "values" in nr_pre:
+            vals_n = nr_pre["values"]
+            nr_cy = abs(vals_n[0]) if len(vals_n) > 0 and vals_n[0] else None
+            nr_py = abs(vals_n[1]) if len(vals_n) > 1 and vals_n[1] else None
+        return ((e_cy, e_py), (nr_cy, nr_py))
+
+    # Fallback: compute from raw P&L items
+    op_cy, op_py = _mgmt_extract_operating_profit(data)
+    fc_cy, fc_py = _mgmt_extract_finance_charges(data)
+    (_, _), (nr_cy, nr_py) = _mgmt_extract_other_income_recurring(data)
+
+    if op_cy is None and op_py is None:
+        return ((None, None), (nr_cy, nr_py))
+
+    # Operating profit already includes ALL other income (incl. non-recurring).
+    # Subtract non-recurring OI, then add back finance charges to get recurring EBITDA.
+    ebitda_cy = None
+    if op_cy is not None:
+        ebitda_cy = op_cy + (fc_cy or 0) - (nr_cy or 0)
+    ebitda_py = None
+    if op_py is not None:
+        ebitda_py = op_py + (fc_py or 0) - (nr_py or 0)
+
+    return ((ebitda_cy, ebitda_py), (nr_cy, nr_py))
+
+
+def _build_guarantor_entity_lookup(guar_cfg):
+    """Build a flat dict mapping JSON stem → guarantor.json node (for asset, ownership, type)."""
+    lookup = {}
+    def _walk(node):
+        jk = node.get("json")
+        if jk:
+            lookup[jk] = node
+        for child in node.get("children", []):
+            _walk(child)
+    for grp in guar_cfg.get("groups", {}).values():
+        holding = grp.get("holding", {})
+        if holding:
+            _walk(holding)
+    return lookup
+
+# Build once at module level (lazy — filled on first Guarantor Analysis page load)
+_GUARANTOR_ENTITY_LOOKUP = {}
+
+
+_LC_HEX = {"red": "#DC2626", "orange": "#F97316", "amber": "#F59E0B", "green": "#16A34A",
+           "purple": "#8B5CF6", "sky": "#0EA5E9", "teal": "#06B6D4", "grey": "#9CA3AF"}
+
+
+def _lifecycle_pill_html(stage_label, stage_color):
+    """Return inline HTML for a colored lifecycle pill matching SVG palette."""
+    _hex = _LC_HEX.get(stage_color, "#9CA3AF")
+    return (f'<span style="background:{_hex};color:white;padding:2px 8px;border-radius:10px;'
+            f'font-size:11px;font-weight:600;white-space:nowrap;">{stage_label}</span>')
+
+
+def _compute_lifecycle_stage_legacy(data, mgmt_data=None):
+    """Compute property investment lifecycle stage from AFS + optional mgmt data.
+
+    Returns (stage_label, stage_detail, stage_color).
+    Colors: 'green' (cash gen), 'purple' (growth), 'amber' (stabilising),
+            'sky' (early-stage), 'red' (distressed), 'orange' (stalled),
+            'teal' (revenue only), 'grey' (holding/dormant/unknown).
+    """
+    meta = data.get("metadata", {})
+    bs = data.get("statement_of_financial_position", {})
+    pl = data.get("statement_of_comprehensive_income", {})
+    cf = data.get("statement_of_cash_flows", {})
+    notes = meta.get("notes", {})
+
+    # ── Extract variables ──
+    te = _gval(bs, "equity_and_liabilities", "equity", "total_equity")
+    te_py = _gval(bs, "equity_and_liabilities", "equity", "total_equity", idx=1)
+    rev = _gval(pl, "revenue")
+    rev_py = _gval(pl, "revenue", idx=1)
+    ip = _gval(bs, "assets", "non_current_assets", "investment_property")
+    ip = ip or _gval(bs, "assets", "non_current_assets", "investment_property_at_fair_value")
+    ip_py = _gval(bs, "assets", "non_current_assets", "investment_property", idx=1)
+    ip_py = ip_py or _gval(bs, "assets", "non_current_assets", "investment_property_at_fair_value", idx=1)
+    tl = _gval(bs, "equity_and_liabilities", "total_equity_and_liabilities")
+
+    is_gc = meta.get("going_concern") is False
+    is_neg_eq = notes.get("negative_equity") or (te is not None and te < 0)
+    is_dormant = notes.get("dormant_entity")
+    is_holdco = notes.get("holding_company")
+    is_passthru = notes.get("pass_through_entity")
+
+    # EBITDA (AFS CY + PY)
+    ebitda, ebitda_py = None, None
+    for ek in ["operating_profit", "operating_loss", "operating_profit_loss"]:
+        ebitda = _gval(pl, ek)
+        if ebitda is not None:
+            ebitda_py = _gval(pl, ek, idx=1)
+            for dk in ["depreciation", "depreciation_and_amortisation", "depreciation_amortisation"]:
+                _dep = _gval(pl, dk)
+                if _dep is not None:
+                    ebitda = ebitda + abs(_dep)
+                    _dep_py = _gval(pl, dk, idx=1)
+                    if ebitda_py is not None and _dep_py is not None:
+                        ebitda_py = ebitda_py + abs(_dep_py)
+                    break
+            break
+
+    fc = _gval(pl, "finance_costs")
+    fc_abs = abs(fc) if fc else None
+    cash_ops = _gval(cf, "operating", "cash_generated_from_operations") or _gval(cf, "operating", "net")
+
+    # Mgmt annualised operating result + revenue
+    m_ebitda_ann, m_rev_ann = None, None
+    if mgmt_data:
+        m_rev_cy, _ = _mgmt_extract_revenue(mgmt_data)
+        m_opex_cy, _ = _mgmt_extract_opex(mgmt_data)
+        m_op_cy, _ = _mgmt_extract_operating_profit(mgmt_data)
+        _mip = mgmt_data.get("metadata", {}).get("months_in_period", {})
+        _m_months = _mip.get("current_year", 10)
+        if not isinstance(_m_months, (int, float)) or _m_months <= 0:
+            _m_months = 10
+        _m_ann = 12 / _m_months
+        m_rev_ann = m_rev_cy * _m_ann if m_rev_cy else None
+        if m_op_cy is not None:
+            m_ebitda_ann = m_op_cy * _m_ann
+        elif m_rev_cy and m_opex_cy:
+            m_ebitda_ann = (m_rev_cy - m_opex_cy) * _m_ann
+
+    afs_rev_abs = abs(rev) if rev else None
+    afs_rev_py_abs = abs(rev_py) if rev_py else None
+
+    # ── Derived signals (variable-based) ──
+    has_revenue = (afs_rev_abs and afs_rev_abs > 0) or (m_rev_ann and m_rev_ann > 0)
+    has_ebitda = (ebitda and ebitda > 0) or (m_ebitda_ann and m_ebitda_ann > 0)
+    covers_fc = ((ebitda and fc_abs and ebitda > fc_abs) or
+                 (m_ebitda_ann and fc_abs and m_ebitda_ann > fc_abs))
+
+    # Revenue trajectory: improving if mgmt annualised > AFS, or AFS CY > PY
+    rev_improving = False
+    rev_declining = False
+    if m_rev_ann and afs_rev_abs and afs_rev_abs > 0:
+        rev_improving = m_rev_ann > afs_rev_abs * 1.02
+        rev_declining = m_rev_ann < afs_rev_abs * 0.90
+    elif afs_rev_abs and afs_rev_py_abs and afs_rev_py_abs > 0:
+        rev_improving = afs_rev_abs > afs_rev_py_abs * 1.02
+        rev_declining = afs_rev_abs < afs_rev_py_abs * 0.90
+
+    # EBITDA trajectory
+    ebitda_improving = False
+    if m_ebitda_ann is not None and ebitda is not None:
+        ebitda_improving = m_ebitda_ann > (ebitda * 1.02)
+    elif ebitda and ebitda_py:
+        ebitda_improving = ebitda > ebitda_py
+
+    # Equity trajectory
+    equity_improving = te and te_py and te > te_py
+
+    # ── Classification decision tree ──
+    if is_dormant:
+        return ("Dormant", "Shell entity — no trading activity", "grey")
+    if is_holdco or is_passthru:
+        return ("Holding / Pass-through", "Investment vehicle — no direct operations", "grey")
+
+    # Distressed: GC + declining/no revenue + no EBITDA. Truly unrecoverable.
+    if is_gc and not has_ebitda and not rev_improving:
+        return ("Distressed", "Going concern, no positive EBITDA, revenue not improving.", "red")
+
+    # Stalled: negative equity, no EBITDA, and revenue declining or absent
+    if is_neg_eq and not has_ebitda and not rev_improving:
+        if has_revenue and not rev_declining:
+            return ("Early-stage", "A > L gap closing. Revenue present but EBITDA not yet positive.", "sky")
+        return ("Stalled", "Negative equity, no EBITDA, revenue absent or declining.", "orange")
+
+    # GC but improving: has revenue AND (ebitda improving or positive). GC is accounting label.
+    if is_gc and has_revenue and (has_ebitda or ebitda_improving):
+        if covers_fc:
+            return ("Cash Generating", "EBITDA covers finance costs despite GC flag. GC likely accounting classification.", "green")
+        if has_ebitda:
+            return ("Growth", "GC flag but EBITDA positive and revenue flowing. Recovering.", "purple")
+        return ("Early-stage", "GC flag, but revenue present and trajectory improving.", "sky")
+
+    # Negative equity with positive EBITDA — structural from acquisition debt
+    if is_neg_eq and has_ebitda:
+        if covers_fc:
+            return ("Stabilising", "Negative equity (acquisition debt) but EBITDA covers finance costs. Awaiting revaluation.", "amber")
+        if rev_improving or ebitda_improving:
+            return ("Early-stage", "Negative equity, EBITDA positive and improving. Revenue building.", "sky")
+        return ("Stabilising", "Negative equity but EBITDA positive. Revenue holding.", "amber")
+
+    # Negative equity with revenue but no EBITDA
+    if is_neg_eq and has_revenue:
+        if rev_improving:
+            return ("Early-stage", "Negative equity, revenue present and growing. EBITDA building.", "sky")
+        return ("Stalled", "Negative equity, revenue present but not improving, no EBITDA.", "orange")
+
+    # Cash Generating: EBITDA > finance costs, healthy
+    if covers_fc:
+        return ("Cash Generating", "EBITDA exceeds finance costs. Self-sustaining.", "green")
+
+    # Growth: positive EBITDA, not yet covering finance costs
+    if has_ebitda:
+        return ("Growth", "Positive EBITDA, building towards covering finance costs.", "purple")
+
+    # Revenue Only: revenue flowing but no meaningful profitability
+    if has_revenue:
+        return ("Revenue Only", "Revenue flowing but limited profitability.", "teal")
+
+    return ("Unknown", "Insufficient data to classify.", "grey")
+
+
+def _compute_lifecycle_outputs(entity_name, afs_data=None, mgmt_data=None):
+    """Single lifecycle pipeline.
+
+    Inputs: afs_data + mgmt_data
+    Outputs: grading (label/detail/color) + narrative story paragraphs
+    """
+    _name = entity_name or (afs_data or {}).get("metadata", {}).get("entity", {}).get("legal_name", "Entity")
+
+    # Preferred unified engine
+    if ga:
+        _ga_is = ga.analyse_is_monthly(mgmt_data) if mgmt_data and mgmt_data.get("general_ledger_detail") else None
+        _ga_bs = ga.analyse_bs_trajectory(mgmt_data) if mgmt_data and mgmt_data.get("statement_of_financial_position") else None
+        _ga_lc = ga.classify_lifecycle(afs_data=afs_data, mgmt_data=mgmt_data, is_analysis=_ga_is, bs_analysis=_ga_bs)
+        _ga_story = ga.generate_story(_name, _ga_lc, is_analysis=_ga_is, bs_analysis=_ga_bs) if _ga_lc else []
+        return {
+            "label": _ga_lc.get("label", "Unknown"),
+            "detail": _ga_lc.get("detail", "Insufficient data to classify."),
+            "color": _ga_lc.get("color", "grey"),
+            "story": _ga_story or [],
+            "lifecycle": _ga_lc,
+            "is_analysis": _ga_is,
+            "bs_analysis": _ga_bs,
+            "source": "ga",
+        }
+
+    # Fallback if guarantor_analysis module is unavailable
+    _label, _detail, _color = _compute_lifecycle_stage_legacy(afs_data or {}, mgmt_data=mgmt_data)
+    return {
+        "label": _label,
+        "detail": _detail,
+        "color": _color,
+        "story": [f"**{_name}** — lifecycle stage: {_label}. {_detail}"],
+        "lifecycle": None,
+        "is_analysis": None,
+        "bs_analysis": None,
+        "source": "legacy",
+    }
+
+
+def _compute_lifecycle_stage(data, mgmt_data=None):
+    """Compatibility wrapper returning (label, detail, color)."""
+    _name = (data or {}).get("metadata", {}).get("entity", {}).get("legal_name", "Entity")
+    _out = _compute_lifecycle_outputs(_name, afs_data=data, mgmt_data=mgmt_data)
+    return (_out["label"], _out["detail"], _out["color"])
+
+
+def _render_entity_factsheet(stem, data, afs_writeup, mgmt_dict=None, guar_lookup=None, category_color=None):
+    """Render a full entity factsheet inside an expander with multiple tabs."""
+    meta = data.get("metadata", {})
+    ent = meta.get("entity", {})
+    bs = data.get("statement_of_financial_position", {})
+    pl = data.get("statement_of_comprehensive_income", {})
+    cf = data.get("statement_of_cash_flows", {})
+    notes = meta.get("notes", {})
+
+    name = ent.get("legal_name", stem)
+    ta = _gval(bs, "assets", "total_assets")
+    ta_py = _gval(bs, "assets", "total_assets", idx=1)
+    te = _gval(bs, "equity_and_liabilities", "equity", "total_equity")
+    te_py = _gval(bs, "equity_and_liabilities", "equity", "total_equity", idx=1)
+    rev = _gval(pl, "revenue")
+    rev_py = _gval(pl, "revenue", idx=1)
+    ip = _gval(bs, "assets", "non_current_assets", "investment_property")
+    ip = ip or _gval(bs, "assets", "non_current_assets", "investment_property_at_fair_value")
+    ip_py = _gval(bs, "assets", "non_current_assets", "investment_property", idx=1)
+    ip_py = ip_py or _gval(bs, "assets", "non_current_assets", "investment_property_at_fair_value", idx=1)
+    isub = _gval(bs, "assets", "non_current_assets", "investments_in_subsidiaries")
+
+    # EBITDA
+    ebitda, ebitda_py = None, None
+    for ek in ["operating_profit", "operating_loss", "operating_profit_loss"]:
+        ebitda = _gval(pl, ek)
+        if ebitda is not None:
+            ebitda_py = _gval(pl, ek, idx=1)
+            break
+    if ebitda is not None:
+        for dk in ["depreciation", "depreciation_and_amortisation", "depreciation_amortisation"]:
+            _dep = _gval(pl, dk)
+            if _dep is not None:
+                ebitda = ebitda + abs(_dep)
+                _dep_py = _gval(pl, dk, idx=1)
+                if ebitda_py is not None and _dep_py is not None:
+                    ebitda_py = ebitda_py + abs(_dep_py)
+                break
+
+    # PAT
+    pat, pat_py = None, None
+    for pk in ["profit_loss_for_the_year", "profit_for_the_year", "loss_for_the_year"]:
+        pat = _gval(pl, pk)
+        if pat is not None:
+            pat_py = _gval(pl, pk, idx=1)
+            break
+
+    # Finance costs
+    fc = _gval(pl, "finance_costs")
+    fc_py = _gval(pl, "finance_costs", idx=1)
+    fc_abs = abs(fc) if fc else None
+    fc_abs_py = abs(fc_py) if fc_py else None
+
+    # Ratios
+    ncl_debt = _gval(bs, "equity_and_liabilities", "non_current_liabilities", "other_financial_liabilities") or 0
+    cl_debt = _gval(bs, "equity_and_liabilities", "current_liabilities", "other_financial_liabilities") or 0
+    total_debt = ncl_debt + cl_debt + (_gval(bs, "equity_and_liabilities", "non_current_liabilities", "loans_from_shareholders") or 0)
+    de_ratio = abs(total_debt / te) if te and te != 0 else None
+    int_cover = (ebitda / fc_abs) if ebitda and fc_abs and fc_abs > 0 else None
+    int_cover_py = (ebitda_py / fc_abs_py) if ebitda_py and fc_abs_py and fc_abs_py > 0 else None
+    debt_ebitda = total_debt / ebitda if ebitda and ebitda > 0 else None
+    _rev_yoy_raw = ((rev - rev_py) / abs(rev_py) * 100) if rev and rev_py and rev_py != 0 else None
+    rev_yoy = _rev_yoy_raw if _rev_yoy_raw is not None and abs(_rev_yoy_raw) < 999 else None
+    pat_yoy = ((pat - pat_py) / abs(pat_py) * 100) if pat and pat_py and pat_py != 0 else None
+    ta_yoy_raw = ((ta - ta_py) / abs(ta_py) * 100) if ta and ta_py and ta_py != 0 else None
+    ta_yoy = ta_yoy_raw if ta_yoy_raw is not None and abs(ta_yoy_raw) < 999 else None  # cap extreme %
+
+    # Cash from operations
+    cash_ops = _gval(cf, "operating", "cash_generated_from_operations") or _gval(cf, "operating", "net")
+
+    # Flags
+    flags = []
+    is_gc = meta.get("going_concern") is False
+    is_neg_eq = notes.get("negative_equity") or (te is not None and te < 0)
+    if is_gc:
+        flags.append("GOING CONCERN")
+    if is_neg_eq:
+        flags.append("Negative Equity")
+    if notes.get("dormant_entity"):
+        flags.append("Dormant")
+    if notes.get("pass_through_entity"):
+        flags.append("Pass-through")
+    if notes.get("holding_company"):
+        flags.append("Holding Company")
+
+    # Guarantor.json lookup for property/asset info
+    g_node = (guar_lookup or {}).get(stem, {})
+    g_asset = g_node.get("asset", "")
+    g_ownership = g_node.get("ownership", "")
+    g_type = g_node.get("type", "subsidiary")
+
+    # Mgmt account for this entity
+    mgmt_stem = None
+    mgmt_data = None
+    if mgmt_dict:
+        for ms, af in _MGMT_TO_AFS_MAP.items():
+            if af == stem and ms in mgmt_dict:
+                mgmt_stem = ms
+                mgmt_data = mgmt_dict[ms]
+                break
+
+    # Compute lifecycle grade + narrative from one combined engine output
+    _lc_out = _compute_lifecycle_outputs(name, afs_data=data, mgmt_data=mgmt_data)
+    _lc_stage, _lc_detail, _lc_color = _lc_out["label"], _lc_out["detail"], _lc_out["color"]
+
+    # Expander header: Name (Assets) — Lifecycle pill
+    _cat_labels = {"green": "Operating", "blue": "Holding/Pass-through", "red": "Distressed", "amber": "Watch"}
+    _cat_lbl = _cat_labels.get(category_color, "")
+    _cat_tag = f" [{_cat_lbl}]" if _cat_lbl else ""
+    _hdr = f"{name} ({_fmtr(ta, millions=True)}) — {_lc_stage}{_cat_tag}"
+    with st.expander(_hdr, expanded=False):
+        # Category-colored banner for visual grouping
+        _cat_colors = {"green": ("#E8F5E9", "#2E7D32"), "blue": ("#E3F2FD", "#1565C0"),
+                       "red": ("#FFEBEE", "#C62828"), "amber": ("#FFF8E1", "#F57F17")}
+        _bg, _bdr = _cat_colors.get(category_color, (None, None))
+        if _bg:
+            st.markdown(f'<div style="background:{_bg};border-left:4px solid {_bdr};padding:4px 12px;'
+                        f'border-radius:4px;margin-bottom:8px;font-size:12px;color:{_bdr};">'
+                        f'<strong>{_cat_lbl}</strong></div>', unsafe_allow_html=True)
+        # Lifecycle pill + detail at top
+        st.markdown(_lifecycle_pill_html(_lc_stage, _lc_color) + f"&ensp;{_lc_detail}", unsafe_allow_html=True)
+
+        # ── Header line ──
+        if afs_writeup:
+            st.markdown(f"*{afs_writeup}*")
+        _c1, _c2, _c3 = st.columns(3)
+        _c1.caption(f"Reg: {ent.get('registration_number', 'N/A')}")
+        _c2.caption(f"{meta.get('auditor', {}).get('designation', '')} by {meta.get('auditor', {}).get('name', '')}")
+        _c3.caption(f"Ownership: {g_ownership}% ({g_type})" if g_ownership else "")
+
+        # ── Key metrics row ──
+        m1, m2, m3, m4 = st.columns(4)
+        m1.metric("Assets", _fmtr(ta, millions=True), f"{ta_yoy:+.0f}% YoY" if ta_yoy is not None else None)
+        m2.metric("Equity", _fmtr(te, millions=True))
+        m3.metric("Revenue", _fmtr(rev, millions=True), f"{rev_yoy:+.0f}% YoY" if rev_yoy is not None else None)
+        m4.metric("EBITDA", _fmtr(ebitda, millions=True))
+
+        # ── Tabbed sections ──
+        _tab_names = ["Analysis", "Balance Sheet", "P&L", "Cash Flow", "Property", "Mgmt Accounts", "Mgmt Report", "Valuation"]
+        _entity_tabs = st.tabs(_tab_names)
+        _tab_idx = 0
+
+        # Mgmt-derived annualised values (used in Analysis + Mgmt Accounts tabs)
+        _m_rev_cy, _m_opex_cy, _m_op_cy = None, None, None
+        _m_rev_ann, _m_ebitda_10, _m_ebitda_ann = None, None, None
+        _m_fc_cy = None  # finance charges (for EBITDA add-back)
+        if mgmt_data:
+            _m_rev_cy, _ = _mgmt_extract_revenue(mgmt_data)
+            _m_opex_cy, _ = _mgmt_extract_opex(mgmt_data)
+            _m_op_cy, _ = _mgmt_extract_operating_profit(mgmt_data)
+            _m_fc_cy, _ = _mgmt_extract_finance_charges(mgmt_data)
+            _mip = mgmt_data.get("metadata", {}).get("months_in_period", {}) if mgmt_data else {}
+            _m_months = _mip.get("current_year", 10)
+            if not isinstance(_m_months, (int, float)) or _m_months <= 0:
+                _m_months = 10
+            _m_ann_f = 12 / _m_months
+            _m_rev_ann = _m_rev_cy * _m_ann_f if _m_rev_cy else None
+            # EBITDA = Operating Profit + FC add-back - Non-Recurring OI
+            (_m_ebitda_cy, _), (_m_nr_oi_cy, _) = _mgmt_compute_ebitda(mgmt_data)
+            if _m_ebitda_cy is not None:
+                _m_ebitda_10 = _m_ebitda_cy
+                _m_ebitda_ann = _m_ebitda_10 * _m_ann_f
+            elif _m_rev_cy and _m_opex_cy:
+                _m_ebitda_10 = _m_rev_cy - _m_opex_cy
+                _m_ebitda_ann = _m_ebitda_10 * _m_ann_f
+        afs_rev_abs = abs(rev) if rev else None
+        afs_rev_py_abs = abs(rev_py) if rev_py else None
+
+        # ── Trajectory signals (reused across Analysis tab) ──
+        _rev_improving = False
+        _rev_declining = False
+        _rev_stable = False
+        if _m_rev_ann and afs_rev_abs and afs_rev_abs > 0:
+            _m_rev_pct = (_m_rev_ann - afs_rev_abs) / afs_rev_abs * 100
+            _rev_improving = _m_rev_pct > 2
+            _rev_declining = _m_rev_pct < -5
+            _rev_stable = not _rev_improving and not _rev_declining
+        elif afs_rev_abs and afs_rev_py_abs and afs_rev_py_abs > 0:
+            _m_rev_pct = (afs_rev_abs - afs_rev_py_abs) / afs_rev_py_abs * 100
+            _rev_improving = _m_rev_pct > 2
+            _rev_declining = _m_rev_pct < -5
+            _rev_stable = not _rev_improving and not _rev_declining
+        else:
+            _m_rev_pct = None
+
+        _ebitda_improving = False
+        if _m_ebitda_ann is not None and ebitda is not None:
+            _ebitda_improving = (_m_ebitda_ann > (ebitda * 1.02))
+        elif ebitda and ebitda_py:
+            _ebitda_improving = ebitda > ebitda_py
+
+        _equity_improving = te and te_py and te > te_py
+        _has_ebitda = (ebitda and ebitda > 0) or (_m_ebitda_ann and _m_ebitda_ann > 0)
+        _covers_fc = ((ebitda and fc_abs and ebitda > fc_abs) or
+                      (_m_ebitda_ann and fc_abs and _m_ebitda_ann > fc_abs))
+
+        # --- Tab 0: Analysis — Lifecycle Story with Delta Narrative ---
+        with _entity_tabs[_tab_idx]:
+            # ── Section 1: Lifecycle Rating ──
+            st.markdown("#### Lifecycle Assessment")
+            # Rating box with color-coded lifecycle
+            _hex = _LC_HEX.get(_lc_color, "#9CA3AF")
+            st.markdown(f'<div style="background:{_hex}15;border-left:4px solid {_hex};padding:12px 16px;border-radius:4px;">'
+                        f'<strong style="color:{_hex};font-size:16px;">{_lc_stage}</strong><br/>'
+                        f'<span style="color:#374151;">{_lc_detail}</span></div>', unsafe_allow_html=True)
+
+            # ── Section 2: Delta Dashboard — what changed ──
+            st.markdown("#### Trajectory")
+            _dc1, _dc2, _dc3, _dc4 = st.columns(4)
+            # Revenue delta
+            if _m_rev_pct is not None:
+                _dc1.metric("Revenue", "Growing" if _rev_improving else ("Declining" if _rev_declining else "Stable"),
+                            f"{_m_rev_pct:+.0f}%", delta_color="normal" if _rev_improving else ("inverse" if _rev_declining else "off"))
+            else:
+                _dc1.metric("Revenue", "No data", None)
+            # EBITDA delta
+            if _m_ebitda_ann and ebitda:
+                _eb_pct = ((_m_ebitda_ann - abs(ebitda)) / abs(ebitda) * 100) if ebitda != 0 else 0
+                _dc2.metric("EBITDA", "Improving" if _ebitda_improving else "Flat/Declining",
+                            f"{_eb_pct:+.0f}%", delta_color="normal" if _ebitda_improving else "inverse")
+            elif ebitda:
+                _dc2.metric("EBITDA", _fmtr(ebitda, millions=True), None)
+            else:
+                _dc2.metric("EBITDA", "No data", None)
+            # Debt service
+            if fc_abs and _has_ebitda:
+                _best_ebitda = _m_ebitda_ann or (ebitda if ebitda and ebitda > 0 else 0)
+                _dsc = _best_ebitda / fc_abs if fc_abs > 0 else 0
+                _dc3.metric("Debt Service", f"{_dsc:.2f}x", "Covered" if _dsc >= 1.0 else "Short",
+                            delta_color="normal" if _dsc >= 1.0 else "inverse")
+            else:
+                _dc3.metric("Debt Service", "N/A", None)
+            # Equity trajectory
+            if te and te_py:
+                _eq_chg = te - te_py
+                _dc4.metric("Equity", "Improving" if _equity_improving else "Declining",
+                            _fmtr(_eq_chg, millions=True), delta_color="normal" if _equity_improving else "inverse")
+            else:
+                _dc4.metric("Equity", _fmtr(te, millions=True) if te else "N/A", None)
+
+            # ── Section 3: The Story — algorithmic narrative (from guarantor_analysis engine) ──
+            st.markdown("#### The Story")
+            if _lc_out.get("story"):
+                for s in _lc_out["story"]:
+                    st.markdown(s)
+            else:
+                st.caption("No lifecycle narrative generated.")
+
+            # ── Section 4: Key Ratios (compact) ──
+            st.divider()
+            st.markdown("**Key Ratios**")
+            analysis_rows = []
+            if de_ratio is not None:
+                analysis_rows.append(("Debt / Equity", f"{de_ratio:.1f}x", "Marginal" if de_ratio > 4 else ("Acceptable" if de_ratio > 2 else "Strong")))
+            if int_cover is not None:
+                ic_str = f"{int_cover:.2f}x"
+                if int_cover_py is not None:
+                    ic_str += f" (PY: {int_cover_py:.2f}x)"
+                analysis_rows.append(("Interest Cover (AFS)", ic_str, "Marginal" if int_cover < 2.0 else ("Acceptable" if int_cover < 3.0 else "Strong")))
+            if _m_ebitda_ann and fc_abs and fc_abs > 0:
+                _m_ic = _m_ebitda_ann / fc_abs
+                analysis_rows.append(("Interest Cover (mgmt ann.)", f"{_m_ic:.2f}x", "Marginal" if _m_ic < 2.0 else ("Acceptable" if _m_ic < 3.0 else "Strong")))
+            if debt_ebitda is not None:
+                analysis_rows.append(("Total Debt / EBITDA", f"{debt_ebitda:.1f}x", "Marginal" if debt_ebitda > 5 else ("Acceptable" if debt_ebitda > 3 else "Strong")))
+            if ip and ta and ta > 0:
+                analysis_rows.append(("Property Concentration", f"{ip/ta*100:.0f}%", "Concentrated" if ip/ta > 0.8 else "Diversified"))
+            if ip and ncl_debt:
+                analysis_rows.append(("Loan-to-Value", f"{ncl_debt/ip*100:.0f}%", "High" if ncl_debt/ip > 0.7 else "Moderate"))
+            if analysis_rows:
+                _render_fin_table(analysis_rows, ["Metric", "Value", "Assessment"])
+            else:
+                st.info("Insufficient data for ratio analysis.")
+        _tab_idx += 1
+
+        # --- Tab 1: Balance Sheet ---
+        with _entity_tabs[_tab_idx]:
+            _render_sub_financials_bs_only(data, f"fs_bs_{stem}")
+        _tab_idx += 1
+
+        # --- Tab 2: P&L ---
+        with _entity_tabs[_tab_idx]:
+            _render_sub_financials_pl_only(data, f"fs_pl_{stem}")
+        _tab_idx += 1
+
+        # --- Tab 3: Cash Flow ---
+        with _entity_tabs[_tab_idx]:
+            if cf:
+                rows = []
+                for lbl, *keys in [
+                    ("Cash from operations", "operating", "cash_generated_from_operations"),
+                    ("Interest income", "operating", "interest_income"),
+                    ("Finance costs paid", "operating", "finance_costs"),
+                    ("Tax paid", "operating", "tax_paid"),
+                    ("**Net operating**", "operating", "net"),
+                    ("Purchase of inv property", "investing", "purchase_investment_property"),
+                    ("Movement loans to group", "investing", "movement_loans_to_group"),
+                    ("Proceeds from sale", "investing", "proceeds_from_sale"),
+                    ("**Net investing**", "investing", "net"),
+                    ("Movement in loans", "financing", "movement_loans"),
+                    ("Net movement in loans", "financing", "net_movement_loans"),
+                    ("**Net financing**", "financing", "net"),
+                    ("**Net cash movement**", "net_change_in_cash"),
+                ]:
+                    v = _gval(cf, *keys)
+                    v_py = _gval(cf, *keys, idx=1)
+                    if v is not None or v_py is not None:
+                        bold = lbl.startswith("**")
+                        if bold:
+                            rows.append((lbl, f"**{_fmtr(v)}**", f"**{_fmtr(v_py)}**"))
+                        else:
+                            rows.append((lbl, _fmtr(v), _fmtr(v_py)))
+                clbl = meta.get("presentation_columns", ["CY", "PY"])
+                if rows:
+                    _render_fin_table(rows, ["Line Item", clbl[0] if len(clbl) > 0 else "CY", clbl[1] if len(clbl) > 1 else "PY"])
+                else:
+                    st.info("No cash flow data available.")
+            else:
+                st.info("No cash flow statement in this AFS.")
+        _tab_idx += 1
+
+        # --- Tab 4: Property ---
+        with _entity_tabs[_tab_idx]:
+            if ip or isub or g_asset:
+                if g_asset:
+                    st.markdown(f"**Asset:** _{g_asset}_")
+                prop_rows = []
+                if ip:
+                    ip_chg = ((ip - ip_py) / abs(ip_py) * 100) if ip_py and ip_py != 0 else None
+                    prop_rows.append(("Investment Property", _fmtr(ip), _fmtr(ip_py),
+                                      f"{ip_chg:+.1f}%" if ip_chg is not None else "—"))
+                ppe = _gval(bs, "assets", "non_current_assets", "property_plant_equipment")
+                ppe_py = _gval(bs, "assets", "non_current_assets", "property_plant_equipment", idx=1)
+                if ppe:
+                    prop_rows.append(("PP&E", _fmtr(ppe), _fmtr(ppe_py), "—"))
+                if isub:
+                    isub_py = _gval(bs, "assets", "non_current_assets", "investments_in_subsidiaries", idx=1)
+                    prop_rows.append(("Investments in Subs", _fmtr(isub), _fmtr(isub_py), "—"))
+                loans_group = _gval(bs, "assets", "non_current_assets", "loans_to_group_companies")
+                if loans_group:
+                    prop_rows.append(("Loans to Group", _fmtr(loans_group),
+                                      _fmtr(_gval(bs, "assets", "non_current_assets", "loans_to_group_companies", idx=1)), "—"))
+                if prop_rows:
+                    clbl = meta.get("presentation_columns", ["CY", "PY"])
+                    _render_fin_table(prop_rows, ["Asset", clbl[0], clbl[1], "Change"])
+                if ip and ta and ta > 0:
+                    st.caption(f"Property concentration: {ip/ta*100:.0f}% of total assets")
+                if ncl_debt and ip:
+                    st.caption(f"Loan-to-value: {ncl_debt/ip*100:.0f}%")
+            else:
+                st.info("No property data (holding company / dormant).")
+        _tab_idx += 1
+
+        # --- Tab 5: Mgmt Accounts (always shown — financial comparison) ---
+        with _entity_tabs[_tab_idx]:
+            if mgmt_data:
+                m_meta = mgmt_data.get("metadata", {})
+                m_period = m_meta.get("reporting_period", {})
+                st.caption(f"Management accounts to {m_period.get('year_end_date', 'unknown')} — {m_meta.get('document_type', 'unknown format')}")
+
+                afs_ebitda_ref = ebitda if ebitda is not None else None
+
+                # Comparison table — full P&L breakdown
+                st.markdown("**Management Accounts vs AFS FY2025**")
+                _m_cos_cy_fs, _ = _mgmt_extract_cost_of_sales(mgmt_data)
+                _m_oi_cy_fs, _ = _mgmt_extract_other_income(mgmt_data)
+                (_m_rec_oi_fs, _), (_m_nr_oi_fs, _) = _mgmt_extract_other_income_recurring(mgmt_data)
+                mgmt_rows = []
+                if _m_rev_cy:
+                    rev_pct = f"{((_m_rev_ann - afs_rev_abs) / afs_rev_abs * 100):+.0f}%" if _m_rev_ann and afs_rev_abs and afs_rev_abs > 0 else "—"
+                    mgmt_rows.append(("Revenue", _fmtr(_m_rev_cy, millions=True),
+                                      _fmtr(_m_rev_ann, millions=True) if _m_rev_ann else "—",
+                                      _fmtr(afs_rev_abs, millions=True) if afs_rev_abs else "—", rev_pct))
+                if _m_cos_cy_fs:
+                    mgmt_rows.append(("Less: Cost of Sales", _fmtr(-_m_cos_cy_fs, millions=True),
+                                      _fmtr(-_m_cos_cy_fs * _m_ann_f, millions=True), "—", "—"))
+                if _m_oi_cy_fs and _m_nr_oi_fs:
+                    # Split: recurring vs non-recurring
+                    _rec_val = _m_oi_cy_fs - (_m_nr_oi_fs or 0)
+                    if _rec_val > 0:
+                        mgmt_rows.append(("Plus: Other Income (recurring)", _fmtr(_rec_val, millions=True),
+                                          _fmtr(_rec_val * _m_ann_f, millions=True), "—", "—"))
+                    mgmt_rows.append(("Plus: Non-Recurring (asset sales etc.)", _fmtr(_m_nr_oi_fs, millions=True),
+                                      _fmtr(_m_nr_oi_fs * _m_ann_f, millions=True), "—", "excluded"))
+                elif _m_oi_cy_fs:
+                    mgmt_rows.append(("Plus: Other Income", _fmtr(_m_oi_cy_fs, millions=True),
+                                      _fmtr(_m_oi_cy_fs * _m_ann_f, millions=True), "—", "—"))
+                if _m_opex_cy:
+                    # Show opex excluding finance charges
+                    _opex_excl = _m_opex_cy - (_m_fc_cy or 0)
+                    opex_pct = f"{_opex_excl * _m_ann_f / _m_rev_ann * 100:.0f}% of rev" if _m_rev_ann and _m_rev_ann > 0 else "—"
+                    mgmt_rows.append(("Less: Operating Expenses", _fmtr(-_opex_excl, millions=True),
+                                      _fmtr(-_opex_excl * _m_ann_f, millions=True), "—", opex_pct))
+                if _m_ebitda_10 is not None:
+                    eb_pct = f"{((_m_ebitda_ann - afs_ebitda_ref) / abs(afs_ebitda_ref) * 100):+.0f}%" if _m_ebitda_ann is not None and afs_ebitda_ref is not None and afs_ebitda_ref != 0 else "—"
+                    _eb_lbl = "**Recurring EBITDA**" if _m_nr_oi_fs else "**EBITDA**"
+                    mgmt_rows.append((_eb_lbl, f"**{_fmtr(_m_ebitda_10, millions=True)}**",
+                                      f"**{_fmtr(_m_ebitda_ann, millions=True)}**" if _m_ebitda_ann else "—",
+                                      f"**{_fmtr(afs_ebitda_ref, millions=True)}**" if afs_ebitda_ref is not None else "—",
+                                      f"**{eb_pct}**"))
+                if _m_fc_cy:
+                    mgmt_rows.append(("Less: Finance Charges", _fmtr(-_m_fc_cy, millions=True),
+                                      _fmtr(-_m_fc_cy * _m_ann_f, millions=True), "—", "—"))
+                if _m_op_cy is not None:
+                    mgmt_rows.append(("Net Profit/(Loss)", _fmtr(_m_op_cy, millions=True),
+                                      _fmtr(_m_op_cy * _m_ann_f, millions=True), "—", "—"))
+                if _m_ebitda_ann and fc_abs and fc_abs > 0:
+                    m_ic = _m_ebitda_ann / fc_abs
+                    mgmt_rows.append(("Interest Cover (ann.)", f"{m_ic:.2f}x", "—",
+                                      f"{int_cover:.2f}x" if int_cover else "—", "—"))
+                if de_ratio is not None:
+                    mgmt_rows.append(("D/E Ratio (AFS)", f"{de_ratio:.1f}x", "—", "—", "—"))
+                if mgmt_rows:
+                    _render_fin_table(mgmt_rows, ["Metric", "Mgmt (10mo)", "Annualised", "AFS FY2025", "vs AFS"])
+                else:
+                    ext_status = mgmt_data.get("extraction_status", "")
+                    if ext_status == "incomplete":
+                        st.warning("Source is a GL trial balance — limited data extractable.")
+                    else:
+                        st.info("Management account data available but no standard P&L line items extracted.")
+
+                # Line item detail
+                m_pl = mgmt_data.get("statement_of_comprehensive_income", {})
+                m_gl = mgmt_data.get("general_ledger_summary", {})
+                m_tb = mgmt_data.get("trial_balance_data", {})
+                detail_rows = []
+                if m_pl:
+                    m_rev_items = m_pl.get("revenue", {})
+                    if isinstance(m_rev_items, dict) and "values" not in m_rev_items:
+                        for k, v in m_rev_items.items():
+                            if isinstance(v, dict) and "values" in v and not k.startswith("total"):
+                                vals = v["values"]
+                                detail_rows.append((f"  {k.replace('_', ' ').title()}", _fmtr(vals[0] if vals else None), _fmtr(vals[1] if len(vals) > 1 else None)))
+                    cos = m_pl.get("cost_of_sales", {})
+                    if isinstance(cos, dict):
+                        for k, v in cos.items():
+                            if isinstance(v, dict) and "values" in v and not k.startswith("total"):
+                                vals = v["values"]
+                                detail_rows.append((f"  {k.replace('_', ' ').title()}", _fmtr(vals[0] if vals else None), _fmtr(vals[1] if len(vals) > 1 else None)))
+                    gp = m_pl.get("gross_profit", {})
+                    if isinstance(gp, dict) and "values" in gp:
+                        vals = gp["values"]
+                        detail_rows.append(("**Gross Profit**", f"**{_fmtr(vals[0] if vals else None)}**", f"**{_fmtr(vals[1] if len(vals) > 1 else None)}**"))
+                    opex = m_pl.get("operating_expenses", {})
+                    if isinstance(opex, dict):
+                        for k, v in opex.items():
+                            if isinstance(v, dict) and "values" in v and not k.startswith("total"):
+                                vals = v["values"]
+                                detail_rows.append((f"  {k.replace('_', ' ').title()}", _fmtr(vals[0] if vals else None), _fmtr(vals[1] if len(vals) > 1 else None)))
+                    opl = m_pl.get("operating_profit_loss", {})
+                    if isinstance(opl, dict) and "values" in opl:
+                        vals = opl["values"]
+                        detail_rows.append(("**Operating Profit/(Loss)**", f"**{_fmtr(vals[0] if vals else None)}**", f"**{_fmtr(vals[1] if len(vals) > 1 else None)}**"))
+                elif m_gl:
+                    for sk in ["revenue_accounts", "cost_of_sales_accounts", "operating_expenses_accounts"]:
+                        section = m_gl.get(sk, {})
+                        for k, v in section.items():
+                            if isinstance(v, dict) and not k.startswith("total"):
+                                cy_v = v.get("current_year_total") or v.get("current_ytd")
+                                py_v = v.get("prior_year_total") or v.get("prior_ytd")
+                                if cy_v or py_v:
+                                    detail_rows.append((f"  {k.replace('_', ' ').title()}", _fmtr(cy_v), _fmtr(py_v)))
+                elif m_tb:
+                    for sk in ["income_accounts", "cost_of_sales_accounts", "operating_expenses_accounts"]:
+                        section = m_tb.get(sk, {})
+                        for k, v in section.items():
+                            if isinstance(v, dict):
+                                cy_v = v.get("current_ytd")
+                                py_v = v.get("prior_ytd")
+                                if cy_v or py_v:
+                                    detail_rows.append((f"  {k.replace('_', ' ').title()}", _fmtr(cy_v), _fmtr(py_v)))
+                if detail_rows:
+                    st.divider()
+                    m_clbl = m_meta.get("presentation_columns", ["CY", "PY"])
+                    st.markdown("**Line Item Detail**")
+                    _render_fin_table(detail_rows, ["Line Item", m_clbl[0] if m_clbl else "CY", m_clbl[1] if len(m_clbl) > 1 else "PY"])
+                dq = mgmt_data.get("extraction_notes", m_meta.get("data_quality_notes", ""))
+                if isinstance(dq, list):
+                    dq = " ".join(str(x) for x in dq)
+                if dq and len(str(dq)) > 20:
+                    with st.expander("Data Quality Note", expanded=False):
+                        st.caption(str(dq)[:500])
+            else:
+                st.info("Management accounts not yet received for this entity.")
+                st.caption("Awaiting from Mark van Houten / KCE Accountants. Once received, financial comparison (10-month actuals vs AFS) will appear here.")
+        _tab_idx += 1
+
+        # --- Tab 6: Mgmt Report (asset performance overview — not yet received) ---
+        with _entity_tabs[_tab_idx]:
+            st.info("**Management report not yet received** for this entity.")
+            st.markdown("The management report provides an overview of asset performance as prepared by the asset/property manager. "
+                        "This is distinct from the management accounts (financials) and typically includes:")
+            st.markdown("""
+- **Occupancy rates** — current vs budget vs prior year
+- **Tenant profile** — credit quality, lease expiry schedule, arrears
+- **Rental reversions** — market vs contracted rates, escalation pipeline
+- **Capex & maintenance** — planned vs actual, deferred maintenance backlog
+- **Operating efficiency** — cost ratios, municipal recoveries
+- **Market commentary** — local area dynamics, comparable transactions
+- **Asset manager recommendation** — hold / improve / dispose
+""")
+            st.caption("Source: Broll Property Group (Phoenix retail), KCE / individual managers (Veracity). "
+                       "Awaiting from Mark van Houten.")
+        _tab_idx += 1
+
+        # --- Tab 7: Valuation ---
+        with _entity_tabs[_tab_idx]:
+            if ip:
+                st.markdown(f"**Carrying value (AFS):** {_fmtr(ip)}")
+                if ip_py:
+                    chg = ip - ip_py
+                    st.caption(f"Change from prior year: {_fmtr(chg)} ({(chg/abs(ip_py)*100):+.1f}%)" if ip_py != 0 else "")
+                st.divider()
+            st.info("**Independent valuation:** Awaiting — not yet received from Mark van Houten")
+            st.markdown("Market value confirmation, forced-sale estimate, comparable sales, tenant assessment, physical condition.")
+            if ip and ncl_debt:
+                st.caption(f"Current LTV on AFS basis: {ncl_debt/ip*100:.0f}%")
+
+
+def _render_sub_financials_bs_only(data, prefix):
+    """Render only the Balance Sheet from a structured JSON (for factsheet tab)."""
+    bs = data.get("statement_of_financial_position") or {}
+    meta = data.get("metadata") or {}
+    clbl = meta.get("presentation_columns", ["CY", "PY"])
+
+    def _val2(item):
+        if not item or not isinstance(item, dict):
+            return (None, None)
+        vals = item.get("values", [])
+        return (vals[0] if len(vals) > 0 else None, vals[1] if len(vals) > 1 else None)
+
+    rows = []
+    nca = bs.get("assets", {}).get("non_current_assets", {})
+    for lbl, key in [("Investment property", "investment_property"), ("Investment property (FV)", "investment_property_at_fair_value"),
+                     ("Other financial assets", "other_financial_assets"), ("Investments in subsidiaries", "investments_in_subsidiaries"),
+                     ("Investments in associates", "investments_in_associates"),
+                     ("Loans to group companies", "loans_to_group_companies"), ("Loans to shareholders", "loans_to_shareholders"),
+                     ("Property, plant & equipment", "property_plant_equipment"), ("Deferred tax", "deferred_tax")]:
+        cy, py = _val2(nca.get(key))
+        if cy is not None or py is not None:
+            rows.append((lbl, _fmtr(cy), _fmtr(py)))
+    nca_t = _gval(bs, "assets", "non_current_assets", "total")
+    nca_tp = _gval(bs, "assets", "non_current_assets", "total", idx=1)
+    if nca_t:
+        rows.append(("**Total NCA**", f"**{_fmtr(nca_t)}**", f"**{_fmtr(nca_tp)}**"))
+    ca = bs.get("assets", {}).get("current_assets", {})
+    for lbl, key in [("Trade & other receivables", "trade_and_other_receivables"), ("Cash & equivalents", "cash_and_cash_equivalents")]:
+        cy, py = _val2(ca.get(key))
+        if cy is not None or py is not None:
+            rows.append((lbl, _fmtr(cy), _fmtr(py)))
+    ta = _gval(bs, "assets", "total_assets")
+    ta_p = _gval(bs, "assets", "total_assets", idx=1)
+    rows.append(("**Total Assets**", f"**{_fmtr(ta)}**", f"**{_fmtr(ta_p)}**"))
+    rows.append(("", "", ""))
+    eq = bs.get("equity_and_liabilities", {}).get("equity", {})
+    for lbl, key in [("Share capital", "share_capital"), ("Stated capital", "stated_capital"),
+                     ("Retained income", "retained_income"), ("Accumulated loss", "accumulated_loss")]:
+        cy, py = _val2(eq.get(key))
+        if cy is not None or py is not None:
+            rows.append((lbl, _fmtr(cy), _fmtr(py)))
+    te = _gval(bs, "equity_and_liabilities", "equity", "total_equity")
+    te_p = _gval(bs, "equity_and_liabilities", "equity", "total_equity", idx=1)
+    rows.append(("**Total Equity**", f"**{_fmtr(te)}**", f"**{_fmtr(te_p)}**"))
+    ncl = bs.get("equity_and_liabilities", {}).get("non_current_liabilities", {})
+    for lbl, key in [("Other financial liabilities", "other_financial_liabilities"), ("Loans from shareholders", "loans_from_shareholders"),
+                     ("Loans from group", "loans_from_group_companies"), ("Deferred tax", "deferred_tax")]:
+        cy, py = _val2(ncl.get(key))
+        if cy is not None or py is not None:
+            rows.append((lbl, _fmtr(cy), _fmtr(py)))
+    cl = bs.get("equity_and_liabilities", {}).get("current_liabilities", {})
+    for lbl, key in [("Trade & other payables", "trade_and_other_payables"), ("Provisions", "provisions"),
+                     ("Loans from shareholders", "loans_from_shareholders"), ("Other financial liabilities", "other_financial_liabilities"),
+                     ("Bank overdraft", "bank_overdraft")]:
+        cy, py = _val2(cl.get(key))
+        if cy is not None or py is not None:
+            rows.append((lbl, _fmtr(cy), _fmtr(py)))
+    tel = _gval(bs, "equity_and_liabilities", "total_equity_and_liabilities")
+    tel_p = _gval(bs, "equity_and_liabilities", "total_equity_and_liabilities", idx=1)
+    rows.append(("**Total E&L**", f"**{_fmtr(tel)}**", f"**{_fmtr(tel_p)}**"))
+    _render_fin_table(rows, ["Line Item", clbl[0] if clbl else "CY", clbl[1] if len(clbl) > 1 else "PY"])
+    cs = meta.get("verification_checksums", {}).get("cy_2025", {})
+    if cs.get("balance_check"):
+        st.caption("Balance check: PASS")
+
+
+def _render_sub_financials_pl_only(data, prefix):
+    """Render only the P&L from a structured JSON (for factsheet tab)."""
+    pl = data.get("statement_of_comprehensive_income") or {}
+    meta = data.get("metadata") or {}
+    clbl = meta.get("presentation_columns", ["CY", "PY"])
+
+    def _val2(item):
+        if not item or not isinstance(item, dict):
+            return (None, None)
+        vals = item.get("values", [])
+        return (vals[0] if len(vals) > 0 else None, vals[1] if len(vals) > 1 else None)
+
+    # EBITDA computation
+    _op_cy, _op_py = None, None
+    for _opk in ["operating_profit", "operating_loss", "operating_profit_loss"]:
+        _op_item = pl.get(_opk)
+        if _op_item and isinstance(_op_item, dict) and "values" in _op_item:
+            _op_cy = _op_item["values"][0] if len(_op_item["values"]) > 0 else None
+            _op_py = _op_item["values"][1] if len(_op_item["values"]) > 1 else None
+            break
+    _dep_cy, _dep_py = 0, 0
+    for _dk in ["depreciation", "depreciation_and_amortisation", "depreciation_amortisation"]:
+        _dep_item = pl.get(_dk)
+        if _dep_item and isinstance(_dep_item, dict) and "values" in _dep_item:
+            _dep_cy = abs(_dep_item["values"][0] or 0)
+            _dep_py = abs(_dep_item["values"][1] or 0) if len(_dep_item["values"]) > 1 else 0
+            break
+    _ebitda_cy = (_op_cy + _dep_cy) if _op_cy is not None else None
+    _ebitda_py = (_op_py + _dep_py) if _op_py is not None else None
+
+    rows = []
+    for lbl, key in [("Revenue", "revenue"), ("Other income", "other_income"), ("FV adjustments", "other_income_fair_value"),
+                     ("Operating expenses", "operating_expenses"), ("Impairment", "impairment_investments")]:
+        cy, py = _val2(pl.get(key))
+        if cy is not None or py is not None:
+            rows.append((lbl, _fmtr(cy), _fmtr(py)))
+    if _ebitda_cy is not None:
+        rows.append(("**EBITDA**", f"**{_fmtr(_ebitda_cy)}**", f"**{_fmtr(_ebitda_py)}**"))
+    for lbl, key in [("Depreciation", "depreciation"), ("Depreciation", "depreciation_and_amortisation"),
+                     ("**Operating profit/(loss)**", "operating_profit_loss"), ("**Operating profit/(loss)**", "operating_profit"),
+                     ("**Operating loss**", "operating_loss"),
+                     ("Investment revenue", "investment_revenue"), ("Finance costs", "finance_costs"),
+                     ("Loss on disposal", "loss_on_disposal"),
+                     ("PBT", "profit_loss_before_taxation"), ("PBT", "profit_before_taxation"), ("PBT", "loss_before_taxation"),
+                     ("Taxation", "taxation"),
+                     ("**Profit/(Loss)**", "profit_loss_for_the_year"), ("**Profit**", "profit_for_the_year"), ("**Loss**", "loss_for_the_year")]:
+        cy, py = _val2(pl.get(key))
+        if cy is not None or py is not None:
+            rows.append((lbl, _fmtr(cy), _fmtr(py)))
+    if rows:
+        _render_fin_table(rows, ["Line Item", clbl[0] if clbl else "CY", clbl[1] if len(clbl) > 1 else "PY"])
+    else:
+        st.info("No P&L data (dormant entity)")
+
+
+def _render_entity_factsheets_tab(subs_dict, key_prefix, mgmt_dict=None, guar_lookup=None):
+    """Render entity factsheets tab: sorted by total assets desc, grouped by category."""
+    operating, holdcos, distressed = [], [], []
+    for stem, sdata in subs_dict.items():
+        meta = sdata.get("metadata", {})
+        notes = meta.get("notes", {})
+        bs = sdata.get("statement_of_financial_position", {})
+        ta = _gval(bs, "assets", "total_assets") or 0
+        te = _gval(bs, "equity_and_liabilities", "equity", "total_equity")
+
+        if meta.get("going_concern") is False or notes.get("negative_equity") or (te is not None and te < 0):
+            distressed.append((stem, sdata, ta))
+        elif notes.get("holding_company") or notes.get("dormant_entity") or notes.get("pass_through_entity"):
+            holdcos.append((stem, sdata, ta))
+        else:
+            operating.append((stem, sdata, ta))
+
+    for cat_name, cat_list, cat_color in [("Operating Entities", operating, "green"),
+                                          ("Holding Companies / Pass-throughs", holdcos, "blue"),
+                                          ("Distressed / Going Concern", distressed, "red")]:
+        if not cat_list:
+            continue
+        cat_list.sort(key=lambda x: x[2], reverse=True)
+        st.subheader(cat_name)
+        for stem, sdata, _ in cat_list:
+            wu = _ENTITY_WRITEUPS.get(stem, "")
+            _render_entity_factsheet(stem, sdata, wu, mgmt_dict=mgmt_dict, guar_lookup=guar_lookup,
+                                     category_color=cat_color)
+
+
+def _render_data_tracker(group_key, afs_dict, mgmt_dict, guar_cfg):
+    """Render color-coded data availability tracker."""
+    group_cfg = guar_cfg.get("groups", {}).get(group_key, {})
+    holding = group_cfg.get("holding", {})
+
+    # Collect all entities from config hierarchy (including those without JSONs)
+    def _collect_entities(node, depth=0):
+        entities = []
+        json_key = node.get("json")
+        entities.append({
+            "name": node.get("name", node.get("key", "?")),
+            "json": json_key,
+            "no_afs": node.get("no_afs", False),
+            "key": node.get("key", ""),
+        })
+        for child in node.get("children", []):
+            entities.extend(_collect_entities(child, depth + 1))
+        return entities
+
+    all_ents = _collect_entities(holding)
+    # Add siblings
+    for sib in group_cfg.get("siblings", []):
+        all_ents.append({
+            "name": sib.get("name", sib.get("key", "?")),
+            "json": sib.get("json"),
+            "no_afs": sib.get("no_afs", False),
+            "key": sib.get("key", ""),
+        })
+
+    # Build mapping from AFS stem to mgmt stem
+    afs_to_mgmt = {}
+    for mgmt_stem, afs_stem in _MGMT_TO_AFS_MAP.items():
+        if mgmt_stem in mgmt_dict:
+            afs_to_mgmt[afs_stem] = mgmt_stem
+
+    # Phoenix retail centres that need independent valuations + Broll reports
+    _phoenix_retail = {"Ridgeview", "Brackenfell", "Chartwell Corner", "Jukskei", "Olivedale", "Madelief"}
+    is_phoenix = group_key == "phoenix"
+
+    rows = []
+    n_good = n_partial = n_missing = 0
+    for ent in all_ents:
+        jk = ent["json"]
+        name = ent["name"]
+        has_fy25 = jk and jk in afs_dict
+        has_fy24 = has_fy25  # All AFS have CY+PY
+        has_fy23 = False  # Only VPH consolidated has 3yr
+        has_mgmt = jk in afs_to_mgmt if jk else False
+
+        # AFS type from metadata
+        afs_type = "—"
+        if has_fy25:
+            ameta = afs_dict[jk].get("metadata", {})
+            aud = ameta.get("auditor", {})
+            afs_type = aud.get("designation", "Unknown")
+            if "review" in afs_type.lower() or "reviewed" in (ameta.get("document_type", "") or "").lower():
+                afs_type = "Reviewed"
+            elif "audit" in afs_type.lower() or "audited" in (ameta.get("document_type", "") or "").lower():
+                afs_type = "Audited"
+            elif "compiled" in afs_type.lower() or "compiled" in (ameta.get("document_type", "") or "").lower():
+                afs_type = "Compiled"
+
+        fy25_str = "YES" if has_fy25 else ("**MISSING**" if not ent["no_afs"] else "[No AFS]")
+        fy24_str = "YES" if has_fy24 else ("**MISSING**" if not ent["no_afs"] else "[No AFS]")
+        fy23_str = "—"
+        mgmt_str = "YES" if has_mgmt else "MISSING"
+
+        # Valuation & Broll report status (Phoenix retail centres only)
+        is_retail = any(rc in name for rc in _phoenix_retail)
+        val_str = "**MISSING**" if is_phoenix and is_retail else "N/A"
+        broll_str = "**MISSING**" if is_phoenix and is_retail else "N/A"
+
+        # Determine status
+        if ent["no_afs"] and not has_mgmt:
+            status = "**CRITICAL**"
+            n_missing += 1
+        elif has_fy25 and has_mgmt:
+            status = "GOOD"
+            n_good += 1
+        elif has_fy25:
+            status = "PARTIAL"
+            n_partial += 1
+        else:
+            status = "**CRITICAL**"
+            n_missing += 1
+
+        rows.append((name, fy25_str, fy24_str, fy23_str, mgmt_str, val_str, broll_str, afs_type, status))
+
+    # Summary metrics
+    total = len(all_ents)
+    c1, c2, c3 = st.columns(3)
+    c1.metric("Complete", f"{n_good}/{total}", delta=None)
+    c2.metric("Partial", f"{n_partial}/{total}", delta=None)
+    c3.metric("Missing/Critical", f"{n_missing}/{total}", delta=None)
+
+    _render_fin_table(rows, ["Entity", "FY2025", "FY2024", "FY2023", "Mgmt Accts", "Valuation", "Broll Report", "AFS Type", "Status"])
+    st.caption("GOOD = AFS + Mgmt accounts. PARTIAL = AFS only. CRITICAL = Missing AFS or entity with no financials at all. "
+               "Valuation = independent property valuation. Broll = Broll Property Group asset manager report.")
+
+
+def _render_mgmt_accounts_tab(group_key, afs_dict):
+    """Render management accounts tab with headline storytelling."""
+    mgmt_dict = _load_mgmt_accounts(group_key)
+    if not mgmt_dict:
+        st.warning(f"No management account structured JSONs found for {group_key} group.")
+        return
+
+    st.markdown("**Management accounts provide a YTD snapshot** (to Dec 2025) "
+                "compared against AFS full-year figures. Focus: Is this entity stable, improving, or declining?")
+    st.divider()
+
+    found = []
+    for mstem, mdata in mgmt_dict.items():
+        meta = mdata.get("metadata", {})
+        ent = meta.get("entity", {})
+        name = ent.get("legal_name", mstem)
+        afs_stem = _MGMT_TO_AFS_MAP.get(mstem)
+
+        # Determine months in period for annualisation
+        mip = meta.get("months_in_period", {})
+        months_cy = mip.get("current_year", 10)  # default 10 months
+        if not isinstance(months_cy, (int, float)) or months_cy <= 0:
+            months_cy = 10
+        ann_factor = 12 / months_cy
+
+        # Extract mgmt financials
+        m_rev_cy, m_rev_py = _mgmt_extract_revenue(mdata)
+        m_cos_cy, m_cos_py = _mgmt_extract_cost_of_sales(mdata)
+        m_oi_cy, m_oi_py = _mgmt_extract_other_income(mdata)
+        m_opex_cy, m_opex_py = _mgmt_extract_opex(mdata)
+        m_fc_cy, m_fc_py = _mgmt_extract_finance_charges(mdata)
+        m_op_cy, m_op_py = _mgmt_extract_operating_profit(mdata)
+        (m_ebitda_cy, m_ebitda_py), (m_nr_oi_cy, m_nr_oi_py) = _mgmt_compute_ebitda(mdata)
+
+        # Gross profit = Revenue - COS (if available)
+        m_gp_cy = None
+        if m_rev_cy and m_cos_cy:
+            m_gp_cy = m_rev_cy - m_cos_cy
+        elif m_rev_cy and m_opex_cy:
+            m_gp_cy = m_rev_cy - m_opex_cy
+
+        # AFS comparison
+        afs_rev, afs_opex, afs_op = None, None, None
+        if afs_stem and afs_stem in afs_dict:
+            afs_data = afs_dict[afs_stem]
+            afs_pl = afs_data.get("statement_of_comprehensive_income", {})
+            afs_rev = _gval(afs_pl, "revenue")
+            if afs_rev:
+                afs_rev = abs(afs_rev)
+            # Try to get AFS opex
+            for _opex_key in ["operating_expenses", "total_operating_expenses"]:
+                _afs_opex_node = afs_pl.get(_opex_key, {})
+                if isinstance(_afs_opex_node, dict):
+                    _tot = _afs_opex_node.get("total_operating_expenses") or _afs_opex_node.get("total")
+                    if _tot and isinstance(_tot, dict) and "values" in _tot:
+                        afs_opex = abs(_tot["values"][0]) if _tot["values"][0] else None
+                        break
+            for _op_key in ["operating_profit_loss", "operating_profit", "gross_profit"]:
+                _afs_op = _gval(afs_pl, _op_key)
+                if _afs_op is not None:
+                    afs_op = _afs_op
+                    break
+
+        # Annualise
+        m_rev_ann = m_rev_cy * ann_factor if m_rev_cy else None
+        m_cos_ann = m_cos_cy * ann_factor if m_cos_cy else None
+        m_oi_ann = m_oi_cy * ann_factor if m_oi_cy else None
+        m_opex_ann = m_opex_cy * ann_factor if m_opex_cy else None
+        m_fc_ann = m_fc_cy * ann_factor if m_fc_cy else None
+        m_op_ann = m_op_cy * ann_factor if m_op_cy is not None else None
+        m_ebitda_ann = m_ebitda_cy * ann_factor if m_ebitda_cy is not None else None
+        m_gp_ann = m_gp_cy * ann_factor if m_gp_cy else None
+        m_nr_oi_ann = m_nr_oi_cy * ann_factor if m_nr_oi_cy else None
+
+        # Determine headline verdict
+        verdict = "Insufficient Data"
+        verdict_color = "gray"
+        if m_rev_ann and afs_rev and afs_rev > 0:
+            pct_chg = (m_rev_ann - afs_rev) / afs_rev * 100
+            if pct_chg > 5:
+                verdict = "Improving"
+                verdict_color = "green"
+            elif pct_chg < -5:
+                verdict = "Declining"
+                verdict_color = "red"
+            else:
+                verdict = "Stable"
+                verdict_color = "blue"
+        elif m_rev_cy:
+            verdict = "Data Available (no AFS comparison)"
+            verdict_color = "blue"
+
+        # Data quality
+        doc_type = meta.get("document_type", "unknown")
+        extraction = mdata.get("extraction_status", "")
+        dq_note = mdata.get("extraction_notes", meta.get("data_quality_notes", ""))
+        if isinstance(dq_note, list):
+            dq_note = " ".join(str(x) for x in dq_note)
+        elif isinstance(dq_note, dict):
+            dq_note = dq_note.get("limitation", "") or dq_note.get("data_available", "")
+        dq_note = str(dq_note or "")
+        is_gl_only = "trial_balance" in doc_type or "trial_balance" in dq_note.lower() or "gl" in doc_type.lower() or extraction == "incomplete"
+
+        found.append({
+            "name": name, "mstem": mstem, "mdata": mdata, "afs_stem": afs_stem,
+            "m_rev_cy": m_rev_cy, "m_rev_ann": m_rev_ann, "afs_rev": afs_rev,
+            "m_cos_cy": m_cos_cy, "m_cos_ann": m_cos_ann,
+            "m_oi_cy": m_oi_cy, "m_oi_ann": m_oi_ann,
+            "m_opex_cy": m_opex_cy, "m_opex_ann": m_opex_ann, "afs_opex": afs_opex,
+            "m_fc_cy": m_fc_cy, "m_fc_ann": m_fc_ann,
+            "m_op_cy": m_op_cy, "m_op_ann": m_op_ann, "afs_op": afs_op,
+            "m_ebitda_cy": m_ebitda_cy, "m_ebitda_ann": m_ebitda_ann,
+            "m_nr_oi_cy": m_nr_oi_cy, "m_nr_oi_ann": m_nr_oi_ann,
+            "m_gp_cy": m_gp_cy, "m_gp_ann": m_gp_ann,
+            "verdict": verdict, "verdict_color": verdict_color,
+            "is_gl_only": is_gl_only, "dq_note": dq_note,
+            "months_cy": months_cy, "ann_factor": ann_factor,
+            "m_rev_py": m_rev_py, "m_opex_py": m_opex_py, "m_op_py": m_op_py,
+        })
+
+    # Sort by revenue (largest first)
+    found.sort(key=lambda x: x["m_rev_cy"] or 0, reverse=True)
+
+    for f in found:
+        with st.container(border=True):
+            hc1, hc2 = st.columns([3, 1])
+            with hc1:
+                _mo_label = f"{f['months_cy']}mo" if f['months_cy'] != 12 else "Full Year"
+                st.markdown(f"### {f['name']}")
+            with hc2:
+                if f["verdict_color"] == "green":
+                    st.success(f"**{f['verdict']}**")
+                elif f["verdict_color"] == "red":
+                    st.error(f"**{f['verdict']}**")
+                elif f["verdict_color"] == "blue":
+                    st.info(f"**{f['verdict']}**")
+                else:
+                    st.warning(f"**{f['verdict']}**")
+
+            src_label = "GL trial balance" if f["is_gl_only"] else "Management Pack IFRS"
+            st.caption(f"Source: {src_label} | Period: {_mo_label} YTD to Dec 2025")
+
+            # Key metrics table — show actual, AFS FY, and annualised
+            metrics_rows = []
+            if f["m_rev_cy"]:
+                metrics_rows.append((
+                    f"Revenue ({_mo_label})",
+                    _fmtr(f["m_rev_cy"], millions=True),
+                    _fmtr(f["afs_rev"], millions=True) if f["afs_rev"] else "—",
+                    _fmtr(f["m_rev_ann"], millions=True) if f["m_rev_ann"] else "—"))
+            if f["m_cos_cy"]:
+                metrics_rows.append((
+                    "Less: Cost of Sales",
+                    _fmtr(-f["m_cos_cy"], millions=True),
+                    "—",
+                    _fmtr(-f["m_cos_ann"], millions=True) if f["m_cos_ann"] else "—"))
+            if f["m_oi_cy"]:
+                if f.get("m_nr_oi_cy"):
+                    # Split: show recurring OI and flag non-recurring separately
+                    _rec_oi = f["m_oi_cy"] - (f["m_nr_oi_cy"] or 0)
+                    _rec_oi_ann = (f["m_oi_ann"] or 0) - (f["m_nr_oi_ann"] or 0)
+                    if _rec_oi > 0:
+                        metrics_rows.append((
+                            "Plus: Other Income (recurring)",
+                            _fmtr(_rec_oi, millions=True), "—",
+                            _fmtr(_rec_oi_ann, millions=True) if _rec_oi_ann else "—"))
+                    metrics_rows.append((
+                        "Plus: Non-Recurring (asset sales etc.)",
+                        _fmtr(f["m_nr_oi_cy"], millions=True), "—",
+                        _fmtr(f["m_nr_oi_ann"], millions=True) if f["m_nr_oi_ann"] else "—"))
+                else:
+                    metrics_rows.append((
+                        "Plus: Other Income",
+                        _fmtr(f["m_oi_cy"], millions=True), "—",
+                        _fmtr(f["m_oi_ann"], millions=True) if f["m_oi_ann"] else "—"))
+            if f["m_opex_cy"]:
+                # Show opex excl finance charges
+                _opex_excl_fc = f["m_opex_cy"] - (f["m_fc_cy"] or 0)
+                _opex_excl_fc_ann = f["m_opex_ann"] - (f["m_fc_ann"] or 0) if f["m_opex_ann"] else None
+                metrics_rows.append((
+                    "Less: Operating Expenses",
+                    _fmtr(-_opex_excl_fc, millions=True),
+                    _fmtr(f["afs_opex"], millions=True) if f["afs_opex"] else "—",
+                    _fmtr(-_opex_excl_fc_ann, millions=True) if _opex_excl_fc_ann else "—"))
+            if f["m_ebitda_cy"] is not None:
+                _eb_str = _fmtr(f["m_ebitda_cy"], millions=True)
+                _eb_ann_str = _fmtr(f["m_ebitda_ann"], millions=True) if f["m_ebitda_ann"] is not None else "—"
+                _afs_op_str = _fmtr(f["afs_op"], millions=True) if f["afs_op"] is not None else "—"
+                _eb_label = "**Recurring EBITDA**" if f.get("m_nr_oi_cy") else "**EBITDA**"
+                metrics_rows.append((_eb_label, f"**{_eb_str}**", f"**{_afs_op_str}**", f"**{_eb_ann_str}**"))
+            if f["m_fc_cy"]:
+                metrics_rows.append((
+                    "Less: Finance Charges",
+                    _fmtr(-f["m_fc_cy"], millions=True),
+                    "—",
+                    _fmtr(-f["m_fc_ann"], millions=True) if f["m_fc_ann"] else "—"))
+            if f["m_op_cy"] is not None:
+                _op_str = _fmtr(f["m_op_cy"], millions=True)
+                _op_ann_str = _fmtr(f["m_op_ann"], millions=True) if f["m_op_ann"] is not None else "—"
+                metrics_rows.append(("Net Profit/(Loss)", _op_str, "—", _op_ann_str))
+
+            if metrics_rows:
+                _render_fin_table(metrics_rows, ["Metric", f"Mgmt ({_mo_label})", "AFS FY2025", "Annualised"])
+            else:
+                st.caption("No financial metrics could be extracted from this management account.")
+
+            # Narrative bullet
+            if f["m_rev_ann"] and f["afs_rev"] and f["afs_rev"] > 0:
+                pct = (f["m_rev_ann"] - f["afs_rev"]) / f["afs_rev"] * 100
+                sign = "+" if pct > 0 else ""
+                st.markdown(f"Revenue tracking **{_fmtr(f['m_rev_ann'], millions=True)}** annualised vs "
+                            f"**{_fmtr(f['afs_rev'], millions=True)}** FY2025 ({sign}{pct:.0f}%)")
+            elif f["m_rev_cy"] and not f["afs_rev"]:
+                st.markdown(f"{_mo_label} revenue: **{_fmtr(f['m_rev_cy'], millions=True)}** (no AFS comparison available)")
+
+            # Show PY comparison if available
+            if f["m_rev_py"] and f["m_rev_cy"]:
+                _py_pct = (f["m_rev_cy"] - f["m_rev_py"]) / f["m_rev_py"] * 100 if f["m_rev_py"] > 0 else 0
+                _py_sign = "+" if _py_pct > 0 else ""
+                st.caption(f"YoY mgmt: {_fmtr(f['m_rev_cy'], millions=True)} vs {_fmtr(f['m_rev_py'], millions=True)} PY ({_py_sign}{_py_pct:.0f}%)")
+
+            # GL detail expander — show line items from JSON if available
+            _pl = f["mdata"].get("statement_of_comprehensive_income", {})
+            _rev_detail = _pl.get("revenue", {})
+            _detail_items = []
+            if isinstance(_rev_detail, dict):
+                for k, v in _rev_detail.items():
+                    if k in ("total_revenue", "note") or not isinstance(v, dict):
+                        continue
+                    vals = v.get("values", [])
+                    if vals and any(x and x != 0 for x in vals):
+                        label = k.replace("_", " ").title()
+                        cy_val = abs(vals[0]) if len(vals) > 0 and vals[0] else 0
+                        py_val = abs(vals[1]) if len(vals) > 1 and vals[1] else 0
+                        _detail_items.append((label, _fmtr(cy_val), _fmtr(py_val)))
+
+            _opex_detail = _pl.get("operating_expenses", {})
+            _opex_items = []
+            if isinstance(_opex_detail, dict):
+                for k, v in _opex_detail.items():
+                    if k in ("total_operating_expenses", "note") or not isinstance(v, dict):
+                        continue
+                    vals = v.get("values", [])
+                    if vals and any(x and x != 0 for x in vals):
+                        label = k.replace("_", " ").title()
+                        cy_val = abs(vals[0]) if len(vals) > 0 and vals[0] else 0
+                        py_val = abs(vals[1]) if len(vals) > 1 and vals[1] else 0
+                        _opex_items.append((label, _fmtr(cy_val), _fmtr(py_val)))
+
+            if _detail_items or _opex_items:
+                with st.expander("GL Line Item Detail", expanded=False):
+                    if _detail_items:
+                        st.markdown("**Revenue accounts:**")
+                        _render_fin_table(_detail_items, ["Account", "CY", "PY"])
+                    if _opex_items:
+                        st.markdown("**Expense accounts:**")
+                        _render_fin_table(_opex_items, ["Account", "CY", "PY"])
+
+            # ── BS Trajectory from Management Accounts ──
+            _m_bs = f["mdata"].get("statement_of_financial_position", {})
+            if _m_bs and ga:
+                with st.expander("Balance Sheet Trajectory", expanded=False):
+                    _ga_bs = ga.analyse_bs_trajectory(f["mdata"])
+                    if _ga_bs:
+                        # Key BS metrics
+                        _bs_cols = st.columns(4)
+                        _bs_cols[0].metric("Assets (Dec)", _fmtr(_ga_bs.get("assets_cy", 0), millions=True))
+                        _bs_cols[1].metric("Equity (Dec)", _fmtr(_ga_bs.get("equity_cy", 0), millions=True))
+                        _bs_cols[2].metric("Liabilities (Dec)", _fmtr(_ga_bs.get("liabilities_cy", 0), millions=True))
+                        _eq_chg = (_ga_bs.get("equity_cy", 0) - _ga_bs.get("equity_py", 0))
+                        _bs_cols[3].metric("Equity Change", _fmtr(_eq_chg, millions=True),
+                                          delta_color="normal" if _eq_chg > 0 else "inverse")
+
+                        # D/E and LTV trajectories
+                        de_traj = _ga_bs.get("de_trajectory", [])
+                        if len(de_traj) > 1:
+                            de_active = [(i, d) for i, d in enumerate(de_traj) if d is not None]
+                            if de_active:
+                                st.caption(f"D/E: {de_active[0][1]:.1f}x (Mar) -> {de_active[-1][1]:.1f}x (Dec)")
+
+                        # Cash position
+                        m_cash = _ga_bs.get("monthly_cash", [])
+                        if m_cash:
+                            cash_first = next((v for v in m_cash if v != 0), None)
+                            cash_last = next((v for v in reversed(m_cash) if v != 0), None)
+                            if cash_first is not None and cash_last is not None:
+                                st.caption(f"Cash: {_fmtr(cash_first, millions=True)} -> {_fmtr(cash_last, millions=True)}")
+
+                        # Unified lifecycle output (mgmt-only in this view)
+                        _lc_out = _compute_lifecycle_outputs(f["name"], afs_data=None, mgmt_data=f["mdata"])
+                        for s in _lc_out.get("story", []):
+                            st.markdown(s, unsafe_allow_html=False)
+                    else:
+                        st.caption("No BS trajectory data available.")
+
+            # Data quality note
+            if f["dq_note"] and len(f["dq_note"]) > 20:
+                with st.expander("Data Quality Note", expanded=False):
+                    st.caption(f["dq_note"][:500])
+
+    # Entities WITHOUT management accounts
+    covered_afs = set()
+    for ms in mgmt_dict:
+        af = _MGMT_TO_AFS_MAP.get(ms)
+        if af:
+            covered_afs.add(af)
+    missing_ents = [s for s in afs_dict if s not in covered_afs]
+
+    if missing_ents:
+        st.divider()
+        st.subheader("Entities Without Management Accounts")
+        for stem in missing_ents:
+            meta = afs_dict[stem].get("metadata", {})
+            ent_name = meta.get("entity", {}).get("legal_name", stem)
+            st.markdown(f"- **{ent_name}** — Awaiting management accounts")
+
+
+def _render_valuations_placeholder():
+    """Render placeholder tab for valuations & asset manager reports (Phoenix only)."""
+    st.subheader("Valuations & Asset Manager Reports")
+    st.info("**Purpose:** Independent property valuations and Broll asset manager reports provide ECA with "
+            "third-party confirmation of carrying values and operational performance of the retail portfolio.")
+
+    # Property table
+    prop_rows = [
+        ("Ridgeview Centre", "Midrand", "R185M", "Awaiting"),
+        ("Brackenfell Corner", "Cape Town", "R259M", "Awaiting"),
+        ("Chartwell Corner", "Fourways JHB", "R104M", "Awaiting"),
+        ("Jukskei Meander", "Midrand JHB", "R84M", "Awaiting"),
+        ("Olivedale Corner", "Olivedale JHB", "R132M", "Awaiting"),
+        ("Madelief Shopping Centre", "Unknown", "R141M", "Awaiting"),
+    ]
+    _render_fin_table(prop_rows, ["Property", "Location", "AFS Carrying Value", "Valuation Status"])
+
+    st.divider()
+    st.subheader("Expected Documents")
+    st.markdown("""
+- **Independent property valuations** for each of the 6 retail centres (required for ECA credit assessment)
+- **Broll Property Group asset manager reports** — Broll (South Africa's largest property management firm) manages several Phoenix retail centres. Their quarterly/annual reports include occupancy rates, tenant profiles, rental escalation schedules, and arrears data.
+- **Rental roll / Lease schedule** per property — tenancy mix, lease expiry profile, average rental per m2
+""")
+    st.warning("**Status:** Awaiting from Mark van Houten. These documents are critical for ECA to assess "
+               "the quality and sustainability of rental income underpinning the guarantee.")
+
+
 # ============================================================
 # SCLCA HOLDING COMPANY VIEW
 # ============================================================
@@ -10739,7 +13015,8 @@ if entity == "Catalytic Assets":
 
     # --- Financing Scenario (read from session state; widgets rendered in Waterfall tab) ---
     nwl_swap_enabled = st.session_state.get("sclca_nwl_hedge", "CC DSRA \u2192 FEC") == "Cross-Currency Swap"
-    lanred_swap_enabled = st.session_state.get("lanred_scenario", "Greenfield") != "Greenfield"  # Brownfield+ has swap
+    _lr_is_brownfield = st.session_state.get("lanred_scenario", "Greenfield") != "Greenfield"
+    lanred_swap_enabled = _lr_is_brownfield and st.session_state.get("sclca_lanred_hedge", "No Hedging") == "Cross-Currency Swap"
 
     # Sub-tabs for SCLCA
     _tab_map = make_tab_map(_allowed_tabs)
@@ -10864,7 +13141,7 @@ if entity == "Catalytic Assets":
 
         # Pre-Revenue Hedge at M24 (pass-through); capitalize Mezz rolled-up interest
         if _m == 24:
-            _draw_dsra = pre_revenue_hedge
+            _draw_dsra = 0.0 if nwl_swap_enabled else pre_revenue_hedge
             _mb = _mz_after          # Facility Mezz: add rolled-up interest
         # Senior facility principal: M24 = 1×P, M30 = interest-only, M36+ = recalculated
         if _m == 24 and _sb > 1:
@@ -11051,7 +13328,8 @@ if entity == "Catalytic Assets":
     # 1. LanRED first → extract deficit vector
     _lanred_wf = _compute_entity_waterfall_inputs(
         'lanred', _lanred_ops,
-        _entity_ic['lanred']['sr'], _entity_ic['lanred']['mz'])
+        _entity_ic['lanred']['sr'], _entity_ic['lanred']['mz'],
+        lanred_swap_schedule=_lanred_swap_sched)
     _lanred_deficit_vector = [row['deficit'] for row in _lanred_wf]
 
     # 2. TWX (independent — no swap, no OD)
@@ -11116,27 +13394,8 @@ if entity == "Catalytic Assets":
         _oa['wf_cc_interest'] = _ow['wf_cc_interest']  # = wf_mz_pi (includes entity accel)
         _oa['wf_cc_principal'] = _ow['wf_cc_principal'] # = 0 (moved to entity level)
         _oa['wf_iic_prepay'] = _ow['wf_iic_prepay']    # = wf_sr_accel
-        # --- Swap BS fields (EUR asset + ZAR liability) ---
-        _oa['bs_swap_eur_nwl'] = 0.0
-        _oa['bs_swap_zar_nwl'] = 0.0
-        if nwl_swap_enabled and _swap_sched:
-            _eur_cum = sum(_waterfall[j].get('swap_eur_delivered', 0) for j in range(_ovi + 1))
-            _oa['bs_swap_eur_nwl'] = max(_swap_sched['eur_amount'] - _eur_cum, 0)
-            _oa['bs_swap_zar_nwl'] = _ow.get('swap_zar_bal', 0)
-        _oa['bs_swap_eur_lanred'] = 0.0
-        _oa['bs_swap_zar_lanred'] = 0.0
-        if lanred_swap_enabled and _lanred_swap_sched:
-            _lr_eur_cum = sum(_waterfall[j].get('lr_swap_eur_delivered', 0) for j in range(_ovi + 1))
-            _oa['bs_swap_eur_lanred'] = max(_lanred_swap_sched['eur_amount'] - _lr_eur_cum, 0)
-            _oa['bs_swap_zar_lanred'] = _ow.get('lr_swap_zar_bal', 0)
-        # Patch BS totals to include swap legs
-        _oa['bs_financial'] = _oa['bs_ic'] + _oa['bs_eq_subs'] + _oa['bs_swap_eur_nwl'] + _oa['bs_swap_eur_lanred']
-        _oa['bs_cash'] = _oa['bs_dsra']
-        _oa['bs_a'] = _oa['bs_financial'] + _oa['bs_cash']
-        _oa['bs_l'] = _oa['bs_sr'] + _oa['bs_mz'] + _oa['bs_swap_zar_nwl'] + _oa['bs_swap_zar_lanred']
-        _oa['bs_retained'] = _oa['bs_a'] - _oa['bs_l'] - _oa['bs_sh_equity']
-        _oa['bs_e'] = _oa['bs_sh_equity'] + _oa['bs_retained']
-        _oa['bs_gap'] = _oa['bs_retained'] - _oa['bs_retained_check']
+        # Swap instruments sit at entity level (NWL/LanRED BS), NOT at SCLCA holding.
+        # SCLCA sees subsidiaries via IC loans + equity stakes only.
         # Zero stubs for removed features
         _oa['wf_ic_mz_rebalance'] = 0
         _oa['wf_interest_saved'] = 0
@@ -11332,8 +13591,12 @@ if entity == "Catalytic Assets":
                 if _cc_sp.exists():
                     st.image(str(_cc_sp), width=80)
                 st.markdown("**Creation Capital**")
-                st.caption("DSRA")
-                st.markdown(f"€{pre_revenue_hedge:,.0f} ({_dsra_s['sizing']['repayments_covered']} DS payments)")
+                if nwl_swap_enabled:
+                    st.caption("Cross-Currency Swap")
+                    st.markdown("DSRA replaced by swap")
+                else:
+                    st.caption("DSRA")
+                    st.markdown(f"€{pre_revenue_hedge:,.0f} ({_dsra_s['sizing']['repayments_covered']} DS payments)")
 
     # --- ABOUT TAB ---
     if "About" in _tab_map:
@@ -11484,17 +13747,30 @@ if entity == "Catalytic Assets":
             | **IDC** | Roll-up, add to principal (+€{mezz_idc_eur:,.0f}) |
             """)
 
-                st.caption("Pre-Revenue Hedge (CC 2nd Drawdown)")
-                _mr3 = st.columns(3)
-                with _mr3[0]:
-                    st.caption("Hedge Amount")
-                    st.markdown(f"**€{pre_revenue_hedge:,.0f}**")
-                with _mr3[1]:
-                    st.caption("Basis")
-                    st.markdown(f"**{dsra['sizing']['repayments_covered']} debt service payments (P+I)**")
-                with _mr3[2]:
-                    st.caption("Funded at")
-                    st.markdown(f"**Month {dsra['funded_at_month']}**")
+                if nwl_swap_enabled:
+                    st.caption("Cross-Currency Swap active — Pre-Revenue Hedge suppressed")
+                    _mr3 = st.columns(3)
+                    with _mr3[0]:
+                        st.caption("Hedge Amount")
+                        st.markdown("**€0** (suppressed)")
+                    with _mr3[1]:
+                        st.caption("Hedge Mode")
+                        st.markdown("**Cross-Currency Swap**")
+                    with _mr3[2]:
+                        st.caption("CC 2nd Draw")
+                        st.markdown("**Not required**")
+                else:
+                    st.caption("Pre-Revenue Hedge (CC 2nd Drawdown)")
+                    _mr3 = st.columns(3)
+                    with _mr3[0]:
+                        st.caption("Hedge Amount")
+                        st.markdown(f"**€{pre_revenue_hedge:,.0f}**")
+                    with _mr3[1]:
+                        st.caption("Basis")
+                        st.markdown(f"**{dsra['sizing']['repayments_covered']} debt service payments (P+I)**")
+                    with _mr3[2]:
+                        st.caption("Funded at")
+                        st.markdown(f"**Month {dsra['funded_at_month']}**")
 
                 st.divider()
                 _sclca_logo = LOGO_DIR / ENTITY_LOGOS.get("sclca", "")
@@ -11745,13 +14021,19 @@ if entity == "Catalytic Assets":
                 # Regular principal per period: balance / 14
                 regular_p = balance_for_repay / num_repayments
 
-                # Pre-Revenue Hedge: 2×(P+I) at M24 — one shot
-                interest_m24 = balance_for_repay * interest_rate / 2
-                hedge_amount = 2 * (regular_p + interest_m24)
-
-                # After hedge, remaining balance paid over 12 periods (P3-P14)
-                balance_after_hedge = balance_for_repay - hedge_amount
-                new_p = balance_after_hedge / (num_repayments - 2)  # 12 periods
+                if nwl_swap_enabled:
+                    # Swap active: vanilla P_constant, no hedge sizing
+                    hedge_amount = 0.0
+                    interest_m24 = 0.0
+                    balance_after_hedge = balance_for_repay
+                    new_p = regular_p  # bal÷14 vanilla
+                else:
+                    # Pre-Revenue Hedge: 2×(P+I) at M24 — one shot
+                    interest_m24 = balance_for_repay * interest_rate / 2
+                    hedge_amount = 2 * (regular_p + interest_m24)
+                    # After hedge, remaining balance paid over 12 periods (P3-P14)
+                    balance_after_hedge = balance_for_repay - hedge_amount
+                    new_p = balance_after_hedge / (num_repayments - 2)  # 12 periods
 
                 # Repayment periods: 1, 2, 3, ... (M24, M30, M36, ...)
                 for i in range(1, num_repayments + 1):
@@ -11763,25 +14045,30 @@ if entity == "Catalytic Assets":
                     # Interest on opening balance
                     interest = opening * interest_rate / 2
 
-                    if period == 1:
+                    if nwl_swap_enabled:
+                        # Swap active: vanilla P_constant for all periods
+                        principle = -new_p
+                        repayment = principle - interest
+                        hedge_note = ""
+                    elif period == 1:
                         # Pre-Revenue Hedge: lump sum P at M24
                         principle = -hedge_amount
                         repayment = principle - interest  # P + I (both negative in cash terms)
+                        hedge_note = " *"
                     elif period == 2:
                         # Interest only at M30
                         principle = 0
                         repayment = -interest  # Interest only
+                        hedge_note = " *"
                     else:
                         # Regular repayment: new_p per period (M36+)
                         principle = -new_p
                         repayment = principle - interest  # P + I
+                        hedge_note = ""
 
                     # Movement = Principle (balance change)
                     movement = principle
                     balance = opening + movement
-
-                    # Note: Periods 1-2 funded by Pre-Revenue Hedge
-                    hedge_note = " *" if period in [1, 2] else ""
 
                     schedule_rows.append({
                         "Period": f"{period}{hedge_note}",
@@ -11830,9 +14117,22 @@ if entity == "Catalytic Assets":
                     render_table(df_idc, {"Draw Down": "€{:,.0f}", "IDC": "€{:,.0f}"})
 
                 with col_hedge:
-                    st.markdown("**Pre-Revenue Hedge**")
-                    st.caption("2×(P+I) at M24 — one shot")
-                    st.markdown(f"""
+                    if nwl_swap_enabled:
+                        st.markdown("**Cross-Currency Swap**")
+                        st.caption("Swap active — vanilla P_constant")
+                        st.markdown(f"""
+                    | Item | Detail |
+                    |------|--------|
+                    | Hedge mode | Cross-Currency Swap |
+                    | P1/P2 override | None (vanilla) |
+                    | P_constant | €{new_p:,.2f} |
+                    | Periods | {num_repayments} × P_constant |
+                    """)
+                        st.caption("DSRA sizing suppressed — swap replaces FEC hedge")
+                    else:
+                        st.markdown("**Pre-Revenue Hedge**")
+                        st.caption("2×(P+I) at M24 — one shot")
+                        st.markdown(f"""
                     | Item | Amount |
                     |------|--------|
                     | Regular P (bal÷{num_repayments}) | €{regular_p:,.2f} |
@@ -11841,12 +14141,33 @@ if entity == "Catalytic Assets":
                     | M24 lump sum | €{hedge_amount:,.2f} |
                     | M30 (interest only) | €{balance_after_hedge * interest_rate / 2:,.2f} |
                     """)
-                    st.caption("Pre-Revenue Hedge → FEC/Swap → EUR at M24")
+                        st.caption("Pre-Revenue Hedge → FEC/Swap → EUR at M24")
 
                 with col_repay:
-                    st.markdown("**Repayment Structure**")
-                    st.caption("After hedge, 12 periods remain (P3-P14)")
-                    st.markdown(f"""
+                    if nwl_swap_enabled:
+                        st.markdown("**Repayment Structure**")
+                        st.caption(f"Vanilla: {num_repayments} periods (bal÷{num_repayments})")
+                        st.markdown(f"""
+                    | Item | Amount |
+                    |------|--------|
+                    | **Prepayment (P-1)** | €{prepayment_total:,.2f} |
+                    | Balance for repay | €{balance_for_repay:,.2f} |
+                    | **P_constant** (bal÷{num_repayments}) | €{new_p:,.2f} |
+                    """)
+                        st.caption("Repayment = Principle + Interest")
+
+                        st.markdown("---")
+                        st.markdown("**Cross-Currency Swap Note:**")
+                        st.markdown("""
+        1. **Swap active:** DSRA/Pre-Revenue Hedge replaced by Cross-Currency Swap
+        2. **IC schedules:** Vanilla P_constant (bal÷14 Senior, bal÷10 Mezz)
+        3. **ZAR Rand Leg:** Separate swap liability (see entity Facilities tab)
+        4. **EUR Leg:** Separate swap asset (see entity Facilities tab)
+        """)
+                    else:
+                        st.markdown("**Repayment Structure**")
+                        st.caption("After hedge, 12 periods remain (P3-P14)")
+                        st.markdown(f"""
                     | Item | Amount |
                 |------|--------|
                     | **Prepayment (P-1)** | €{prepayment_total:,.2f} |
@@ -11854,11 +14175,11 @@ if entity == "Catalytic Assets":
                     | Balance after hedge | €{balance_after_hedge:,.2f} |
                     | **New P** (bal÷12) | €{new_p:,.2f} |
                     """)
-                    st.caption("Repayment = Principle + Interest")
+                        st.caption("Repayment = Principle + Interest")
 
-                    st.markdown("---")
-                    st.markdown("**Pre-Revenue Hedge Mechanism:**")
-                    st.markdown(f"""
+                        st.markdown("---")
+                        st.markdown("**Pre-Revenue Hedge Mechanism:**")
+                        st.markdown(f"""
         1. **Pre-Revenue Hedge:** Creation Capital provides ZAR reserve at M24 (€{pre_revenue_hedge:,.0f} equivalent)
         2. **FEC/Swap:** Converts ZAR to EUR via Forward Exchange Cover or Cross-Currency Swap
         3. **M24 Lump Sum:** EUR pays 2×(P + I) on Senior Debt in one shot
@@ -11902,17 +14223,30 @@ if entity == "Catalytic Assets":
         | **IDC** | Roll-up, add to principal (+€{mezz_rollup_eur:,.0f}) |
         """)
 
-                st.caption("Pre-Revenue Hedge (CC 2nd Drawdown)")
-                _mfr3 = st.columns(3)
-                with _mfr3[0]:
-                    st.caption("Hedge Amount")
-                    st.markdown(f"**€{pre_revenue_hedge:,.0f}**")
-                with _mfr3[1]:
-                    st.caption("Basis")
-                    st.markdown(f"**{dsra['sizing']['repayments_covered']} debt service payments (P+I)**")
-                with _mfr3[2]:
-                    st.caption("Funded at")
-                    st.markdown(f"**Month {dsra['funded_at_month']}**")
+                if nwl_swap_enabled:
+                    st.caption("Cross-Currency Swap active — Pre-Revenue Hedge suppressed")
+                    _mfr3 = st.columns(3)
+                    with _mfr3[0]:
+                        st.caption("Hedge Amount")
+                        st.markdown("**€0** (suppressed)")
+                    with _mfr3[1]:
+                        st.caption("Hedge Mode")
+                        st.markdown("**Cross-Currency Swap**")
+                    with _mfr3[2]:
+                        st.caption("CC 2nd Draw")
+                        st.markdown("**Not required**")
+                else:
+                    st.caption("Pre-Revenue Hedge (CC 2nd Drawdown)")
+                    _mfr3 = st.columns(3)
+                    with _mfr3[0]:
+                        st.caption("Hedge Amount")
+                        st.markdown(f"**€{pre_revenue_hedge:,.0f}**")
+                    with _mfr3[1]:
+                        st.caption("Basis")
+                        st.markdown(f"**{dsra['sizing']['repayments_covered']} debt service payments (P+I)**")
+                    with _mfr3[2]:
+                        st.caption("Funded at")
+                        st.markdown(f"**Month {dsra['funded_at_month']}**")
 
                 # Build Mezzanine Schedule (same format as Senior Debt)
                 mezz_rows = []
@@ -11957,7 +14291,8 @@ if entity == "Catalytic Assets":
                 balance_before_hedge = balance_eur
 
                 # Hedge drawn at Period 1 (M24), then repayments calculated on total
-                balance_with_hedge = balance_before_hedge + pre_revenue_hedge
+                _holding_dsra_draw = 0.0 if nwl_swap_enabled else pre_revenue_hedge
+                balance_with_hedge = balance_before_hedge + _holding_dsra_draw
                 mezz_p_per_period = balance_with_hedge / mezz_repayments
 
                 # Repayment periods (1..10)
@@ -11967,9 +14302,9 @@ if entity == "Catalytic Assets":
                     year = month / 12
                     opening = balance_eur
 
-                    # Pre-Revenue Hedge drawdown at Period 1
+                    # Pre-Revenue Hedge drawdown at Period 1 (suppressed when swap active)
                     if period == 1:
-                        draw_down = pre_revenue_hedge
+                        draw_down = _holding_dsra_draw
                     else:
                         draw_down = 0
 
@@ -12035,21 +14370,43 @@ if entity == "Catalytic Assets":
                     render_table(df_mezz_idc, {"Draw Down": "€{:,.0f}", "IDC": "€{:,.0f}"})
 
                 with col_mezz_hedge:
-                    st.markdown("**Pre-Revenue Hedge Drawdown**")
-                    st.caption("Funded by Creation Capital at M24")
-                    st.markdown(f"""
+                    if nwl_swap_enabled:
+                        st.markdown("**Cross-Currency Swap**")
+                        st.caption("Swap active — no DSRA drawdown")
+                        st.markdown(f"""
+                    | Item | Detail |
+                    |------|--------|
+                    | Hedge mode | Cross-Currency Swap |
+                    | DSRA Drawdown | €0 (suppressed) |
+                    | Balance = IDC only | €{balance_before_hedge:,.2f} |
+                    """)
+                        st.caption("CC 2nd Mezz draw suppressed — swap replaces FEC hedge")
+                    else:
+                        st.markdown("**Pre-Revenue Hedge Drawdown**")
+                        st.caption("Funded by Creation Capital at M24")
+                        st.markdown(f"""
                     | Item | Amount |
                     |------|--------|
                     | Hedge Amount | €{pre_revenue_hedge:,.2f} |
                     | Drawn at | Period 1 (M24) |
                 | Purpose | Fund Senior P1-P2 via FEC/Swap |
                     """)
-                    st.caption("Pre-Revenue Hedge → FEC/Swap → EUR at M24")
+                        st.caption("Pre-Revenue Hedge → FEC/Swap → EUR at M24")
 
                 with col_mezz_repay:
                     st.markdown("**Repayment Structure**")
                     st.caption(f"{mezz_repayments} periods starting M24")
-                    st.markdown(f"""
+                    if nwl_swap_enabled:
+                        st.markdown(f"""
+                    | Item | Amount |
+                    |------|--------|
+                    | Initial Drawdown | €{mezz_amount_eur:,.2f} |
+                    | Total IDC | €{mezz_idc_total:,.2f} |
+                    | **Balance for Repay** | €{balance_with_hedge:,.2f} |
+                    | **P per period** | €{mezz_p_per_period:,.2f} |
+                    """)
+                    else:
+                        st.markdown(f"""
                     | Item | Amount |
                     |------|--------|
                     | Initial Drawdown | €{mezz_amount_eur:,.2f} |
@@ -12220,9 +14577,14 @@ if entity == "Catalytic Assets":
 
                     # After grace: Pre-Revenue Hedge at M24 (same as facility, only interest differs)
                     nwl_sr_balance_for_repay = nwl_sr_balance
-                    nwl_sr_hedge_p1 = pre_revenue_hedge  # Pre-Revenue Hedge: 2×(P+I) at M24
-                    nwl_sr_balance_after_hedge = nwl_sr_balance_for_repay - nwl_sr_hedge_p1
-                    nwl_sr_new_p = nwl_sr_balance_after_hedge / (nwl_sr_num_repayments - 2)  # 12 periods
+                    if nwl_swap_enabled:
+                        nwl_sr_hedge_p1 = 0.0
+                        nwl_sr_balance_after_hedge = nwl_sr_balance_for_repay
+                        nwl_sr_new_p = nwl_sr_balance_for_repay / nwl_sr_num_repayments  # bal÷14 vanilla
+                    else:
+                        nwl_sr_hedge_p1 = pre_revenue_hedge  # Pre-Revenue Hedge: 2×(P+I) at M24
+                        nwl_sr_balance_after_hedge = nwl_sr_balance_for_repay - nwl_sr_hedge_p1
+                        nwl_sr_new_p = nwl_sr_balance_after_hedge / (nwl_sr_num_repayments - 2)  # 12 periods
 
                     # Repayment periods (1-14)
                     for i in range(1, nwl_sr_num_repayments + 1):
@@ -12233,7 +14595,10 @@ if entity == "Catalytic Assets":
 
                         interest = opening * senior_ic_rate / 2
 
-                        if period == 1:
+                        if nwl_swap_enabled:
+                            principle = -nwl_sr_new_p  # vanilla P_constant
+                            dsra_note = ""
+                        elif period == 1:
                             # Pre-Revenue Hedge payment
                             principle = -nwl_sr_hedge_p1
                             dsra_note = " *"
@@ -12285,9 +14650,22 @@ if entity == "Catalytic Assets":
                         render_table(df_nwl_idc, {"Draw Down": "€{:,.0f}", "IDC": "€{:,.0f}"})
 
                     with col_nwl_hedge:
-                        st.markdown("**Pre-Revenue Hedge**")
-                        st.caption("2×(P+I) at M24 — one shot")
-                        st.markdown(f"""
+                        if nwl_swap_enabled:
+                            st.markdown("**Cross-Currency Swap**")
+                            st.caption("Swap active — vanilla P_constant")
+                            st.markdown(f"""
+                    | Item | Detail |
+                    |------|--------|
+                    | Hedge mode | Cross-Currency Swap |
+                    | P1/P2 override | None (vanilla) |
+                    | P_constant | €{nwl_sr_new_p:,.0f} |
+                    | Periods | {nwl_sr_num_repayments} × P_constant |
+                    """)
+                            st.caption("DSRA sizing suppressed — swap replaces FEC hedge")
+                        else:
+                            st.markdown("**Pre-Revenue Hedge**")
+                            st.caption("2×(P+I) at M24 — one shot")
+                            st.markdown(f"""
                     | Item | Amount |
                     |------|--------|
                     | Hedge Amount | €{nwl_sr_hedge_p1:,.0f} |
@@ -12295,12 +14673,24 @@ if entity == "Catalytic Assets":
                     | M24 Repayment | €{nwl_sr_hedge_p1 + nwl_sr_balance_for_repay * senior_ic_rate / 2:,.0f} |
                     | M30 (I only) | €{nwl_sr_balance_after_hedge * senior_ic_rate / 2:,.0f} |
                     """)
-                        st.caption("Hedge amount identical to facility level")
+                            st.caption("Hedge amount identical to facility level")
 
                     with col_nwl_repay:
-                        st.markdown("**Repayment Structure**")
-                        st.caption("After prepayments, 12 periods remain")
-                        st.markdown(f"""
+                        if nwl_swap_enabled:
+                            st.markdown("**Repayment Structure**")
+                            st.caption(f"Vanilla: {nwl_sr_num_repayments} periods (bal÷{nwl_sr_num_repayments})")
+                            st.markdown(f"""
+                    | Item | Amount |
+                    |------|--------|
+                    | **P-1 Prepay** | €{nwl_prepayment:,.0f} |
+                    | Balance for repay | €{nwl_sr_balance_for_repay:,.0f} |
+                    | **P_constant** (bal÷{nwl_sr_num_repayments}) | €{nwl_sr_new_p:,.0f} |
+                    """)
+                            st.caption("Repayment = Principle + Interest")
+                        else:
+                            st.markdown("**Repayment Structure**")
+                            st.caption("After prepayments, 12 periods remain")
+                            st.markdown(f"""
                     | Item | Amount |
                     |------|--------|
                     | **P-1 Prepay** | €{nwl_prepayment:,.0f} |
@@ -12309,12 +14699,13 @@ if entity == "Catalytic Assets":
                     | Balance after hedge | €{nwl_sr_balance_after_hedge:,.0f} |
                     | **New P** (bal÷12) | €{nwl_sr_new_p:,.0f} |
                     """)
-                        st.caption("Repayment = Principle + Interest")
+                            st.caption("Repayment = Principle + Interest")
 
                 st.divider()
 
                 # --- NWL Mezz IC (with Pre-Revenue Hedge drawdown) ---
-                st.markdown(f"**Mezz IC** — {mezz_ic_rate*100:.2f}% | {mezz_ic_reps} semi-annual *(receives Pre-Revenue Hedge drawdown)*")
+                _holding_mezz_note = "*(swap active — no DSRA draw)*" if nwl_swap_enabled else "*(receives Pre-Revenue Hedge drawdown)*"
+                st.markdown(f"**Mezz IC** — {mezz_ic_rate*100:.2f}% | {mezz_ic_reps} semi-annual {_holding_mezz_note}")
 
                 nwl_mezz_pro_rata = loans["nwl"]["mezz_portion"] / mezz_total
                 nwl_mz_rows = []
@@ -12335,9 +14726,10 @@ if entity == "Catalytic Assets":
                         "Principle": 0, "Repayment": 0, "Movement": movement, "Closing": nwl_mz_balance
                     })
 
-                # DSRA drawn at P1
+                # DSRA drawn at P1 — suppressed when CCS active
+                _sclca_dsra_draw = 0.0 if nwl_swap_enabled else pre_revenue_hedge
                 nwl_mz_balance_before_dsra = nwl_mz_balance
-                nwl_mz_balance_with_dsra = nwl_mz_balance_before_dsra + pre_revenue_hedge
+                nwl_mz_balance_with_dsra = nwl_mz_balance_before_dsra + _sclca_dsra_draw
                 nwl_mz_p_per = nwl_mz_balance_with_dsra / mezz_ic_reps
 
                 # Repayment periods
@@ -12347,8 +14739,8 @@ if entity == "Catalytic Assets":
                     opening = nwl_mz_balance
 
                     if i == 1:
-                        draw_down = pre_revenue_hedge
-                        dsra_note = " *"
+                        draw_down = _sclca_dsra_draw
+                        dsra_note = " *" if _sclca_dsra_draw > 0 else ""
                     else:
                         draw_down = 0
                         dsra_note = ""
@@ -12368,7 +14760,14 @@ if entity == "Catalytic Assets":
                 df_nwl_mezz = pd.DataFrame(nwl_mz_rows)
                 render_table(df_nwl_mezz, ic_format)
 
-                st.caption(f"""
+                if nwl_swap_enabled:
+                    st.caption(f"""
+            **NWL Mezz IC Notes:**
+            - **DSRA drawdown suppressed** — Cross-Currency Swap active (no CC 2nd Mezz draw)
+            - **Repayments:** P = €{nwl_mz_p_per:,.0f} on original balance (no DSRA inflation)
+            """)
+                else:
+                    st.caption(f"""
             **NWL Mezz IC Notes:**
             - **P1 (*):** Pre-Revenue Hedge €{pre_revenue_hedge:,.0f} (increases NWL's Mezz liability)
             - **Repayments:** P = €{nwl_mz_p_per:,.0f} on total (original + IDC + DSRA)
@@ -13202,12 +15601,26 @@ if entity == "Catalytic Assets":
                 else:
                     st.session_state["lanred_eca_atradius"] = True
                     st.session_state["lanred_eca_exporter"] = True
+                    # Reset hedge to "No Hedging" when switching to Greenfield
+                    st.session_state["sclca_lanred_hedge"] = "No Hedging"
+                    st.session_state["_ds_lanred_hedge_entity"] = "No Hedging"
+                    st.session_state["_wf_lanred_hedge"] = "No Hedging"
 
             _lr_primary = st.session_state.get("lanred_scenario", "Greenfield")
             if "_wf_lanred_scenario" not in st.session_state:
                 st.session_state["_wf_lanred_scenario"] = _lr_primary
             if st.session_state.get("_wf_lanred_scenario") != _lr_primary:
                 st.session_state["_wf_lanred_scenario"] = _lr_primary
+
+            # Shadow key sync: _wf_lanred_hedge <-> sclca_lanred_hedge
+            def _sync_lanred_hedge_from_wf():
+                st.session_state["sclca_lanred_hedge"] = st.session_state.get("_wf_lanred_hedge", "No Hedging")
+
+            _lr_hedge_primary = st.session_state.get("sclca_lanred_hedge", "No Hedging")
+            if "_wf_lanred_hedge" not in st.session_state:
+                st.session_state["_wf_lanred_hedge"] = _lr_hedge_primary
+            if st.session_state.get("_wf_lanred_hedge") != _lr_hedge_primary:
+                st.session_state["_wf_lanred_hedge"] = _lr_hedge_primary
 
             with st.container(border=True):
                 st.markdown("### Financing Scenarios")
@@ -13334,6 +15747,21 @@ if entity == "Catalytic Assets":
                             ],
                         }
                         st.dataframe(pd.DataFrame(_lr_effects).set_index('Parameter'), use_container_width=True)
+
+                        # LanRED FX Hedging selector
+                        st.markdown("---")
+                        st.markdown("**LanRED FX Hedging**")
+                        _lr_bf_wf = st.session_state.get("_wf_lanred_scenario", "Greenfield") == "Brownfield+"
+                        st.radio(
+                            "LanRED hedge",
+                            ["No Hedging", "Cross-Currency Swap"],
+                            key="_wf_lanred_hedge",
+                            label_visibility="collapsed",
+                            disabled=not _lr_bf_wf,
+                            on_change=_sync_lanred_hedge_from_wf,
+                        )
+                        if not _lr_bf_wf:
+                            st.caption("Swap requires Brownfield+")
 
             st.divider()
 
@@ -13512,7 +15940,9 @@ surplus is allocated at {ek_label} level: Ops Reserve -> OpCo DSRA ->
             # ============================================================
             # Section 3: LanRED Entity
             # ============================================================
-            _render_entity_waterfall_section('lanred', 'LanRED', 'lanred', show_od=True)
+            _render_entity_waterfall_section('lanred', 'LanRED', 'lanred',
+                show_swap=lanred_swap_enabled and _lanred_swap_sched is not None,
+                show_od=True)
 
             if lanred_swap_enabled:
                 with st.expander("LanRED Brownfield+ Swap Details", expanded=False):
@@ -13712,13 +16142,6 @@ surplus is allocated at {ek_label} level: Ops Reserve -> OpCo DSRA ->
             _od_active_bs = any(w['ic_overdraft_bal'] > 0 for w in _waterfall)
             if _od_active_bs:
                 _bs_computed_line('IC Overdraft Receivable', [_waterfall[yi]['ic_overdraft_bal'] for yi in range(10)])
-            # Currency Swap EUR legs (asset)
-            _nwl_swap_active_bs = any(a.get('bs_swap_eur_nwl', 0) > 0 for a in annual_model)
-            if _nwl_swap_active_bs:
-                _bs_computed_line('Currency Swap: EUR Leg (NWL)', [a.get('bs_swap_eur_nwl', 0) for a in annual_model])
-            _lr_swap_active_bs = any(a.get('bs_swap_eur_lanred', 0) > 0 for a in annual_model)
-            if _lr_swap_active_bs:
-                _bs_computed_line('Currency Swap: EUR Leg (LanRED)', [a.get('bs_swap_eur_lanred', 0) for a in annual_model])
             _bs_line('Equity - NWL (93%)', 'bs_eq_nwl')
             _bs_line('Equity - LanRED (100%)', 'bs_eq_lanred')
             _bs_line('Equity - Timberworx (5%)', 'bs_eq_twx')
@@ -13737,11 +16160,6 @@ surplus is allocated at {ek_label} level: Ops Reserve -> OpCo DSRA ->
             _bs_line('Senior Debt (Invest Intl)', 'bs_sr')
             _bs_line('Mezzanine (Creation Capital)', 'bs_mz')
             _bs_computed_line('  Mezz (Sculpted)', [a['wf_cc_closing'] for a in annual_model])
-            # Currency Swap ZAR legs (liability)
-            if _nwl_swap_active_bs:
-                _bs_computed_line('Currency Swap: ZAR Leg (NWL)', [a.get('bs_swap_zar_nwl', 0) for a in annual_model])
-            if _lr_swap_active_bs:
-                _bs_computed_line('Currency Swap: ZAR Leg (LanRED)', [a.get('bs_swap_zar_lanred', 0) for a in annual_model])
             _bs_line('Total Debt', 'bs_l', row_type='total')
             # One-Time Dividend liability (waterfall — accruing until settled)
             _slug_vals = [_waterfall[yi]['cc_slug_cumulative'] if not _waterfall[yi]['cc_slug_settled'] else 0.0 for yi in range(10)]
@@ -14491,11 +16909,11 @@ surplus is allocated at {ek_label} level: Ops Reserve -> OpCo DSRA ->
                     st.markdown("##### 1. Corporate Guarantee + Atradius ECA Cover")
                     _g1, _g2 = st.columns(2)
                     _g1.metric("VPH Corporate Guarantee", f"€{_nwl_total_ic:,.0f}", delta="Full IC loan (Sr + Mz)")
-                    _g2.metric("Atradius ECA Cover", "~€4.2M", delta="To be applied — sized to M36 balance")
+                    _g2.metric("Atradius ECA Cover", "M36 exposed balance", delta="To be applied — sized from live debt schedule")
                     st.caption(
                         "Veracity Property Holdings guarantees full NWL IC loan. "
                         "Atradius ECA cover sized to **M36 exposed balance** — "
-                        "triggered by Dutch content in Colubris BoP (€1,721,925). **To be applied for** at Atradius DSB."
+                        "triggered by qualifying Dutch content. **To be applied for** at Atradius DSB."
                     )
 
                 # Group 2: DS Cover & FX Hedge
@@ -14530,17 +16948,29 @@ surplus is allocated at {ek_label} level: Ops Reserve -> OpCo DSRA ->
                     _gr2.metric("GEPF Bulk Services", f"R{_gepf_zar_sc:,.0f}", delta=f"€{_gepf_eur_sc:,.0f}")
                     _gr3.metric("Combined", f"R{_dtic_zar_sc + _gepf_zar_sc:,.0f}", delta=f"€{_dtic_eur_sc + _gepf_eur_sc:,.0f}")
 
-                # VPH Financials
+                # VPH Financials (live from structured JSON)
                 st.markdown("**Veracity Property Holdings — Financial Highlights (FY2025)**")
+                _v25, _ = _load_vph_3yr()
+                _vpl = _v25.get("statement_of_comprehensive_income", {}).get("income_statement", {})
+                _vbs = _v25.get("statement_of_financial_position", {})
+                _v_assets = _gval(_vbs, "assets", "total_assets")
+                _v_ip = _gval(_vbs, "assets", "non_current_assets", "investment_property")
+                _v_eq = _gval(_vbs, "equity_and_liabilities", "equity", "total_equity")
+                _v_rev = _gval(_vpl, "revenue")
+                _v_op = _gval(_vpl, "operating_profit") or _gval(_vpl, "operating_profit_loss")
+                _v_fc = abs(_gval(_vpl, "finance_costs") or 0)
+                _v_debt = _gval(_vbs, "equity_and_liabilities", "non_current_liabilities", "other_financial_liabilities") or 0
+                _v_de = (abs(_v_debt / _v_eq) if _v_eq else None)
+                _v_ic = ((_v_op / _v_fc) if _v_fc > 0 and _v_op is not None else None)
                 _ver_data = [
-                    {"Metric": "Total Assets", "Value": "R746.5M"},
-                    {"Metric": "Investment Property", "Value": "R692.9M"},
-                    {"Metric": "Total Equity", "Value": "R53.4M"},
-                    {"Metric": "Revenue", "Value": "R72.5M"},
-                    {"Metric": "EBITDA", "Value": "R42.9M"},
-                    {"Metric": "Finance Costs", "Value": "R58.5M"},
-                    {"Metric": "D/E Ratio", "Value": "13.0x"},
-                    {"Metric": "Interest Cover", "Value": "0.73x"},
+                    {"Metric": "Total Assets", "Value": _fmtr(_v_assets, millions=True)},
+                    {"Metric": "Investment Property", "Value": _fmtr(_v_ip, millions=True)},
+                    {"Metric": "Total Equity", "Value": _fmtr(_v_eq, millions=True)},
+                    {"Metric": "Revenue", "Value": _fmtr(abs(_v_rev) if _v_rev is not None else None, millions=True)},
+                    {"Metric": "EBITDA", "Value": _fmtr(_v_op, millions=True)},
+                    {"Metric": "Finance Costs", "Value": _fmtr(_v_fc, millions=True)},
+                    {"Metric": "D/E Ratio", "Value": f"{_v_de:.1f}x" if _v_de is not None else "—"},
+                    {"Metric": "Interest Cover", "Value": f"{_v_ic:.2f}x" if _v_ic is not None else "—"},
                 ]
                 render_table(pd.DataFrame(_ver_data), right_align=["Value"])
 
@@ -14589,13 +17019,36 @@ surplus is allocated at {ek_label} level: Ops Reserve -> OpCo DSRA ->
                     )
 
                 st.markdown("**Phoenix Group — Guarantee Capacity**")
+                _phx_subs_sec = _load_guarantor_jsons("Phoenix group")
+                _phx_opco_keys_sec = {
+                    "RidgeviewCentre_2025_structured": 0.40,
+                    "BrackenfellCorner_2025_structured": 0.40,
+                    "ChartwellCorner_2025_structured": 0.20,
+                    "JukskeiMeander_2025_structured": 0.40,
+                    "MadeliefShoppingCentre_2025_structured": 0.40,
+                    "OlivedaleCorner_2025_structured": 0.40,
+                }
+                _phx_group_eb = 0
+                _phx_attr_eb = 0
+                for _pk, _own in _phx_opco_keys_sec.items():
+                    _pd = _phx_subs_sec.get(_pk, {})
+                    _ppl = _pd.get("statement_of_comprehensive_income", {})
+                    _op = (_gval(_ppl, "operating_profit") or _gval(_ppl, "operating_profit_loss"))
+                    if _op is None:
+                        _pat = (_gval(_ppl, "profit_loss_for_the_year") or _gval(_ppl, "profit_for_the_year") or _gval(_ppl, "loss_for_the_year"))
+                        _fc = abs(_gval(_ppl, "finance_costs") or 0)
+                        _op = (_pat or 0) + _fc
+                    _phx_group_eb += (_op or 0)
+                    _phx_attr_eb += (_op or 0) * _own
+                _twx_loan_zar = _twx_total_ic * FX_RATE
+                _phx_cov = ((_phx_attr_eb * 2) / _twx_loan_zar) if _twx_loan_zar > 0 else 0
                 _phx_data = [
-                    {"Metric": "Group EBITDA", "Value": "R68.2M"},
+                    {"Metric": "Group EBITDA", "Value": _fmtr(_phx_group_eb, millions=True)},
                     {"Metric": "VH Properties stake", "Value": "40%"},
-                    {"Metric": "Attributable EBITDA", "Value": "R27.3M"},
-                    {"Metric": "2-year cash generation", "Value": "R54.6M"},
-                    {"Metric": "TWX IC loan (ZAR)", "Value": "R40.8M"},
-                    {"Metric": "Coverage ratio", "Value": "1.34x"},
+                    {"Metric": "Attributable EBITDA", "Value": _fmtr(_phx_attr_eb, millions=True)},
+                    {"Metric": "2-year cash generation", "Value": _fmtr(_phx_attr_eb * 2, millions=True)},
+                    {"Metric": "TWX IC loan (ZAR)", "Value": _fmtr(_twx_loan_zar, millions=True)},
+                    {"Metric": "Coverage ratio", "Value": f"{_phx_cov:.2f}x"},
                 ]
                 render_table(pd.DataFrame(_phx_data), right_align=["Value"])
 
@@ -15344,10 +17797,7 @@ elif entity == "Guarantor Analysis":
     st.header("Guarantor Analysis")
     st.markdown("ECA-focused assessment of corporate guarantors for the SCLCA security package.")
 
-    # Helpers (_load_guarantor_jsons, _gval, _fmtr, _render_sub_financials, _render_sub_summary_and_toggles)
-    # are defined at module level above.
-
-    # ECA evaluation framework intro
+    # ECA evaluation framework intro (KEEP)
     with st.expander("How ECAs Evaluate Corporate Guarantors", expanded=False):
         st.markdown("""
 ECAs assess guarantors on multiple dimensions. The table below shows standard thresholds:
@@ -15363,264 +17813,341 @@ ECAs assess guarantors on multiple dimensions. The table below shows standard th
 | Profitability | Positive 3yr | Positive with dip | Net loss |
 """)
 
-    # ── Corporate Organograms ──
+    # Corporate Organograms (KEEP)
     with st.expander("Corporate Structure — UBO to Asset Level", expanded=True):
         st.markdown("**Veracity Property Holdings — NWL Guarantor**")
         render_svg("guarantor-veracity.svg", "_none.md")
-
         st.divider()
         st.markdown("**Phoenix Group (TWX Guarantor) — via VH Properties (Mark van Houten)**")
         render_svg("guarantor-phoenix.svg", "_none.md")
         st.caption("Key management: M van Houten, RM O'Sullivan. Cross-ownership: Renovo shareholders include 'Veracity Property Investments'.")
 
-    # ── Outstanding Financial Items Tracker ──
-    with st.expander("Outstanding Items & Financial Statement Tracker", expanded=True):
-        st.subheader("Financial Statement Inventory")
-        _inv_rows = [
-            ("**VERACITY GROUP**", "", "", "", "", ""),
-            ("VPH Consolidated", "YES", "YES", "YES (simul.)", "MISSING", "Reviewed"),
-            ("Aquaside Trading", "YES (2yr)", "in consol", "—", "MISSING", "Reviewed"),
-            ("BBP Unit 1 Phase II", "YES (2yr)", "in consol", "—", "MISSING", "Compiled"),
-            ("Cornerstone Property (HoldCo)", "YES (2yr)", "in consol", "—", "MISSING", "Reviewed"),
-            ("Ireo Project 10 / Chepstow", "YES (2yr)", "in consol", "—", "MISSING", "Audited"),
-            ("Mistraline", "YES (2yr)", "in consol", "—", "MISSING", "Reviewed"),
-            ("Erf 86 Longmeadow", "YES (2yr)", "in consol", "—", "MISSING", "Reviewed"),
-            ("Providence Property", "YES (2yr)", "in consol", "—", "MISSING", "Reviewed"),
-            ("Uvongo Falls No 26 [GC]", "YES (2yr)", "in consol", "—", "MISSING", "Reviewed"),
-            ("Sun Property [-ve]", "YES (2yr)", "in consol", "—", "MISSING", "Reviewed"),
-            ("6 On Kloof (associate)", "YES (2yr)", "in consol", "—", "MISSING", "Audited"),
-            ("Manappu Investments (associate)", "**MISSING**", "**MISSING**", "—", "MISSING", "—"),
-            ("VPI (sibling, dev assets)", "**MISSING**", "**MISSING**", "—", "MISSING", "—"),
-            ("VI (sibling, divestments)", "**MISSING**", "**MISSING**", "—", "MISSING", "—"),
-            ("VHIT (Trust)", "**MISSING**", "**MISSING**", "—", "MISSING", "—"),
-            ("", "", "", "", "", ""),
-            ("**PHOENIX GROUP**", "", "", "", "", ""),
-            ("VH Properties (Pty) Ltd", "**MISSING**", "**MISSING**", "**MISSING**", "MISSING", "—"),
-            ("Phoenix Specialist (dormant)", "YES (2yr)", "—", "—", "—", "Reviewed"),
-            ("Phoenix Prop Fund SA (HoldCo)", "YES (2yr)", "—", "—", "—", "Reviewed"),
-            ("Ridgeview Centre [GC, -ve]", "YES (2yr)", "—", "—", "MISSING", "Reviewed"),
-            ("Brackenfell Corner [-ve]", "YES (2yr)", "—", "—", "MISSING", "Reviewed"),
-            ("Chartwell Corner [GC, -ve]", "YES (2yr)", "—", "—", "MISSING", "Reviewed"),
-            ("Jukskei Meander", "YES (2yr)", "—", "—", "MISSING", "Reviewed"),
-            ("Olivedale Corner [-ve]", "YES (2yr)", "—", "—", "MISSING", "Reviewed"),
-            ("Madelief Shopping Centre", "YES (2yr)", "—", "—", "MISSING", "Reviewed"),
-            ("PRAAM (Asset Mgmt)", "YES (2yr)", "—", "—", "MISSING", "Reviewed"),
-            ("Renovo Property Fund (HoldCo)", "YES (2yr)", "—", "—", "—", "Reviewed"),
-            ("Chartwell Co-Owner (pass-thru)", "YES (2yr)", "—", "—", "—", "Reviewed"),
-            ("Silva Terrace (50%)", "**MISSING**", "**MISSING**", "—", "—", "—"),
-            ("Trillium Holdings 1", "**MISSING**", "**MISSING**", "**MISSING**", "—", "—"),
-        ]
-        _render_fin_table(_inv_rows, ["Entity", "FY2025", "FY2024", "FY2023", "Mgmt Accts", "AFS Type"])
-        st.caption("YES (2yr) = current + prior year in same document. 'in consol' = prior year visible in VPH consolidated.")
+    # Load shared data once
+    _guar_cfg_ga = _load_guarantor_config()
+    _guar_entity_lookup = _build_guarantor_entity_lookup(_guar_cfg_ga)
+    _ver_subs = _load_guarantor_jsons("veracity 2025 financials")
+    _phx_subs = _load_guarantor_jsons("Phoenix group")
+    _ver_mgmt = _load_mgmt_accounts("veracity")
+    _phx_mgmt = _load_mgmt_accounts("phoenix")
 
-        st.divider()
-        st.subheader("Outstanding Items for Mark van Houten")
-        _oi_rows = [
-            ("1", "VH Properties 3yr audited AFS", "CRITICAL", "TWX guarantor entity — zero financials", "Mark vH"),
-            ("2", "VHIT Trust deed + financials", "CRITICAL", "ECA KYC/compliance — UBO documentation", "Mark vH"),
-            ("3", "VPH Management Accounts (post Feb 2025)", "HIGH", "Mark said 'mid March 2025' — overdue", "Mark vH / KCE"),
-            ("4", "Phoenix Group consolidated AFS", "HIGH", "No group-level consolidation exists", "Mark vH / KCE"),
-            ("5", "VPI (sibling) financials", "MEDIUM", "Development assets entity, may need for trust picture", "Mark vH / KCE"),
-            ("6", "VI (sibling) financials", "MEDIUM", "Divestment entity, may need for trust picture", "Mark vH / KCE"),
-            ("7", "Manappu Investments AFS", "MEDIUM", "Providence sub (20%), 50 properties in Tyrwhitt", "Mark vH / KCE"),
-            ("8", "Silva Terrace AFS", "MEDIUM", "Phoenix sub (50%), no financials at all", "Mark vH / KCE"),
-            ("9", "Trillium Holdings 1 financials", "MEDIUM", "Co-shareholder of Phoenix Specialist + Renovo", "Mark vH"),
-            ("10", "Management commentary / write-ups", "HIGH", "Business description, strategy per entity", "Mark vH"),
-            ("11", "ECA KYC documents", "MEDIUM", "Robbert flagged — needed for due diligence phase", "Mark vH"),
-            ("12", "Digital organogram (formal)", "LOW", "Binary .docx exists — needs clean version", "NexusNovus"),
-        ]
-        _render_fin_table(_oi_rows, ["#", "Item", "Priority", "Notes", "Owner"])
-
-        st.divider()
-        st.subheader("Key Risks & Cross-References")
-        st.error("""
-**Correlated Guarantor Risk:** Mark van Houten provides guarantees from two of his own entities
-(VPH for NWL, VH Properties/Phoenix for TWX) for two different subsidiaries in the same SCLCA transaction.
-If Mark faces financial distress, both guarantees fail simultaneously.
-""")
-        st.warning("""
-**Cross-ownership:** Renovo Property Fund (Phoenix Group) lists "Veracity Property Investments" as a shareholder.
-This creates a financial link between the two guarantor groups that must be disclosed to the ECA.
-""")
-        st.info("""
-**Email thread summary (Feb-Mar 2025, Robbert Zappeij ↔ Mark van Houten):**
-- VPH confirmed as NWL guarantor (was initially VI, restructured due to weak financials)
-- VHIT = VPH + VPI + VI only — no other entities under the trust
-- VPH/VPI/VI are financially and operationally independent (Mark confirmed)
-- Robbert specifically wants to control the narrative to Atradius — provide the ECA image, don't let them draw their own conclusions
-- Simulated FY2023 consolidation for VPH provided (based on pre-restructure entity AFS)
-- Mark committed to management accounts "mid March 2025", group AFS "mid April", consolidated "end April"
-""")
-
-    _ga_tab1, _ga_tab2 = st.tabs(["Veracity Property Holdings (NWL)", "VH Properties / Phoenix (TWX)"])
+    # ── 3 Top-Level Tabs ──
+    _ga_tab1, _ga_tab2, _ga_tab3 = st.tabs([
+        "Veracity Property Holdings (NWL)",
+        "VH Properties / Phoenix (TWX)",
+        "Outstanding Items & Risks"
+    ])
 
     # ================================================================
     # TAB 1: Veracity Property Holdings (NWL Guarantor)
     # ================================================================
     with _ga_tab1:
-        st.subheader("Veracity Property Holdings (Pty) Ltd")
-        st.caption("NWL Guarantor — Guarantee amount: EUR 10,655,818 (R213.1M at FX 20)")
+        _v_sub1, _v_sub2, _v_sub3, _v_sub4, _v_sub5 = st.tabs([
+            "Overview & ECA Rating",
+            "Financials (3yr)",
+            "Entity Factsheets",
+            "Mgmt Accounts (Dec'25)",
+            "Data Tracker",
+        ])
+        _vph_25, _vph_24 = _load_vph_3yr()
 
-        _v1, _v2, _v3, _v4 = st.columns(4)
-        _v1.metric("Total Assets", "R746.5M", "+9.4% YoY")
-        _v2.metric("Investment Property", "R692.9M", "+11.8% YoY")
-        _v3.metric("D/E Ratio", "13.0x", "10.0x prior", delta_color="inverse")
-        _v4.metric("Interest Cover", "0.73x", "1.34x prior", delta_color="inverse")
-        _v5, _v6, _v7, _v8 = st.columns(4)
-        _v5.metric("Revenue", "R72.5M", "+11.9% YoY")
-        _v6.metric("EBITDA", "R42.9M", "-25.8% YoY", delta_color="inverse")
-        _v7.metric("Net Profit/(Loss)", "(R9.3M)", "vs R15.3M prior", delta_color="inverse")
-        _v8.metric("Total Equity", "R53.4M", "-14.0% YoY", delta_color="inverse")
+        def _vph_3y(*keys):
+            """Return FY2025, FY2024, FY2023 values from VPH consolidated JSONs."""
+            return (
+                _gval(_vph_25, *keys, idx=0),
+                _gval(_vph_25, *keys, idx=1),
+                _gval(_vph_24, *keys, idx=1),
+            )
 
-        _ga_fig = go.Figure()
-        _ga_years = ["FY2023", "FY2024", "FY2025"]
-        _ga_fig.add_trace(go.Bar(x=_ga_years, y=[62.2, 64.8, 72.5], name="Revenue", marker_color="#3B82F6"))
-        _ga_fig.add_trace(go.Bar(x=_ga_years, y=[38.0, 57.8, 42.9], name="EBITDA", marker_color="#10B981"))
-        _ga_fig.add_trace(go.Bar(x=_ga_years, y=[-31.4, -43.2, -58.5], name="Finance Costs", marker_color="#EF4444"))
-        _ga_fig.add_trace(go.Scatter(x=_ga_years, y=[5.7, 15.3, -9.3], name="Net Profit", mode="lines+markers",
-                                     line=dict(color="#F59E0B", width=3)))
-        _ga_fig.update_layout(barmode="group", height=350, yaxis_title="R millions",
-                              margin=dict(l=10, r=10, t=30, b=10),
-                              legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="center", x=0.5))
-        st.plotly_chart(_ga_fig, use_container_width=True)
-        st.caption("FY2024 peak year (R15.3M profit). FY2025 swing to loss driven by 37% finance cost increase.")
+        # --- Sub-tab 1: Overview & ECA Rating ---
+        with _v_sub1:
+            st.subheader("Veracity Property Holdings (Pty) Ltd")
+            st.caption("NWL Guarantor — guarantee quantum aligned with live Security tab IC-loan settings.")
 
-        st.divider()
-        st.subheader("ECA Rating")
-        _ver_rating = [
-            ("Credit rating", "Unrated", "Marginal"),
-            ("Net worth vs guarantee", "0.25x (R53.4M / R213.1M)", "Marginal"),
-            ("Interest coverage", "FY25: 0.73x, FY24: 1.34x, FY23: 1.21x", "Marginal (deteriorating)"),
-            ("Debt/Equity", "FY25: 13.0x, FY24: 10.0x, FY23: 11.2x", "Marginal"),
-            ("Total debt/EBITDA", "15.7x (R672M / R42.9M)", "Marginal"),
-            ("Revenue trend", "Growing 3yr CAGR +8% (R62M to R73M)", "Acceptable"),
-            ("Profitability", "FY25: Loss (R9.3M), FY24: R15.3M, FY23: R5.7M", "Marginal (1 of 3 loss)"),
-            ("Asset backing", "R693M property (3.25x guarantee on gross)", "Acceptable"),
-        ]
-        _render_fin_table(_ver_rating, ["Metric", "Veracity Value (3yr)", "Rating"])
-        st.warning("**Overall: Marginal** — 5 of 8 metrics below acceptable. Guarantee relies on asset recovery value (R693M property portfolio), not income coverage.")
+            _ta25, _ta24, _ta23 = _vph_3y("statement_of_financial_position", "assets", "total_assets")
+            _ip25, _ip24, _ip23 = _vph_3y("statement_of_financial_position", "assets", "non_current_assets", "investment_property")
+            _eq25, _eq24, _eq23 = _vph_3y("statement_of_financial_position", "equity_and_liabilities", "equity", "total_equity")
+            _rev25, _rev24, _rev23 = _vph_3y("statement_of_comprehensive_income", "income_statement", "revenue")
+            _eb25, _eb24, _eb23 = _vph_3y("statement_of_comprehensive_income", "income_statement", "operating_profit")
+            _fc25, _fc24, _fc23 = _vph_3y("statement_of_comprehensive_income", "income_statement", "finance_costs")
+            _pat25, _pat24, _pat23 = _vph_3y("statement_of_comprehensive_income", "income_statement", "profit_loss_for_the_year")
+            _debt25, _debt24, _debt23 = _vph_3y("statement_of_financial_position", "equity_and_liabilities", "non_current_liabilities", "other_financial_liabilities")
 
-        with st.expander("Property Portfolio (8 properties FY2025)", expanded=False):
-            _prop_data = [
-                ("Morningside Ext 5", "Uvongo Falls No 26 (50%)", "R336,919,312", "Residential development"),
-                ("Mastiff Sandton", "Mistraline (via VPH)", "R160,500,000", "Commercial + PV solar"),
-                ("Bellville Cape Town", "New in FY2025", "R74,200,000", "Commercial acquisition"),
-                ("Tyrwhitt Sections", "Providence Property (100%)", "R49,640,700", "Residential"),
-                ("Longmeadow Gauteng", "Erf 86 Longmeadow (100%)", "R46,723,682", "Commercial + PV solar"),
-                ("Saxonwold JHB (4 units)", "Aquaside Trading (100%)", "R17,600,000", "Residential rental"),
-                ("George Cape Town", "Aquaside Trading (100%)", "R4,500,000", "Residential"),
-                ("Randpark Ridge", "BBP Unit 1 Phase 2 (100%)", "R2,803,913", "Commercial"),
-            ]
-            _render_fin_table(_prop_data, ["Property", "Held By", "FY2025 (ZAR)", "Type"])
-            st.caption("Total: R692.9M. Morningside + Mastiff = 71.8% concentration.")
+            _ta_yoy = ((_ta25 - _ta24) / abs(_ta24) * 100) if _ta25 is not None and _ta24 else None
+            _ip_yoy = ((_ip25 - _ip24) / abs(_ip24) * 100) if _ip25 is not None and _ip24 else None
+            _rev_yoy = ((_rev25 - _rev24) / abs(_rev24) * 100) if _rev25 is not None and _rev24 else None
+            _eb_yoy = ((_eb25 - _eb24) / abs(_eb24) * 100) if _eb25 is not None and _eb24 else None
+            _eq_yoy = ((_eq25 - _eq24) / abs(_eq24) * 100) if _eq25 is not None and _eq24 else None
+            _de25 = abs(_debt25 / _eq25) if _debt25 is not None and _eq25 else None
+            _de24 = abs(_debt24 / _eq24) if _debt24 is not None and _eq24 else None
+            _de23 = abs(_debt23 / _eq23) if _debt23 is not None and _eq23 else None
+            _ic25 = (_eb25 / abs(_fc25)) if _eb25 is not None and _fc25 else None
+            _ic24 = (_eb24 / abs(_fc24)) if _eb24 is not None and _fc24 else None
+            _ic23 = (_eb23 / abs(_fc23)) if _eb23 is not None and _fc23 else None
 
-        with st.expander("Lender Profile (11 lenders)", expanded=False):
-            _lend_data = [
-                ("Fedgroup", "R367,295,079", "54.7%"), ("BMG", "R108,483,230", "16.1%"),
-                ("ABSA", "R89,619,169", "13.3%"), ("Nedbank", "R41,807,616", "6.2%"),
-                ("M van Houten (Director)", "R27,664,182", "4.1%"), ("Vukile", "R16,337,481", "2.4%"),
-                ("RSAD", "R9,621,027", "1.4%"), ("VH Group", "R6,455,000", "1.0%"),
-                ("Randpark Ridge", "R2,803,913", "0.4%"), ("T Stamer", "R2,688,450", "0.4%"),
-                ("K Lang", "R500,000", "0.1%"), ("Arrowana", "R1,210,779", "0.2%"),
-            ]
-            _render_fin_table(_lend_data, ["Lender", "Amount (ZAR)", "% of Total"])
-            st.caption("Fedgroup = 55% of all borrowings. Significant single-lender concentration.")
+            _v1, _v2, _v3, _v4 = st.columns(4)
+            _v1.metric("Total Assets", _fmtr(_ta25, millions=True), f"{_ta_yoy:+.1f}% YoY" if _ta_yoy is not None else None)
+            _v2.metric("Investment Property", _fmtr(_ip25, millions=True), f"{_ip_yoy:+.1f}% YoY" if _ip_yoy is not None else None)
+            _v3.metric("D/E Ratio", f"{_de25:.1f}x" if _de25 is not None else "—", f"{_de24:.1f}x prior" if _de24 is not None else None, delta_color="inverse")
+            _v4.metric("Interest Cover", f"{_ic25:.2f}x" if _ic25 is not None else "—", f"{_ic24:.2f}x prior" if _ic24 is not None else None, delta_color="inverse")
+            _v5, _v6, _v7, _v8 = st.columns(4)
+            _v5.metric("Revenue", _fmtr(_rev25, millions=True), f"{_rev_yoy:+.1f}% YoY" if _rev_yoy is not None else None)
+            _v6.metric("EBITDA", _fmtr(_eb25, millions=True), f"{_eb_yoy:+.1f}% YoY" if _eb_yoy is not None else None, delta_color="inverse")
+            _v7.metric("Net Profit/(Loss)", _fmtr(_pat25, millions=True), f"vs {_fmtr(_pat24, millions=True)} prior" if _pat24 is not None else None, delta_color="inverse")
+            _v8.metric("Total Equity", _fmtr(_eq25, millions=True), f"{_eq_yoy:+.1f}% YoY" if _eq_yoy is not None else None, delta_color="inverse")
 
-        with st.expander("Consolidated Financial Statements (FY2023-FY2025)", expanded=False):
-            _bs_tab, _pl_tab, _cf_tab = st.tabs(["Balance Sheet", "P&L", "Cash Flow"])
-            with _bs_tab:
-                _bs_data = [
-                    ("**Non-Current Assets**", "", "", ""),
-                    ("Investment property", "R692,887,607", "R619,963,925", "R564,992,692"),
-                    ("Loans to group / other financial", "R46,900,198", "R42,694,743", "R5,001,496"),
-                    ("**Total non-current assets**", "**R740,139,394**", "**R662,657,683**", "**R569,995,223**"),
-                    ("**Current Assets**", "", "", ""),
-                    ("Trade & other receivables", "R4,992,125", "R16,976,709", "R16,035,972"),
-                    ("Cash & cash equivalents", "R1,399,686", "R2,729,745", "R6,488,455"),
-                    ("**Total Assets**", "**R746,531,205**", "**R682,364,137**", "**R592,525,617**"),
-                    ("", "", "", ""),
-                    ("**Equity**", "", "", ""),
-                    ("Share capital + Accumulated profit", "R34,177,186", "R32,287,388", "R120"),
-                    ("Non-controlling interest", "R19,197,274", "R29,755,762", "R48,473,495"),
-                    ("**Total Equity**", "**R53,374,460**", "**R62,043,150**", "**R48,473,615**"),
-                    ("**Non-Current Liabilities**", "", "", ""),
-                    ("Other financial liabilities", "R671,682,013", "R572,400,247", "R522,219,494"),
-                    ("Shareholders loan", "—", "R20,044,150", "R3,403,126"),
-                    ("Deferred tax", "R3,826,656", "R9,200,184", "R8,622,722"),
-                    ("**Current Liabilities**", "", "", ""),
-                    ("Trade & other payables", "R13,887,051", "R15,431,589", "R8,591,328"),
-                    ("Provisions + Bank overdraft", "R3,760,821", "R3,241,852", "R1,215,332"),
-                    ("**Total Equity & Liabilities**", "**R746,531,205**", "**R682,364,137**", "**R592,525,617**"),
-                ]
-                _render_fin_table(_bs_data, ["Line Item", "FY2025", "FY2024", "FY2023"])
-            with _pl_tab:
-                _pl_data = [
-                    ("Revenue", "R72,488,610", "R64,752,125", "R62,170,435"),
-                    ("Other income (incl. FV)", "R9,968,295", "R29,037,610", "R7,398,439"),
-                    ("Operating expenses", "(R39,580,457)", "(R35,945,459)", "(R31,602,751)"),
-                    ("**EBITDA**", "**R42,876,448**", "**R57,844,276**", "**R37,966,123**"),
-                    ("Operating profit", "R42,876,448", "R57,844,276", "R37,966,123"),
-                    ("Investment revenue", "R869,068", "R1,310,422", "R908,718"),
-                    ("Finance costs", "(R58,519,409)", "(R43,220,057)", "(R31,402,269)"),
-                    ("PBT", "(R14,773,893)", "R15,934,641", "R7,472,572"),
-                    ("Taxation", "R5,459,940", "(R609,939)", "(R1,743,656)"),
-                    ("**Profit/(Loss)**", "**(R9,313,953)**", "**R15,324,702**", "**R5,728,916**"),
-                ]
-                _render_fin_table(_pl_data, ["Line Item", "FY2025", "FY2024", "FY2023"])
-            with _cf_tab:
-                _cf_data = [
-                    ("Cash from operations", "R45,652,305", "R37,177,452", "R27,870,529"),
-                    ("Interest income", "R869,068", "R1,310,422", "R908,718"),
-                    ("Finance costs paid", "(R58,519,291)", "(R43,220,055)", "(R31,402,269)"),
-                    ("**Net operating**", "**(R12,030,979)**", "**(R4,755,726)**", "**(R2,675,315)**"),
-                    ("Purchase of inv property", "(R64,637,218)", "(R43,602,629)", "(R46,765,600)"),
-                    ("Proceeds from sale", "R970,584", "R13,863,461", "—"),
-                    ("**Net investing**", "**(R63,666,634)**", "**(R29,740,178)**", "**(R46,765,600)**"),
-                    ("Net movement loans", "R74,048,451", "R28,998,572", "R50,699,698"),
-                    ("**Net cash movement**", "**(R1,649,162)**", "**(R5,497,332)**", "**R1,258,783**"),
-                ]
-                _render_fin_table(_cf_data, ["Line Item", "FY2025", "FY2024", "FY2023"])
+            _ga_fig = go.Figure()
+            _ga_years = ["FY2023", "FY2024", "FY2025"]
+            _ga_fig.add_trace(go.Bar(x=_ga_years, y=[(_rev23 or 0) / 1e6, (_rev24 or 0) / 1e6, (_rev25 or 0) / 1e6], name="Revenue", marker_color="#3B82F6"))
+            _ga_fig.add_trace(go.Bar(x=_ga_years, y=[(_eb23 or 0) / 1e6, (_eb24 or 0) / 1e6, (_eb25 or 0) / 1e6], name="EBITDA", marker_color="#10B981"))
+            _ga_fig.add_trace(go.Bar(x=_ga_years, y=[(_fc23 or 0) / 1e6, (_fc24 or 0) / 1e6, (_fc25 or 0) / 1e6], name="Finance Costs", marker_color="#EF4444"))
+            _ga_fig.add_trace(go.Scatter(x=_ga_years, y=[(_pat23 or 0) / 1e6, (_pat24 or 0) / 1e6, (_pat25 or 0) / 1e6], name="Net Profit", mode="lines+markers",
+                                         line=dict(color="#F59E0B", width=3)))
+            _ga_fig.update_layout(barmode="group", height=350, yaxis_title="R millions",
+                                  margin=dict(l=10, r=10, t=30, b=10),
+                                  legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="center", x=0.5))
+            st.plotly_chart(_ga_fig, use_container_width=True)
+            st.caption(
+                f"FY2024 result: {_fmtr(_pat24, True)}. FY2025 result: {_fmtr(_pat25, True)}. "
+                f"Finance cost change FY24→FY25: {(_fc_growth_str if _fc_growth is not None else 'n/a')}."
+            )
 
-        # ── Veracity Subsidiary Financials (nested, from L4 JSONs) ──
-        _ver_subs = _load_guarantor_jsons("veracity 2025 financials")
-        _guar_cfg_ga = _load_guarantor_config()
-        _ver_group_ga = _guar_cfg_ga.get("groups", {}).get("veracity", {})
-        _ver_holding_ga = _ver_group_ga.get("holding", {})
-        if _ver_subs:
             st.divider()
-            st.subheader(f"Subsidiary Company Financials ({len(_ver_subs)} entities)")
-            _render_sub_summary_and_toggles(_ver_subs, "ver_summ")
+            st.subheader("ECA Rating")
+            _nw_vs_guar = (_eq25 / (10_655_818 * FX_RATE)) if _eq25 else None
+            _debt_eb = (_debt25 / _eb25) if _debt25 is not None and _eb25 else None
+            _ver_rating = [
+                ("Credit rating", "Unrated", "Marginal"),
+                ("Net worth vs guarantee", f"{_nw_vs_guar:.2f}x ({_fmtr(_eq25, True)} / R{10_655_818 * FX_RATE / 1e6:.1f}M)" if _nw_vs_guar is not None else "—", "Marginal"),
+                ("Interest coverage", f"FY25: {_ic25:.2f}x, FY24: {_ic24:.2f}x, FY23: {_ic23:.2f}x" if _ic25 is not None and _ic24 is not None and _ic23 is not None else "—", "Marginal (deteriorating)"),
+                ("Debt/Equity", f"FY25: {_de25:.1f}x, FY24: {_de24:.1f}x, FY23: {_de23:.1f}x" if _de25 is not None and _de24 is not None and _de23 is not None else "—", "Marginal"),
+                ("Total debt/EBITDA", f"{_debt_eb:.1f}x ({_fmtr(_debt25)} / {_fmtr(_eb25)})" if _debt_eb is not None else "—", "Marginal"),
+                ("Revenue trend", f"FY23 {_fmtr(_rev23, True)} → FY25 {_fmtr(_rev25, True)}" if _rev23 is not None and _rev25 is not None else "—", "Acceptable"),
+                ("Profitability", f"FY25 {_fmtr(_pat25, True)}, FY24 {_fmtr(_pat24, True)}, FY23 {_fmtr(_pat23, True)}" if _pat25 is not None and _pat24 is not None and _pat23 is not None else "—", "Marginal (1 of 3 loss)"),
+                ("Asset backing", f"{_fmtr(_ip25, True)} property", "Acceptable"),
+            ]
+            _render_fin_table(_ver_rating, ["Metric", "Veracity Value (3yr)", "Rating"])
+            st.warning(f"**Overall: Marginal** — 5 of 8 metrics below acceptable. Guarantee relies on asset recovery value ({_fmtr(_ip25, True)} property portfolio), not income coverage.")
 
-        # ── Email Q&A ──
-        if _guar_cfg_ga:
+            with st.expander("Property Portfolio (8 properties FY2025)", expanded=False):
+                _n3 = _vph_25.get("notes_to_financial_statements", {}).get("note_3_investment_property", {})
+                _props = _n3.get("group_2025", {}).get("properties", []) if isinstance(_n3, dict) else []
+                if _props:
+                    _props_sorted = sorted(
+                        [p for p in _props if isinstance(p, dict)],
+                        key=lambda p: p.get("value", 0) or 0,
+                        reverse=True,
+                    )
+                    _prop_total = sum((p.get("value", 0) or 0) for p in _props_sorted)
+                    _prop_rows = []
+                    for p in _props_sorted:
+                        _val = p.get("value", 0) or 0
+                        _share = ((_val / _prop_total) * 100) if _prop_total > 0 else None
+                        _prop_rows.append((
+                            p.get("name", "Unnamed property"),
+                            _fmtr(_val),
+                            f"{_share:.1f}%" if _share is not None else "—",
+                        ))
+                    _render_fin_table(_prop_rows, ["Property", "FY2025 (ZAR)", "% of Portfolio"])
+                    _top2 = sum((p.get("value", 0) or 0) for p in _props_sorted[:2])
+                    _top2_share = ((_top2 / _prop_total) * 100) if _prop_total > 0 else None
+                    st.caption(
+                        f"Live from Note 3 (investment property). Total: {_fmtr(_prop_total)}. "
+                        f"Top-2 concentration: {_top2_share:.1f}%." if _top2_share is not None else ""
+                    )
+                else:
+                    st.info("No property-level breakdown found in VPH structured JSON note 3.")
+
+            with st.expander("Lender Profile (11 lenders)", expanded=False):
+                _n11 = _vph_25.get("notes_to_financial_statements", {}).get("note_11_other_financial_liabilities", {})
+                _lenders = _n11.get("group_2025", {}).get("lenders", []) if isinstance(_n11, dict) else []
+                if _lenders:
+                    _lenders_sorted = sorted(
+                        [l for l in _lenders if isinstance(l, dict)],
+                        key=lambda l: l.get("amount", 0) or 0,
+                        reverse=True,
+                    )
+                    _lend_total = _n11.get("group_2025", {}).get("total")
+                    if not isinstance(_lend_total, (int, float)) or _lend_total <= 0:
+                        _lend_total = sum((l.get("amount", 0) or 0) for l in _lenders_sorted)
+                    _lend_rows = []
+                    for l in _lenders_sorted:
+                        _amt = l.get("amount", 0) or 0
+                        _share = ((_amt / _lend_total) * 100) if _lend_total > 0 else None
+                        _lend_rows.append((
+                            l.get("name", "Unknown lender"),
+                            _fmtr(_amt),
+                            f"{_share:.1f}%" if _share is not None else "—",
+                        ))
+                    _render_fin_table(_lend_rows, ["Lender", "Amount (ZAR)", "% of Total"])
+                    _top_name = _lenders_sorted[0].get("name", "Top lender")
+                    _top_amt = _lenders_sorted[0].get("amount", 0) or 0
+                    _top_share = ((_top_amt / _lend_total) * 100) if _lend_total > 0 else None
+                    st.caption(
+                        f"Live from Note 11 (other financial liabilities). "
+                        f"Top lender: {_top_name} ({_top_share:.1f}% of borrowings)."
+                        if _top_share is not None else ""
+                    )
+                else:
+                    st.info("No lender-level breakdown found in VPH structured JSON note 11.")
+
             st.divider()
-            _render_email_qa(_guar_cfg_ga)
+            st.subheader("ECA View")
+            _rev_cagr = ((((_rev25 / _rev23) ** (1 / 2)) - 1) * 100) if _rev25 and _rev23 and _rev23 > 0 else None
+            _fc_growth = (((abs(_fc25) - abs(_fc24)) / abs(_fc24)) * 100) if _fc25 is not None and _fc24 else None
+            _asset_cover = ((_ip25 / (10_655_818 * FX_RATE)) if _ip25 else None)
+            _half_haircut = (_ip25 * 0.5) if _ip25 else None
+            _rev_cagr_str = f"{_rev_cagr:+.1f}%" if _rev_cagr is not None else "n/a"
+            _fc_growth_str = f"{_fc_growth:+.1f}%" if _fc_growth is not None else "n/a"
+            _de25_str = f"{_de25:.1f}x" if _de25 is not None else "—"
+            _ic25_str = f"{_ic25:.2f}x" if _ic25 is not None else "—"
+            _asset_cover_str = f"{_asset_cover:.2f}x" if _asset_cover is not None else "—"
+            _ip_yoy_str = f"{_ip_yoy:+.1f}%" if _ip_yoy is not None else "n/a"
+            st.info(f"""
+**Marginal guarantor** from a traditional credit perspective. {_de25_str} leverage (FY2025) and {_ic25_str} interest cover are red flags.
+However, the {_fmtr(_ip25, True)} investment property portfolio ({_ip_yoy_str} YoY) provides gross asset backing ({_asset_cover_str} guarantee cover).
 
-        st.divider()
-        st.subheader("ECA View")
-        st.info("""
-**Marginal guarantor** from a traditional credit perspective. 13x leverage (FY2025) and sub-1.0x interest cover are red flags.
-However, the R693M investment property portfolio (growing +9% CAGR) provides substantial asset backing (3.25x guarantee cover on gross basis).
+**3-Year Trajectory:** Revenue {'growing steadily' if _rev_cagr is not None and _rev_cagr > 0 else 'mixed'} ({_rev_cagr_str} CAGR), while finance costs changed {_fc_growth_str} FY24→FY25.
+FY2024 was profitable at {_fmtr(_pat24, True)}, but FY2025 moved to {_fmtr(_pat25, True)} as finance costs reached {_fmtr(_fc25, True)}.
 
-**3-Year Trajectory:** Revenue growing steadily (+8% CAGR), but finance costs outpacing (+37% FY24→FY25).
-FY2024 was profitable (R15.3M PAT with R29M fair value gains), but FY2025 swung to R9.3M loss as finance costs hit R58.5M.
-
-**Recovery analysis:** Even at a 50% haircut, portfolio worth R346M — but subordinated to R672M secured lenders (Fedgroup R367M, ABSA R90M, Nedbank R42M), leaving zero residual for unsecured guarantee.
+**Recovery analysis:** At a 50% haircut, portfolio value is {_fmtr(_half_haircut, True)}. This remains subordinated to secured debt (notably Fedgroup/ABSA/Nedbank), limiting unsecured recovery headroom.
 
 **ECA context (per Robbert Zappeij, Mar 2025):** ECA requires 2 years of audited financial statements. VPH restructured from VH Investments Trust in Q4/2024 (statutory date 01/03/2023). Simulated FY2023 consolidation provided. KCE confirmed FY2024 and FY2025 now available.
 
-**Recommendation:** Guarantee needs support via (a) ring-fenced property pledge, (b) second-ranking security over unencumbered assets, or (c) balance sheet restructuring. Alternatively, size to M36 exposure (~EUR 5.2M) rather than full EUR 10.66M.
+**Recommendation:** Guarantee needs support via (a) ring-fenced property pledge, (b) second-ranking security over unencumbered assets, or (c) balance sheet restructuring. Alternatively, size to M36 exposure rather than full IC guarantee.
 """)
+
+        # --- Sub-tab 2: Financials (3yr) ---
+        with _v_sub2:
+            st.subheader("VPH Consolidated Financial Statements (FY2023-FY2025)")
+            _bs_tab, _pl_tab, _cf_tab = st.tabs(["Balance Sheet", "P&L", "Cash Flow"])
+            with _bs_tab:
+                _nca25, _nca24, _nca23 = _vph_3y("statement_of_financial_position", "assets", "non_current_assets", "total_non_current_assets")
+                _tr25, _tr24, _tr23 = _vph_3y("statement_of_financial_position", "assets", "current_assets", "trade_and_other_receivables")
+                _cash25, _cash24, _cash23 = _vph_3y("statement_of_financial_position", "assets", "current_assets", "cash_and_cash_equivalents")
+                _nci25, _nci24, _nci23 = _vph_3y("statement_of_financial_position", "equity_and_liabilities", "equity", "non_controlling_interest")
+                _ncl25, _ncl24, _ncl23 = _vph_3y("statement_of_financial_position", "equity_and_liabilities", "non_current_liabilities", "total_non_current_liabilities")
+                _dt25, _dt24, _dt23 = _vph_3y("statement_of_financial_position", "equity_and_liabilities", "non_current_liabilities", "deferred_tax")
+                _cl25, _cl24, _cl23 = _vph_3y("statement_of_financial_position", "equity_and_liabilities", "current_liabilities", "total_current_liabilities")
+                _tp25, _tp24, _tp23 = _vph_3y("statement_of_financial_position", "equity_and_liabilities", "current_liabilities", "trade_and_other_payables")
+                _prov25, _prov24, _prov23 = _vph_3y("statement_of_financial_position", "equity_and_liabilities", "current_liabilities", "provisions")
+                _bo25, _bo24, _bo23 = _vph_3y("statement_of_financial_position", "equity_and_liabilities", "current_liabilities", "bank_overdraft")
+                _bs_data = [
+                    ("**Non-Current Assets**", "", "", ""),
+                    ("Investment property", _fmtr(_ip25), _fmtr(_ip24), _fmtr(_ip23)),
+                    ("Loans to group / other financial", _fmtr(_vph_3y("statement_of_financial_position", "assets", "non_current_assets", "loans_to_group_companies")[0]),
+                     _fmtr(_vph_3y("statement_of_financial_position", "assets", "non_current_assets", "loans_to_group_companies")[1]),
+                     _fmtr(_vph_3y("statement_of_financial_position", "assets", "non_current_assets", "loans_to_group_companies")[2])),
+                    ("**Total non-current assets**", f"**{_fmtr(_nca25)}**", f"**{_fmtr(_nca24)}**", f"**{_fmtr(_nca23)}**"),
+                    ("**Current Assets**", "", "", ""),
+                    ("Trade & other receivables", _fmtr(_tr25), _fmtr(_tr24), _fmtr(_tr23)),
+                    ("Cash & cash equivalents", _fmtr(_cash25), _fmtr(_cash24), _fmtr(_cash23)),
+                    ("**Total Assets**", f"**{_fmtr(_ta25)}**", f"**{_fmtr(_ta24)}**", f"**{_fmtr(_ta23)}**"),
+                    ("", "", "", ""),
+                    ("**Equity**", "", "", ""),
+                    ("Share capital + Accumulated profit", _fmtr(_vph_3y("statement_of_financial_position", "equity_and_liabilities", "equity", "total_attributable_to_equity_holders")[0]),
+                     _fmtr(_vph_3y("statement_of_financial_position", "equity_and_liabilities", "equity", "total_attributable_to_equity_holders")[1]),
+                     _fmtr(_vph_3y("statement_of_financial_position", "equity_and_liabilities", "equity", "total_attributable_to_equity_holders")[2])),
+                    ("Non-controlling interest", _fmtr(_nci25), _fmtr(_nci24), _fmtr(_nci23)),
+                    ("**Total Equity**", f"**{_fmtr(_eq25)}**", f"**{_fmtr(_eq24)}**", f"**{_fmtr(_eq23)}**"),
+                    ("**Non-Current Liabilities**", "", "", ""),
+                    ("Other financial liabilities", _fmtr(_debt25), _fmtr(_debt24), _fmtr(_debt23)),
+                    ("Shareholders loan", _fmtr(_vph_3y("statement_of_financial_position", "equity_and_liabilities", "non_current_liabilities", "loans_from_group_companies")[0]),
+                     _fmtr(_vph_3y("statement_of_financial_position", "equity_and_liabilities", "non_current_liabilities", "loans_from_group_companies")[1]),
+                     _fmtr(_vph_3y("statement_of_financial_position", "equity_and_liabilities", "non_current_liabilities", "loans_from_group_companies")[2])),
+                    ("Deferred tax", _fmtr(_dt25), _fmtr(_dt24), _fmtr(_dt23)),
+                    ("**Current Liabilities**", "", "", ""),
+                    ("Trade & other payables", _fmtr(_tp25), _fmtr(_tp24), _fmtr(_tp23)),
+                    ("Provisions + Bank overdraft", _fmtr((_prov25 or 0) + (_bo25 or 0)), _fmtr((_prov24 or 0) + (_bo24 or 0)), _fmtr((_prov23 or 0) + (_bo23 or 0))),
+                    ("**Total Equity & Liabilities**", f"**{_fmtr(_vph_3y('statement_of_financial_position', 'equity_and_liabilities', 'total_equity_and_liabilities')[0])}**",
+                     f"**{_fmtr(_vph_3y('statement_of_financial_position', 'equity_and_liabilities', 'total_equity_and_liabilities')[1])}**",
+                     f"**{_fmtr(_vph_3y('statement_of_financial_position', 'equity_and_liabilities', 'total_equity_and_liabilities')[2])}**"),
+                ]
+                _render_fin_table(_bs_data, ["Line Item", "FY2025", "FY2024", "FY2023"])
+            with _pl_tab:
+                _oi25, _oi24, _oi23 = _vph_3y("statement_of_comprehensive_income", "income_statement", "other_income")
+                _ox25, _ox24, _ox23 = _vph_3y("statement_of_comprehensive_income", "income_statement", "operating_expenses")
+                _ii25, _ii24, _ii23 = _vph_3y("statement_of_comprehensive_income", "income_statement", "investment_revenue")
+                _pbt25, _pbt24, _pbt23 = _vph_3y("statement_of_comprehensive_income", "income_statement", "profit_loss_before_taxation")
+                _tax25, _tax24, _tax23 = _vph_3y("statement_of_comprehensive_income", "income_statement", "taxation")
+                _pl_data = [
+                    ("Revenue", _fmtr(_rev25), _fmtr(_rev24), _fmtr(_rev23)),
+                    ("Other income (incl. FV)", _fmtr(_oi25), _fmtr(_oi24), _fmtr(_oi23)),
+                    ("Operating expenses", _fmtr(_ox25), _fmtr(_ox24), _fmtr(_ox23)),
+                    ("**EBITDA**", f"**{_fmtr(_eb25)}**", f"**{_fmtr(_eb24)}**", f"**{_fmtr(_eb23)}**"),
+                    ("Operating profit", _fmtr(_eb25), _fmtr(_eb24), _fmtr(_eb23)),
+                    ("Investment revenue", _fmtr(_ii25), _fmtr(_ii24), _fmtr(_ii23)),
+                    ("Finance costs", _fmtr(_fc25), _fmtr(_fc24), _fmtr(_fc23)),
+                    ("PBT", _fmtr(_pbt25), _fmtr(_pbt24), _fmtr(_pbt23)),
+                    ("Taxation", _fmtr(_tax25), _fmtr(_tax24), _fmtr(_tax23)),
+                    ("**Profit/(Loss)**", f"**{_fmtr(_pat25)}**", f"**{_fmtr(_pat24)}**", f"**{_fmtr(_pat23)}**"),
+                ]
+                _render_fin_table(_pl_data, ["Line Item", "FY2025", "FY2024", "FY2023"])
+            with _cf_tab:
+                _cfo25, _cfo24, _cfo23 = _vph_3y("statement_of_cash_flows", "operating_activities", "cash_generated_from_operations")
+                _iii25, _iii24, _iii23 = _vph_3y("statement_of_cash_flows", "operating_activities", "interest_income")
+                _fcp25, _fcp24, _fcp23 = _vph_3y("statement_of_cash_flows", "operating_activities", "finance_costs")
+                _nop25, _nop24, _nop23 = _vph_3y("statement_of_cash_flows", "operating_activities", "net_cash_from_operating_activities")
+                _pip25, _pip24, _pip23 = _vph_3y("statement_of_cash_flows", "investing_activities", "purchase_of_investment_property")
+                _ps25, _ps24, _ps23 = _vph_3y("statement_of_cash_flows", "investing_activities", "proceeds_from_sale_of_investment_property")
+                _ni25, _ni24, _ni23 = _vph_3y("statement_of_cash_flows", "investing_activities", "net_cash_from_investing_activities")
+                _nml25, _nml24, _nml23 = _vph_3y("statement_of_cash_flows", "financing_activities", "net_movement_on_loans_from_group_companies")
+                _ncm25, _ncm24, _ncm23 = _vph_3y("statement_of_cash_flows", "summary", "total_cash_movement_for_the_year")
+                _cf_data = [
+                    ("Cash from operations", _fmtr(_cfo25), _fmtr(_cfo24), _fmtr(_cfo23)),
+                    ("Interest income", _fmtr(_iii25), _fmtr(_iii24), _fmtr(_iii23)),
+                    ("Finance costs paid", _fmtr(_fcp25), _fmtr(_fcp24), _fmtr(_fcp23)),
+                    ("**Net operating**", f"**{_fmtr(_nop25)}**", f"**{_fmtr(_nop24)}**", f"**{_fmtr(_nop23)}**"),
+                    ("Purchase of inv property", _fmtr(_pip25), _fmtr(_pip24), _fmtr(_pip23)),
+                    ("Proceeds from sale", _fmtr(_ps25), _fmtr(_ps24), _fmtr(_ps23)),
+                    ("**Net investing**", f"**{_fmtr(_ni25)}**", f"**{_fmtr(_ni24)}**", f"**{_fmtr(_ni23)}**"),
+                    ("Net movement loans", _fmtr(_nml25), _fmtr(_nml24), _fmtr(_nml23)),
+                    ("**Net cash movement**", f"**{_fmtr(_ncm25)}**", f"**{_fmtr(_ncm24)}**", f"**{_fmtr(_ncm23)}**"),
+                ]
+                _render_fin_table(_cf_data, ["Line Item", "FY2025", "FY2024", "FY2023"])
+
+            # Subsidiary financial summary + toggles
+            if _ver_subs:
+                st.divider()
+                st.subheader(f"Subsidiary Company Financials ({len(_ver_subs)} entities)")
+                _render_sub_summary_and_toggles(_ver_subs, "ver_summ", mgmt_dict=_ver_mgmt, guar_lookup=_guar_entity_lookup)
+
+        # --- Sub-tab 3: Entity Factsheets ---
+        with _v_sub3:
+            st.subheader(f"Veracity Entity Factsheets ({len(_ver_subs)} entities)")
+            st.caption("Each entity with quick facts, flags, and financial statements. Sorted by total assets descending.")
+            if _ver_subs:
+                _render_entity_factsheets_tab(_ver_subs, "ver_fs", mgmt_dict=_ver_mgmt, guar_lookup=_guar_entity_lookup)
+            else:
+                st.warning("No structured entity JSONs found.")
+
+        # --- Sub-tab 4: Management Accounts ---
+        with _v_sub4:
+            st.subheader("Management Accounts — Veracity Group (Dec 2025)")
+            _render_mgmt_accounts_tab("veracity", _ver_subs)
+
+        # --- Sub-tab 5: Data Tracker ---
+        with _v_sub5:
+            st.subheader("Data Availability Tracker — Veracity Group")
+            _render_data_tracker("veracity", _ver_subs, _ver_mgmt, _guar_cfg_ga)
+
+        # Email Q&A (below tabs, in Veracity section)
+        if _guar_cfg_ga:
+            st.divider()
+            _render_email_qa(_guar_cfg_ga)
 
     # ================================================================
     # TAB 2: VH Properties / Phoenix Group (TWX Guarantor)
     # ================================================================
     with _ga_tab2:
-        st.subheader("VH Properties / Phoenix Group")
-        st.caption("TWX Guarantor — Guarantee amount: EUR 2,032,571 (R40.7M at FX 20)")
-        st.markdown("**Structure:** VH Properties holds 40% in Phoenix Group, which owns 100% of the underlying retail centre assets.")
+        _p_sub1, _p_sub2, _p_sub3, _p_sub4, _p_sub5, _p_sub6 = st.tabs([
+            "Overview & ECA Rating",
+            "Financials (3yr)",
+            "Entity Factsheets",
+            "Mgmt Accounts (Dec'25)",
+            "Data Tracker",
+            "Valuations & Reports",
+        ])
 
-        _phx_subs = _load_guarantor_jsons("Phoenix group")
         _twx_ic_zar2 = 2_032_571 * FX_RATE
 
         # Compute group EBITDA from individual property JSONs
@@ -15650,74 +18177,72 @@ FY2024 was profitable (R15.3M PAT with R29M fair value gains), but FY2025 swung 
             _phx_total_ebitda += p_ebitda
             _phx_total_attr += p_attr
 
-        _p1, _p2, _p3 = st.columns(3)
-        _p1.metric("Group EBITDA", _fmtr(_phx_total_ebitda, millions=True))
-        _p2.metric("Attributable", _fmtr(_phx_total_attr, millions=True))
-        _cov = (_phx_total_attr * 2 / _twx_ic_zar2) if _twx_ic_zar2 > 0 else 0
-        _p3.metric("2yr Coverage", f"{_cov:.2f}x")
+        # --- Sub-tab 1: Overview & ECA Rating ---
+        with _p_sub1:
+            st.subheader("VH Properties / Phoenix Group")
+            st.caption("TWX Guarantor — Guarantee amount: EUR 2,032,571 (R40.7M at FX 20)")
+            st.markdown("**Structure:** VH Properties holds 40% in Phoenix Group, which owns 100% of the underlying retail centre assets.")
 
-        st.divider()
-        st.subheader("Property-Level EBITDA (from AFS)")
-        _phx_rows = [
-            (p, _fmtr(npl), _fmtr(fc), _fmtr(eb), f"{ow:.0%}", _fmtr(att))
-            for p, npl, fc, eb, ow, att in _phx_detail
-        ] + [("**Total**", "", "", f"**{_fmtr(_phx_total_ebitda)}**", "", f"**{_fmtr(_phx_total_attr)}**")]
-        _render_fin_table(_phx_rows, ["Property", "PAT (R)", "Finance (R)", "EBITDA (R)", "Own %", "Attributable (R)"])
-        st.caption("Computed from individual entity AFS structured JSONs")
+            _p1, _p2, _p3 = st.columns(3)
+            _p1.metric("Group EBITDA", _fmtr(_phx_total_ebitda, millions=True))
+            _p2.metric("Attributable", _fmtr(_phx_total_attr, millions=True))
+            _cov = (_phx_total_attr * 2 / _twx_ic_zar2) if _twx_ic_zar2 > 0 else 0
+            _p3.metric("2yr Coverage", f"{_cov:.2f}x")
 
-        st.divider()
-        # ECA Rating — computed from actual data
-        _phx_total_assets = sum(_gval(_phx_subs.get(k, {}).get("statement_of_financial_position", {}), "assets", "total_assets") or 0 for k in _phx_opco_keys)
-        _phx_total_equity = sum(_gval(_phx_subs.get(k, {}).get("statement_of_financial_position", {}), "equity_and_liabilities", "equity", "total_equity") or 0 for k in _phx_opco_keys)
-        _phx_total_debt = sum(
-            (_gval(_phx_subs.get(k, {}).get("statement_of_financial_position", {}), "equity_and_liabilities", "non_current_liabilities", "other_financial_liabilities") or 0)
-            for k in _phx_opco_keys)
-        _phx_total_rev = sum(_gval(_phx_subs.get(k, {}).get("statement_of_comprehensive_income", {}), "revenue") or 0 for k in _phx_opco_keys)
-        _phx_de = abs(_phx_total_debt / _phx_total_equity) if _phx_total_equity != 0 else float('inf')
-        _phx_debt_ebitda = _phx_total_debt / _phx_total_ebitda if _phx_total_ebitda > 0 else float('inf')
-        _phx_nw_guar = _phx_total_equity / _twx_ic_zar2 if _twx_ic_zar2 > 0 else 0
-
-        st.subheader("ECA Rating")
-        _phx_rating = [
-            ("Credit rating", "Unrated", "Marginal"),
-            ("Net worth vs guarantee", f"{_phx_nw_guar:.2f}x ({_fmtr(_phx_total_equity, True)} / R{_twx_ic_zar2/1e6:.1f}M)", "Marginal" if _phx_nw_guar < 1.5 else "Acceptable"),
-            ("Debt/Equity", f"{_phx_de:.1f}x", "Marginal" if _phx_de > 4 else "Acceptable"),
-            ("Total debt/EBITDA", f"{_phx_debt_ebitda:.1f}x", "Marginal" if _phx_debt_ebitda > 5 else "Acceptable"),
-            ("Revenue (group)", _fmtr(_phx_total_rev, True), "Acceptable"),
-            ("Total assets (group)", _fmtr(_phx_total_assets, True), "Acceptable"),
-            ("Profitability", f"EBITDA {_fmtr(_phx_total_ebitda, True)}", "Acceptable"),
-        ]
-        _render_fin_table(_phx_rating, ["Metric", "Phoenix Group Value", "Rating"])
-        _marginal_n = sum(1 for _, _, r in _phx_rating if "Marginal" in r)
-        if _marginal_n >= 4:
-            st.warning(f"**Overall: Marginal** — {_marginal_n}/{len(_phx_rating)} metrics below acceptable.")
-        elif _marginal_n >= 2:
-            st.info(f"**Overall: Acceptable (with caveats)** — {_marginal_n}/{len(_phx_rating)} metrics marginal.")
-        else:
-            st.success(f"**Overall: Acceptable** — {len(_phx_rating) - _marginal_n}/{len(_phx_rating)} acceptable or strong.")
-
-        with st.expander("Guarantee Capacity Analysis", expanded=True):
-            _gc_data = [
-                ("Phoenix Group EBITDA", "", _fmtr(_phx_total_ebitda)),
-                ("Attributable (mixed ownership)", "", f"**{_fmtr(_phx_total_attr)}**"),
-                ("2-year cash generation", "x 2", f"**{_fmtr(_phx_total_attr * 2)}**"),
-                ("TWX IC loan (EUR)", "", "EUR 2,032,571"),
-                ("TWX IC loan (ZAR)", "", _fmtr(_twx_ic_zar2)),
-                ("**Coverage ratio**", "", f"**{_cov:.2f}x**"),
-            ]
-            _render_fin_table(_gc_data, ["Step", "Factor", "Value"])
-
-        # ── Phoenix Group Subsidiary Financials (nested, from L4 JSONs) ──
-        _phx_group_ga = _guar_cfg_ga.get("groups", {}).get("phoenix", {})
-        _phx_holding_ga = _phx_group_ga.get("holding", {})
-        if _phx_subs:
             st.divider()
-            st.subheader(f"Subsidiary Company Financials ({len(_phx_subs)} entities)")
-            _render_sub_summary_and_toggles(_phx_subs, "phx_summ")
+            st.subheader("Property-Level EBITDA (from AFS)")
+            _phx_rows = [
+                (p, _fmtr(npl), _fmtr(fc), _fmtr(eb), f"{ow:.0%}", _fmtr(att))
+                for p, npl, fc, eb, ow, att in _phx_detail
+            ] + [("**Total**", "", "", f"**{_fmtr(_phx_total_ebitda)}**", "", f"**{_fmtr(_phx_total_attr)}**")]
+            _render_fin_table(_phx_rows, ["Property", "PAT (R)", "Finance (R)", "EBITDA (R)", "Own %", "Attributable (R)"])
+            st.caption("Computed from individual entity AFS structured JSONs")
 
-        st.divider()
-        st.subheader("ECA View")
-        st.success("""
+            st.divider()
+            # ECA Rating — computed from actual data
+            _phx_total_assets = sum(_gval(_phx_subs.get(k, {}).get("statement_of_financial_position", {}), "assets", "total_assets") or 0 for k in _phx_opco_keys)
+            _phx_total_equity = sum(_gval(_phx_subs.get(k, {}).get("statement_of_financial_position", {}), "equity_and_liabilities", "equity", "total_equity") or 0 for k in _phx_opco_keys)
+            _phx_total_debt = sum(
+                (_gval(_phx_subs.get(k, {}).get("statement_of_financial_position", {}), "equity_and_liabilities", "non_current_liabilities", "other_financial_liabilities") or 0)
+                for k in _phx_opco_keys)
+            _phx_total_rev = sum(_gval(_phx_subs.get(k, {}).get("statement_of_comprehensive_income", {}), "revenue") or 0 for k in _phx_opco_keys)
+            _phx_de = abs(_phx_total_debt / _phx_total_equity) if _phx_total_equity != 0 else float('inf')
+            _phx_debt_ebitda = _phx_total_debt / _phx_total_ebitda if _phx_total_ebitda > 0 else float('inf')
+            _phx_nw_guar = _phx_total_equity / _twx_ic_zar2 if _twx_ic_zar2 > 0 else 0
+
+            st.subheader("ECA Rating")
+            _phx_rating = [
+                ("Credit rating", "Unrated", "Marginal"),
+                ("Net worth vs guarantee", f"{_phx_nw_guar:.2f}x ({_fmtr(_phx_total_equity, True)} / R{_twx_ic_zar2/1e6:.1f}M)", "Marginal" if _phx_nw_guar < 1.5 else "Acceptable"),
+                ("Debt/Equity", f"{_phx_de:.1f}x", "Marginal" if _phx_de > 4 else "Acceptable"),
+                ("Total debt/EBITDA", f"{_phx_debt_ebitda:.1f}x", "Marginal" if _phx_debt_ebitda > 5 else "Acceptable"),
+                ("Revenue (group)", _fmtr(_phx_total_rev, True), "Acceptable"),
+                ("Total assets (group)", _fmtr(_phx_total_assets, True), "Acceptable"),
+                ("Profitability", f"EBITDA {_fmtr(_phx_total_ebitda, True)}", "Acceptable"),
+            ]
+            _render_fin_table(_phx_rating, ["Metric", "Phoenix Group Value", "Rating"])
+            _marginal_n = sum(1 for _, _, r in _phx_rating if "Marginal" in r)
+            if _marginal_n >= 4:
+                st.warning(f"**Overall: Marginal** — {_marginal_n}/{len(_phx_rating)} metrics below acceptable.")
+            elif _marginal_n >= 2:
+                st.info(f"**Overall: Acceptable (with caveats)** — {_marginal_n}/{len(_phx_rating)} metrics marginal.")
+            else:
+                st.success(f"**Overall: Acceptable** — {len(_phx_rating) - _marginal_n}/{len(_phx_rating)} acceptable or strong.")
+
+            with st.expander("Guarantee Capacity Analysis", expanded=True):
+                _gc_data = [
+                    ("Phoenix Group EBITDA", "", _fmtr(_phx_total_ebitda)),
+                    ("Attributable (mixed ownership)", "", f"**{_fmtr(_phx_total_attr)}**"),
+                    ("2-year cash generation", "x 2", f"**{_fmtr(_phx_total_attr * 2)}**"),
+                    ("TWX IC loan (EUR)", "", "EUR 2,032,571"),
+                    ("TWX IC loan (ZAR)", "", _fmtr(_twx_ic_zar2)),
+                    ("**Coverage ratio**", "", f"**{_cov:.2f}x**"),
+                ]
+                _render_fin_table(_gc_data, ["Step", "Factor", "Value"])
+
+            st.divider()
+            st.subheader("ECA View")
+            st.success("""
 **Credible but lean guarantor** for TWX. Coverage on 2-year attributable EBITDA is acceptable.
 
 **Strengths:** (1) Small guarantee quantum (EUR 2.03M), (2) Recurring retail income from 6 convenience centres,
@@ -15727,6 +18252,124 @@ FY2024 was profitable (R15.3M PAT with R29M fair value gains), but FY2025 swung 
 (3) High leverage across the group, (4) Fedgroup is a common lender across both Veracity and Phoenix groups.
 
 **Full subsidiary AFS now available** — 11 entity-level reviewed financial statements loaded above.
+""")
+
+        # --- Sub-tab 2: Financials (3yr) ---
+        with _p_sub2:
+            st.subheader("Phoenix Group Subsidiary Financials")
+            if _phx_subs:
+                st.subheader(f"Subsidiary Company Financials ({len(_phx_subs)} entities)")
+                _render_sub_summary_and_toggles(_phx_subs, "phx_summ", mgmt_dict=_phx_mgmt, guar_lookup=_guar_entity_lookup)
+            else:
+                st.warning("No Phoenix group structured JSONs found.")
+
+        # --- Sub-tab 3: Entity Factsheets ---
+        with _p_sub3:
+            st.subheader(f"Phoenix Entity Factsheets ({len(_phx_subs)} entities)")
+            st.caption("Each entity with quick facts, flags, and financial statements. Sorted by total assets descending.")
+            if _phx_subs:
+                _render_entity_factsheets_tab(_phx_subs, "phx_fs", mgmt_dict=_phx_mgmt, guar_lookup=_guar_entity_lookup)
+            else:
+                st.warning("No structured entity JSONs found.")
+
+        # --- Sub-tab 4: Management Accounts ---
+        with _p_sub4:
+            st.subheader("Management Accounts — Phoenix Group (Dec 2025)")
+            _render_mgmt_accounts_tab("phoenix", _phx_subs)
+
+        # --- Sub-tab 5: Data Tracker ---
+        with _p_sub5:
+            st.subheader("Data Availability Tracker — Phoenix Group")
+            _render_data_tracker("phoenix", _phx_subs, _phx_mgmt, _guar_cfg_ga)
+
+        # --- Sub-tab 6: Valuations & Reports ---
+        with _p_sub6:
+            _render_valuations_placeholder()
+
+    # ================================================================
+    # TAB 3: Outstanding Items & Risks (top-level visibility)
+    # ================================================================
+    with _ga_tab3:
+        st.subheader("Combined Data Availability Matrix")
+        st.markdown("Both guarantor groups combined — overview for ECA specialist.")
+
+        _inv_rows = [
+            ("**VERACITY GROUP**", "", "", "", "", "", "", ""),
+            ("VPH Consolidated", "YES", "YES", "YES (simul.)", f"{'YES' if _ver_mgmt else 'MISSING'}", "N/A", "N/A", "Reviewed"),
+            ("Aquaside Trading", "YES (2yr)", "in consol", "—", "YES" if any("Aquaside" in k for k in _ver_mgmt) else "MISSING", "N/A", "N/A", "Reviewed"),
+            ("BBP Unit 1 Phase II", "YES (2yr)", "in consol", "—", "MISSING", "N/A", "N/A", "Compiled"),
+            ("Cornerstone Property (HoldCo)", "YES (2yr)", "in consol", "—", "MISSING", "N/A", "N/A", "Reviewed"),
+            ("Ireo Project 10 / Chepstow", "YES (2yr)", "in consol", "—", "MISSING", "N/A", "N/A", "Audited"),
+            ("Mistraline", "YES (2yr)", "in consol", "—", "YES" if any("Mistraline" in k for k in _ver_mgmt) else "MISSING", "N/A", "N/A", "Reviewed"),
+            ("Erf 86 Longmeadow", "YES (2yr)", "in consol", "—", "YES" if any("Erf86" in k or "Longmeadow" in k for k in _ver_mgmt) else "MISSING", "N/A", "N/A", "Reviewed"),
+            ("Providence Property", "YES (2yr)", "in consol", "—", "YES" if any("Providence" in k for k in _ver_mgmt) else "MISSING", "N/A", "N/A", "Reviewed"),
+            ("Uvongo Falls No 26 [GC]", "YES (2yr)", "in consol", "—", "MISSING", "N/A", "N/A", "Reviewed"),
+            ("Sun Property [-ve]", "YES (2yr)", "in consol", "—", "MISSING", "N/A", "N/A", "Reviewed"),
+            ("6 On Kloof (associate)", "YES (2yr)", "in consol", "—", "MISSING", "N/A", "N/A", "Audited"),
+            ("Manappu Investments (associate)", "**MISSING**", "**MISSING**", "—", "MISSING", "N/A", "N/A", "—"),
+            ("VPI (sibling, dev assets)", "**MISSING**", "**MISSING**", "—", "MISSING", "N/A", "N/A", "—"),
+            ("VI (sibling, divestments)", "**MISSING**", "**MISSING**", "—", "MISSING", "N/A", "N/A", "—"),
+            ("VHIT (Trust)", "**MISSING**", "**MISSING**", "—", "MISSING", "N/A", "N/A", "—"),
+            ("", "", "", "", "", "", "", ""),
+            ("**PHOENIX GROUP**", "", "", "", "", "", "", ""),
+            ("VH Properties (Pty) Ltd", "**MISSING**", "**MISSING**", "**MISSING**", "MISSING", "N/A", "N/A", "—"),
+            ("Phoenix Specialist (dormant)", "YES (2yr)", "—", "—", "—", "N/A", "N/A", "Reviewed"),
+            ("Phoenix Prop Fund SA (HoldCo)", "YES (2yr)", "—", "—", "—", "N/A", "N/A", "Reviewed"),
+            ("Ridgeview Centre [GC, -ve]", "YES (2yr)", "—", "—", "YES" if any("Ridgeview" in k for k in _phx_mgmt) else "MISSING", "**MISSING**", "**MISSING**", "Reviewed"),
+            ("Brackenfell Corner [-ve]", "YES (2yr)", "—", "—", "YES" if any("Brackenfell" in k for k in _phx_mgmt) else "MISSING", "**MISSING**", "**MISSING**", "Reviewed"),
+            ("Chartwell Corner [GC, -ve]", "YES (2yr)", "—", "—", "YES" if any("ChartwellCorner" in k for k in _phx_mgmt) else "MISSING", "**MISSING**", "**MISSING**", "Reviewed"),
+            ("Jukskei Meander", "YES (2yr)", "—", "—", "YES" if any("Jukskei" in k for k in _phx_mgmt) else "MISSING", "**MISSING**", "**MISSING**", "Reviewed"),
+            ("Olivedale Corner [-ve]", "YES (2yr)", "—", "—", "YES" if any("Olivedale" in k for k in _phx_mgmt) else "MISSING", "**MISSING**", "**MISSING**", "Reviewed"),
+            ("Madelief Shopping Centre", "YES (2yr)", "—", "—", "YES" if any("MADELIEF" in k or "Madelief" in k for k in _phx_mgmt) else "MISSING", "**MISSING**", "**MISSING**", "Reviewed"),
+            ("PRAAM (Asset Mgmt)", "YES (2yr)", "—", "—", "YES" if any("PRAAM" in k for k in _phx_mgmt) else "MISSING", "N/A", "N/A", "Reviewed"),
+            ("Renovo Property Fund (HoldCo)", "YES (2yr)", "—", "—", "—", "N/A", "N/A", "Reviewed"),
+            ("Chartwell Co-Owner (pass-thru)", "YES (2yr)", "—", "—", "YES" if any("ChartwellCoOwner" in k for k in _phx_mgmt) else "—", "N/A", "N/A", "Reviewed"),
+            ("Silva Terrace (50%)", "**MISSING**", "**MISSING**", "—", "—", "N/A", "N/A", "—"),
+            ("Trillium Holdings 1", "**MISSING**", "**MISSING**", "**MISSING**", "—", "N/A", "N/A", "—"),
+        ]
+        _render_fin_table(_inv_rows, ["Entity", "FY2025", "FY2024", "FY2023", "Mgmt Accts", "Valuation", "Broll Report", "AFS Type"])
+        st.caption("YES (2yr) = current + prior year in same document. 'in consol' = prior year visible in VPH consolidated. "
+                   "Valuation = independent property valuation. Broll = Broll Property Group asset manager report.")
+
+        st.divider()
+        st.subheader("Outstanding Items for Mark van Houten")
+        _oi_rows = [
+            ("1", "VH Properties 3yr audited AFS", "CRITICAL", "TWX guarantor entity — zero financials", "Mark vH"),
+            ("2", "VHIT Trust deed + financials", "CRITICAL", "ECA KYC/compliance — UBO documentation", "Mark vH"),
+            ("3", "VPH Management Accounts (post Feb 2025)", "HIGH", "Mark said 'mid March 2025' — now received (Dec 2025)", "Mark vH / KCE"),
+            ("4", "Phoenix Group consolidated AFS", "HIGH", "No group-level consolidation exists", "Mark vH / KCE"),
+            ("5", "VPI (sibling) financials", "MEDIUM", "Development assets entity, may need for trust picture", "Mark vH / KCE"),
+            ("6", "VI (sibling) financials", "MEDIUM", "Divestment entity, may need for trust picture", "Mark vH / KCE"),
+            ("7", "Manappu Investments AFS", "MEDIUM", "Providence sub (20%), 50 properties in Tyrwhitt", "Mark vH / KCE"),
+            ("8", "Silva Terrace AFS", "MEDIUM", "Phoenix sub (50%), no financials at all", "Mark vH / KCE"),
+            ("9", "Trillium Holdings 1 financials", "MEDIUM", "Co-shareholder of Phoenix Specialist + Renovo", "Mark vH"),
+            ("10", "Management commentary / write-ups", "HIGH", "Business description, strategy per entity", "Mark vH"),
+            ("11", "ECA KYC documents", "MEDIUM", "Robbert flagged — needed for due diligence phase", "Mark vH"),
+            ("12", "Digital organogram (formal)", "LOW", "Binary .docx exists — needs clean version", "NexusNovus"),
+            ("13", "Independent property valuations (Phoenix)", "HIGH", "Broll / third-party for 6 retail centres", "Mark vH"),
+            ("14", "Broll asset manager reports", "HIGH", "Occupancy, rental rolls, arrears data", "Mark vH"),
+        ]
+        _render_fin_table(_oi_rows, ["#", "Item", "Priority", "Notes", "Owner"])
+
+        st.divider()
+        st.subheader("Key Risks & Cross-References")
+        st.error("""
+**Correlated Guarantor Risk:** Mark van Houten provides guarantees from two of his own entities
+(VPH for NWL, VH Properties/Phoenix for TWX) for two different subsidiaries in the same SCLCA transaction.
+If Mark faces financial distress, both guarantees fail simultaneously.
+""")
+        st.warning("""
+**Cross-ownership:** Renovo Property Fund (Phoenix Group) lists "Veracity Property Investments" as a shareholder.
+This creates a financial link between the two guarantor groups that must be disclosed to the ECA.
+""")
+        st.info("""
+**Email thread summary (Feb-Mar 2025, Robbert Zappeij / Mark van Houten):**
+- VPH confirmed as NWL guarantor (was initially VI, restructured due to weak financials)
+- VHIT = VPH + VPI + VI only — no other entities under the trust
+- VPH/VPI/VI are financially and operationally independent (Mark confirmed)
+- Robbert specifically wants to control the narrative to Atradius — provide the ECA image, don't let them draw their own conclusions
+- Simulated FY2023 consolidation for VPH provided (based on pre-restructure entity AFS)
+- Mark committed to management accounts "mid March 2025", group AFS "mid April", consolidated "end April"
 """)
 
 # ============================================================
