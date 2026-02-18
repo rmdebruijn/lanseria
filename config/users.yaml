@@ -45,6 +45,7 @@ credentials:
         - '*'
         mgmt_pages:
         - '*'
+        - Partnerships
         tabs:
         - '*'
         - Pipeline
@@ -109,6 +110,22 @@ credentials:
         - Strategy
         - Tasks
         - CP & CS
+        tabs:
+        - '*'
+      roles:
+      - promotor_opco
+    lizelle:
+      email: L.Joubert@nexusnovus.com
+      first_name: Lizelle
+      last_name: Joubert
+      password: $2b$12$vfbfOGv8R5quGMzpt0bDE.v0cnKx1Tg8NtCpaVhaAFm4wKEOK0TUm
+      permissions:
+        can_manage_users: false
+        entities:
+        - '*'
+        mgmt_pages:
+        - '*'
+        - Partnerships
         tabs:
         - '*'
       roles:

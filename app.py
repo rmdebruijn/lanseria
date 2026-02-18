@@ -712,7 +712,7 @@ _roles_config = _load_roles()
 
 ALL_ENTITIES = _roles_config['entities']
 ALL_TABS = _roles_config['tabs']
-ALL_MGMT_PAGES = ["Summary", "Strategy", "Tasks", "CP & CS", "Guarantor Analysis"]
+ALL_MGMT_PAGES = ["Summary", "Strategy", "Tasks", "CP & CS", "Guarantor Analysis", "Partnerships"]
 
 def get_user_role(username: str, auth_config: dict) -> str:
     """Get the first role from a user's roles list."""
@@ -782,11 +782,27 @@ def get_can_manage(username: str, auth_config: dict) -> bool:
     return perms.get('can_manage_users', False)
 
 def get_allowed_mgmt_pages(username: str, auth_config: dict) -> list:
-    """Return list of management page names this user can access."""
+    """Return list of management page names this user can access.
+
+    Partnerships is a restricted mgmt page — not included in the '*' wildcard.
+    It must be explicitly listed in the user's permissions.mgmt_pages or granted via admin role.
+    """
+    _RESTRICTED_MGMT = {"Partnerships"}
     perms = _get_user_permissions(username, auth_config)
+    role = get_user_role(username, auth_config)
     pages = perms.get('mgmt_pages', ['*'])
     if '*' in pages:
-        return list(ALL_MGMT_PAGES)
+        result = [p for p in ALL_MGMT_PAGES if p not in _RESTRICTED_MGMT]
+        # Admins get restricted mgmt pages automatically
+        if role == 'admin':
+            for rp in _RESTRICTED_MGMT:
+                if rp not in result:
+                    result.append(rp)
+        # Explicit restricted pages alongside '*' (e.g. ['*', 'Partnerships'])
+        for p in pages:
+            if p in _RESTRICTED_MGMT and p not in result:
+                result.append(p)
+        return result
     return [p for p in ALL_MGMT_PAGES if p in pages]
 
 def filter_tabs(all_tab_names: list, allowed: list) -> list:
@@ -11067,6 +11083,7 @@ _MGMT_NAV_ALL = [
     ("Tasks", ":material/task_alt:"),
     ("CP & CS", ":material/assignment_turned_in:"),
     ("Guarantor Analysis", ":material/verified_user:"),
+    ("Partnerships", ":material/handshake:"),
 ]
 _mgmt_items = [(n, ic) for n, ic in _MGMT_NAV_ALL if n in _allowed_mgmt]
 if _can_manage:
@@ -17910,6 +17927,27 @@ NexusNovus Holdings can be formally introduced via the contractual substitution 
     if _twx_own_svg.exists():
         st.image(str(_twx_own_svg), use_container_width=True)
 
+    st.divider()
+
+    st.subheader("Frontier Funding — Partner Architecture")
+    st.markdown("""
+**Three partners** carry the Frontier Funding chain in sequenced, bounded layers:
+
+| Partner | Primary Scope | Layer | Key Instruments |
+|---------|--------------|-------|----------------|
+| **Philip** | Technology & Exporter Pre-Selection, Subsidy Access | Upstream | Vendor structuring, exporter-of-record, Nordic/Swedish pipeline (Hannah as sub-agent) |
+| **Carl / Terayon** | First-Loss, Equity/Mezz, Underwriting/Swap | Layer A + B | Corporate guarantees, PE cash-backed guarantees, captive cell insurance, CCS, underwriting |
+| **Robbert** | ECA Packaging & Credit Conversion | Layer B + C | Captive ECA integrator, country specialists, pan-European banking network |
+
+**Active mandates (Carl):**
+- **NWL** — Cross Currency Swap (~EUR 2M) against books of Veracity as guarantor
+- **LanRED** — CCS (~EUR 3M) against PPA (brownfield) OR underwriting (greenfield)
+
+**Fee architecture:** Three formula families — Fixed-Rate (equity 5%, mezz 4%, debt 3%), Root-Curve (guarantees A=63 calibrated to ~2% at EUR 10M), Repeat-Decay (origination 2%, tech 1%). Slab waterfall for FF layers. All retainers creditable. No equity conversion on lease projects.
+
+**Contract status:** Master Partnership Agreement + base templates complete. Partner-specific annex sets generated for all three. See **Partnerships** management page for full documents.
+""")
+
 # ============================================================
 # MANAGEMENT — TASKS
 # ============================================================
@@ -19002,6 +19040,70 @@ elif entity == "Users" and _can_manage:
                     with st.expander(f"{len(_no_access)} users without access"):
                         for _nu, _nr in _no_access:
                             st.caption(f"{_nu} ({_nr['name']}) — {_nr['role']}")
+
+# ============================================================
+# MANAGEMENT — PARTNERSHIPS
+# ============================================================
+elif entity == "Partnerships":
+    st.header("Partnership Contracts")
+    st.markdown("Master Partnership Agreement, base templates, and partner-specific annex sets. "
+                "Documents are maintained in `Structure/Partnerships/` and symlinked here.")
+
+    _partnerships_dir = Path(__file__).parent / "content" / "partnerships"
+
+    @st.cache_data(ttl=60)
+    def _load_partnership_md(filename: str) -> str:
+        """Load a markdown file from the partnerships directory."""
+        fp = _partnerships_dir / filename
+        if fp.exists():
+            return fp.read_text(encoding="utf-8")
+        return f"*File not found: {filename}*"
+
+    # --- MPA Template (base contract + all base annexes) ---
+    st.subheader("Contract Templates")
+
+    with st.expander("Master Partnership Agreement (Template Pack)", expanded=False):
+        st.markdown("Base contract and annex templates — not partner-specific. "
+                    "These define the framework; partner-specific values are in the tabs below.")
+
+        with st.expander("Internal: Frontier Partner Strategy", expanded=False):
+            st.warning("**INTERNAL ONLY** — Partner role allocation, charters, and cross-role rules.")
+            st.markdown(_load_partnership_md("FRONTIER_PARTNER_STRATEGY_INTERNAL.md"))
+
+        with st.expander("Agreement Body", expanded=False):
+            st.markdown(_load_partnership_md("PARTNERSHIP_CONTRACT_BODY_DRAFT.md"))
+
+        _template_files = [
+            ("Annex A — Work Scope & Fee Variables", "ANNEX_A_ROLE_FEE_TRIGGER_TEMPLATE.md"),
+            ("Annex B — Designated Transaction", "ANNEX_B_DESIGNATED_TRANSACTION_TEMPLATE.md"),
+            ("Annex C — Sub-Agent Terms", "ANNEX_C_SUBAGENT_TEMPLATE.md"),
+            ("Annex E — Equity Conversion", "ANNEX_E_EQUITY_CONVERSION_TEMPLATE.md"),
+            ("Annex R — Retainer", "ANNEX_R_RETAINER_TEMPLATE.md"),
+            ("Annex S — Specials", "ANNEX_S_SPECIALS_TEMPLATE.md"),
+        ]
+        for _tmpl_label, _tmpl_file in _template_files:
+            with st.expander(_tmpl_label, expanded=False):
+                st.markdown(_load_partnership_md(_tmpl_file))
+
+    st.divider()
+
+    # --- Partner Tabs ---
+    st.subheader("Partners")
+
+    _partner_config = [
+        ("Carl / Terayon", "CARL_TERAYON_ANNEXES.md"),
+        ("Philip", "PHILIP_ANNEXES.md"),
+        ("Robbert", "ROBBERT_ANNEXES.md"),
+    ]
+
+    _partner_tabs = st.tabs([p[0] for p in _partner_config])
+    for _pt, (_p_name, _p_annex_file) in zip(_partner_tabs, _partner_config):
+        with _pt:
+            with st.expander(f"Master Partnership Agreement — {_p_name}", expanded=False):
+                with st.expander("Agreement Body", expanded=False):
+                    st.markdown(_load_partnership_md("PARTNERSHIP_CONTRACT_BODY_DRAFT.md"))
+                with st.expander(f"Annex Set — {_p_name}", expanded=False):
+                    st.markdown(_load_partnership_md(_p_annex_file))
 
 # Footer
 st.markdown("---")
