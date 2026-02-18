@@ -748,16 +748,33 @@ def get_allowed_entities(role: str, username: str = None, auth_config: dict = No
     return [e for e in ALL_ENTITIES if e in entities]
 
 def get_allowed_tabs(role: str, username: str = None, auth_config: dict = None) -> list:
-    """Return list of tab names this user can see."""
+    """Return list of tab names this user can see.
+
+    Pipeline is a restricted tab — not included in the '*' wildcard.
+    It must be explicitly listed in the user's permissions.tabs or granted via admin role.
+    """
     if username and auth_config:
         perms = _get_user_permissions(username, auth_config)
         tabs = perms.get('tabs', ['*'])
     else:
         role_cfg = _roles_config['roles'].get(role, {})
         tabs = role_cfg.get('tabs', [])
+    # Restricted tabs: not included in '*' wildcard, must be explicitly granted
+    _RESTRICTED_TABS = {"Pipeline"}
     if '*' in tabs:
-        return list(ALL_TABS)
-    return [t for t in ALL_TABS if t in tabs]
+        result = list(ALL_TABS)
+        # Admins get restricted tabs automatically
+        if role == 'admin':
+            for rt in _RESTRICTED_TABS:
+                if rt not in result:
+                    result.append(rt)
+        # Explicit restricted tabs alongside '*' (e.g. ['*', 'Pipeline'])
+        for t in tabs:
+            if t in _RESTRICTED_TABS and t not in result:
+                result.append(t)
+        return result
+    # Explicit tab list: allow any tab in ALL_TAB_NAMES (includes Pipeline)
+    return [t for t in ALL_TAB_NAMES if t in tabs]
 
 def get_can_manage(username: str, auth_config: dict) -> bool:
     """Check if user has management permissions."""
@@ -778,7 +795,7 @@ def filter_tabs(all_tab_names: list, allowed: list) -> list:
 
 ALL_TAB_NAMES = ["Overview", "About", "Sources & Uses", "Facilities", "Assets", "Operations",
                  "P&L", "Cash Flow", "Debt Sculpting", "Balance Sheet", "Graphs", "Sensitivity",
-                 "Security", "Delivery"]
+                 "Security", "Delivery", "Pipeline"]
 
 def make_tab_map(allowed_tabs: list) -> dict:
     """Create st.tabs for visible tabs, return dict mapping tab names to tab objects."""
@@ -3115,8 +3132,9 @@ def render_subsidiary(entity_key, icon, name):
         st.title(name)
         st.caption(entity_taglines.get(entity_key, entity_data['purpose']))
 
-    # Sub-tabs (filtered by role)
-    _tab_map = make_tab_map(_allowed_tabs)
+    # Sub-tabs (filtered by role; Pipeline only for timberworx)
+    _entity_tabs = _allowed_tabs if entity_key == "timberworx" else [t for t in _allowed_tabs if t != "Pipeline"]
+    _tab_map = make_tab_map(_entity_tabs)
     if not _tab_map:
         st.warning("No tabs available for your role.")
         return
@@ -10775,6 +10793,260 @@ the project integrator and wrapper across all three delivery scopes.
                                 if _cv.get('eca_relevance'):
                                     st.caption(f"ECA: {_cv['eca_relevance']}")
 
+    # ── PIPELINE (TWX CRM-light) ──────────────────────────────
+    if entity_key == "timberworx" and "Pipeline" in _tab_map:
+        with _tab_map["Pipeline"]:
+            _render_twx_pipeline_tab()
+
+
+# ── Pipeline tab renderer ─────────────────────────────────────
+def _render_twx_pipeline_tab():
+    """CRM-light pipeline view for Timberworx sales projects."""
+    pipeline = load_config("twx_pipeline")
+    meta = pipeline["_metadata"]
+    projects = pipeline["projects"]
+    stages_list = pipeline["pipeline_stages"]
+    summary = pipeline["summary"]
+    changes = pipeline.get("recent_changes", [])
+
+    # ── Stage color map ──
+    STAGE_COLORS = {
+        "prospect":    "#8B5CF6",
+        "qualified":   "#3B82F6",
+        "costed":      "#F59E0B",
+        "committed":   "#10B981",
+        "in_progress": "#06B6D4",
+        "completed":   "#059669",
+        "on_hold":     "#6B7280",
+    }
+
+    def _stage_pill(stage_key, label=None):
+        c = STAGE_COLORS.get(stage_key, "#6B7280")
+        lbl = label or stage_key.replace("_", " ").title()
+        return f'<span style="background:{c};color:#fff;padding:2px 10px;border-radius:12px;font-size:0.78rem;font-weight:600;letter-spacing:0.02em">{lbl}</span>'
+
+    def _fmt_zar(val):
+        if val is None:
+            return "—"
+        if val >= 1_000_000:
+            return f"R {val/1_000_000:,.1f}M"
+        if val >= 1_000:
+            return f"R {val/1_000:,.0f}K"
+        return f"R {val:,.0f}"
+
+    # ── Header ──
+    st.header("Sales Pipeline")
+    st.caption(f"Last extraction: {meta['last_extraction'][:10]}  ·  {meta['total_projects']} active projects")
+
+    # ── KPI row ──
+    _k1, _k2, _k3, _k4 = st.columns(4)
+    _k1.metric("Pipeline Value (TWX)", _fmt_zar(meta["total_twx_value_zar"]))
+    _k2.metric("Total Project Value", _fmt_zar(meta["total_project_value_zar"]))
+    _k3.metric("Projected GP @30%", _fmt_zar(meta["total_gp_30pct_zar"]))
+    _k4.metric("Active Projects", str(meta["total_projects"]))
+
+    st.divider()
+
+    # ── Pipeline Funnel ──
+    with st.container(border=True):
+        st.subheader("Pipeline Funnel")
+        active_stages = [s for s in stages_list if s["count"] > 0]
+        funnel_fig = go.Figure(go.Funnel(
+            y=[s["label"] for s in active_stages],
+            x=[s["total_twx_zar"] for s in active_stages],
+            textinfo="value+percent initial",
+            texttemplate="%{value:,.0f}<br>%{percentInitial:.0%}",
+            marker=dict(color=[STAGE_COLORS.get(s["key"], "#6B7280") for s in active_stages]),
+            connector=dict(line=dict(color="#E2E8F0", width=1)),
+        ))
+        funnel_fig.update_layout(
+            height=320,
+            margin=dict(l=10, r=10, t=10, b=10),
+            funnelmode="stack",
+        )
+        st.plotly_chart(funnel_fig, use_container_width=True)
+
+    # ── Phase & Stage Breakdown (side-by-side) ──
+    _col_phase, _col_stage = st.columns(2)
+
+    with _col_phase:
+        with st.container(border=True):
+            st.subheader("By Phase")
+            by_phase = summary["by_phase"]
+            phase_labels = list(by_phase.keys())
+            phase_twx = [by_phase[p]["total_twx_zar"] for p in phase_labels]
+            phase_counts = [by_phase[p]["count"] for p in phase_labels]
+            fig_phase = go.Figure(go.Bar(
+                x=phase_labels, y=phase_twx,
+                marker_color=["#1E3A8A", "#7C3AED"],
+                text=[f"{_fmt_zar(v)}<br>{c} projects" for v, c in zip(phase_twx, phase_counts)],
+                textposition="outside",
+            ))
+            fig_phase.update_layout(
+                height=300, yaxis_title="TWX Value (ZAR)",
+                margin=dict(l=10, r=10, t=10, b=10),
+                yaxis=dict(tickformat=","),
+            )
+            st.plotly_chart(fig_phase, use_container_width=True)
+
+    with _col_stage:
+        with st.container(border=True):
+            st.subheader("By Stage")
+            active_s = [s for s in stages_list if s["count"] > 0]
+            fig_stage = go.Figure(go.Pie(
+                labels=[s["label"] for s in active_s],
+                values=[s["total_twx_zar"] for s in active_s],
+                marker=dict(colors=[STAGE_COLORS.get(s["key"], "#6B7280") for s in active_s]),
+                hole=0.55,
+                textinfo="label+percent",
+                textposition="outside",
+            ))
+            fig_stage.update_layout(
+                height=300,
+                margin=dict(l=10, r=10, t=10, b=10),
+                legend=dict(orientation="h", yanchor="bottom", y=-0.15, xanchor="center", x=0.5),
+                showlegend=False,
+            )
+            st.plotly_chart(fig_stage, use_container_width=True)
+
+    st.divider()
+
+    # ── Geographic Breakdown ──
+    with st.container(border=True):
+        st.subheader("By Area")
+        by_area = summary["by_area"]
+        area_labels = sorted(by_area.keys(), key=lambda a: by_area[a]["total_twx_zar"], reverse=True)
+        area_twx = [by_area[a]["total_twx_zar"] for a in area_labels]
+        area_counts = [by_area[a]["count"] for a in area_labels]
+        fig_area = go.Figure(go.Bar(
+            y=area_labels, x=area_twx,
+            orientation="h",
+            marker_color="#3B82F6",
+            text=[f"{_fmt_zar(v)} ({c})" for v, c in zip(area_twx, area_counts)],
+            textposition="outside",
+        ))
+        fig_area.update_layout(
+            height=max(250, len(area_labels) * 38),
+            margin=dict(l=10, r=80, t=10, b=10),
+            xaxis=dict(tickformat=",", title="TWX Value (ZAR)"),
+        )
+        st.plotly_chart(fig_area, use_container_width=True)
+
+    st.divider()
+
+    # ── Project Cards (grouped by stage) ──
+    st.subheader("Projects")
+
+    # View selector
+    _view = st.radio("View by", ["Stage", "Phase", "All"], horizontal=True, label_visibility="collapsed")
+
+    if _view == "Stage":
+        for stage_info in stages_list:
+            stage_projects = [p for p in projects if p["inferred_stage"] == stage_info["key"]]
+            if not stage_projects:
+                continue
+            stage_twx = sum(p["twx_project_value"] or 0 for p in stage_projects)
+            st.markdown(
+                f"### {_stage_pill(stage_info['key'], stage_info['label'])} "
+                f"&nbsp; {len(stage_projects)} projects · {_fmt_zar(stage_twx)}",
+                unsafe_allow_html=True,
+            )
+            _render_project_cards(stage_projects, STAGE_COLORS, _stage_pill, _fmt_zar)
+            st.markdown("")
+
+    elif _view == "Phase":
+        for phase in sorted(set(p["phase"] for p in projects if p["phase"])):
+            phase_projects = [p for p in projects if p["phase"] == phase]
+            phase_twx = sum(p["twx_project_value"] or 0 for p in phase_projects)
+            st.markdown(f"### {phase} — {len(phase_projects)} projects · {_fmt_zar(phase_twx)}")
+            _render_project_cards(phase_projects, STAGE_COLORS, _stage_pill, _fmt_zar)
+            st.markdown("")
+
+    else:
+        _render_project_cards(projects, STAGE_COLORS, _stage_pill, _fmt_zar)
+
+    st.divider()
+
+    # ── Recent Changes ──
+    if changes:
+        with st.container(border=True):
+            st.subheader("Recent Changes")
+            _change_icons = {
+                "new_project": ":material/add_circle:",
+                "value_change": ":material/edit:",
+                "stage_change": ":material/swap_horiz:",
+                "removed": ":material/remove_circle:",
+                "reappeared": ":material/refresh:",
+            }
+            for ch in changes[:15]:
+                icon = _change_icons.get(ch["type"], ":material/info:")
+                st.markdown(
+                    f"{icon} **{ch['project']}** — {ch['detail']}",
+                )
+            if len(changes) > 15:
+                st.caption(f"+ {len(changes) - 15} more changes")
+
+    # ── Full Data Table ──
+    with st.expander("Full Project Data Table", expanded=False):
+        df_cols = ["project_name", "phase", "inferred_stage", "area",
+                   "total_project_value", "twx_project_value", "projected_gp_30pct",
+                   "construction_company", "client", "estimated_takeoff_date",
+                   "estimated_completion_date", "estimated_duration_months"]
+        col_labels = {
+            "project_name": "Project", "phase": "Phase", "inferred_stage": "Stage",
+            "area": "Area", "total_project_value": "Project Value",
+            "twx_project_value": "TWX Value", "projected_gp_30pct": "GP @30%",
+            "construction_company": "Contractor", "client": "Client",
+            "estimated_takeoff_date": "Takeoff", "estimated_completion_date": "Completion",
+            "estimated_duration_months": "Duration (mo)",
+        }
+        df = pd.DataFrame(projects)[df_cols].rename(columns=col_labels)
+        for vc in ["Project Value", "TWX Value", "GP @30%"]:
+            df[vc] = df[vc].apply(lambda v: f"R {v:,.0f}" if pd.notna(v) and v else "—")
+        df["Duration (mo)"] = df["Duration (mo)"].apply(lambda v: f"{v:.0f}" if pd.notna(v) and v else "—")
+        st.dataframe(df, use_container_width=True, hide_index=True)
+
+
+def _render_project_cards(projects_list, stage_colors, stage_pill_fn, fmt_zar_fn):
+    """Render project cards in a 2-column grid."""
+    cols = st.columns(2)
+    for i, p in enumerate(projects_list):
+        with cols[i % 2]:
+            with st.container(border=True):
+                # Title row with stage pill
+                st.markdown(
+                    f"**{p['project_name']}** &nbsp; {stage_pill_fn(p['inferred_stage'])}",
+                    unsafe_allow_html=True,
+                )
+                # Metrics row
+                _m1, _m2, _m3 = st.columns(3)
+                _m1.metric("TWX Value", fmt_zar_fn(p["twx_project_value"]))
+                _m2.metric("Project Value", fmt_zar_fn(p["total_project_value"]))
+                _m3.metric("GP @30%", fmt_zar_fn(p["projected_gp_30pct"]))
+                # Details
+                detail_parts = []
+                if p.get("area"):
+                    detail_parts.append(f"**Area:** {p['area']}")
+                if p.get("client"):
+                    detail_parts.append(f"**Client:** {p['client']}")
+                if p.get("construction_company"):
+                    detail_parts.append(f"**Contractor:** {p['construction_company']}")
+                if p.get("estimated_takeoff_date"):
+                    detail_parts.append(f"**Takeoff:** {p['estimated_takeoff_date']}")
+                if p.get("estimated_duration_months"):
+                    detail_parts.append(f"**Duration:** {p['estimated_duration_months']:.0f} months")
+                if detail_parts:
+                    st.caption(" · ".join(detail_parts))
+                # Notes & Risks in expander
+                if p.get("notes") or p.get("risks"):
+                    with st.expander("Notes & Risks", expanded=False):
+                        if p.get("notes"):
+                            st.markdown(f"**Notes:** {p['notes'][:300]}{'...' if len(p.get('notes','')) > 300 else ''}")
+                        if p.get("risks"):
+                            _risk_text = p["risks"]
+                            if _risk_text.lower() not in ("none identified",):
+                                st.markdown(f"**Risks:** {_risk_text}")
+
 
 # ============================================================
 # SIDEBAR NAVIGATION — native st.button with Material icons
@@ -13018,8 +13290,8 @@ if entity == "Catalytic Assets":
     _lr_is_brownfield = st.session_state.get("lanred_scenario", "Greenfield") != "Greenfield"
     lanred_swap_enabled = _lr_is_brownfield and st.session_state.get("sclca_lanred_hedge", "No Hedging") == "Cross-Currency Swap"
 
-    # Sub-tabs for SCLCA
-    _tab_map = make_tab_map(_allowed_tabs)
+    # Sub-tabs for SCLCA (Pipeline is TWX-only)
+    _tab_map = make_tab_map([t for t in _allowed_tabs if t != "Pipeline"])
 
     # Shared config
     senior_detail = financing['loan_detail']['senior']
@@ -18381,7 +18653,7 @@ elif entity == "Users" and _can_manage:
 
     import bcrypt as _bcrypt
 
-    _um_add, _um_list = st.tabs(["Add User", "Manage Permissions"])
+    _um_add, _um_list, _um_overview = st.tabs(["Add User", "Manage Permissions", "Access Overview"])
 
     # --- Tab 1: Add User ---
     with _um_add:
@@ -18517,6 +18789,152 @@ elif entity == "Users" and _can_manage:
                             _save_users(_auth_config)
                             st.success(f"Permissions updated for **{_uname}**.")
                             st.rerun()
+
+    # --- Tab 3: Access Overview ---
+    with _um_overview:
+        st.subheader("Access Overview")
+        st.caption("Visual overview of who can see what. Resolved from roles + per-user overrides.")
+
+        _ov_users = _auth_config['credentials']['usernames']
+        _ov_all_tabs = list(ALL_TAB_NAMES)
+        _ov_all_ents = list(ALL_ENTITIES)
+        _RESTRICTED_TABS_OV = {"Pipeline"}
+
+        # Build resolved permissions for each user
+        _ov_resolved = {}
+        for _ou, _od in _ov_users.items():
+            _ou_role = get_user_role(_ou, _auth_config)
+            _ou_tabs = get_allowed_tabs(_ou_role, _ou, _auth_config)
+            _ou_ents = get_allowed_entities(_ou_role, _ou, _auth_config)
+            _ou_mgmt = get_allowed_mgmt_pages(_ou, _auth_config)
+            _ou_perms = _get_user_permissions(_ou, _auth_config)
+            _ov_resolved[_ou] = {
+                "name": f"{_od.get('first_name', '')} {_od.get('last_name', '')}",
+                "email": _od.get('email', ''),
+                "role": _ou_role,
+                "entities": _ou_ents,
+                "tabs": _ou_tabs,
+                "mgmt_pages": _ou_mgmt,
+                "can_manage": _ou_perms.get('can_manage_users', False),
+            }
+
+        _ov_view = st.radio(
+            "View",
+            ["Full Matrix", "Per Person", "Per Project"],
+            horizontal=True,
+            key="ov_view_mode",
+        )
+
+        if _ov_view == "Full Matrix":
+            st.markdown("#### All Users x All Permissions")
+
+            # Build matrix: rows = users, cols = entities + tabs + mgmt + Pipeline
+            _col_headers = ["User", "Role"] + _ov_all_ents + ["—"] + _ov_all_tabs + ["—"] + list(ALL_MGMT_PAGES) + ["Manage Users"]
+            _matrix_rows = []
+            for _ou, _or in sorted(_ov_resolved.items(), key=lambda x: x[1]["role"]):
+                row = [f"**{_ou}**", _or["role"]]
+                for _ent in _ov_all_ents:
+                    row.append("Y" if _ent in _or["entities"] else "")
+                row.append("")  # separator
+                for _tab in _ov_all_tabs:
+                    row.append("Y" if _tab in _or["tabs"] else "")
+                row.append("")  # separator
+                for _mp in ALL_MGMT_PAGES:
+                    row.append("Y" if _mp in _or["mgmt_pages"] else "")
+                row.append("Y" if _or["can_manage"] else "")
+                _matrix_rows.append(row)
+
+            _df_matrix = pd.DataFrame(_matrix_rows, columns=_col_headers)
+
+            # Style: highlight Y cells
+            def _style_access(val):
+                if val == "Y":
+                    return "background-color: #DCFCE7; color: #166534; font-weight: 600; text-align: center"
+                if val == "":
+                    return "color: #D1D5DB; text-align: center"
+                return ""
+
+            _styled = _df_matrix.style.applymap(_style_access, subset=[c for c in _col_headers if c not in ("User", "Role", "—")])
+            st.dataframe(_styled, use_container_width=True, hide_index=True, height=400)
+
+            st.caption("Y = access granted. Entities control sidebar visibility. Tabs control sub-tab visibility within an entity. Pipeline is a restricted tab (not included in wildcard).")
+
+        elif _ov_view == "Per Person":
+            st.markdown("#### Per-Person Access Details")
+            _sel_user = st.selectbox("Select user", sorted(_ov_resolved.keys()), key="ov_sel_user")
+            if _sel_user:
+                _su = _ov_resolved[_sel_user]
+                _su_data = _ov_users[_sel_user]
+
+                col_info, col_detail = st.columns([1, 2])
+                with col_info:
+                    with st.container(border=True):
+                        st.markdown(f"### {_su['name']}")
+                        st.caption(f"{_su['email']}")
+                        st.metric("Role", _su["role"])
+                        if _su["can_manage"]:
+                            st.success("Can manage users")
+
+                with col_detail:
+                    with st.container(border=True):
+                        st.markdown("**Projects (entities)**")
+                        for _ent in _ov_all_ents:
+                            if _ent in _su["entities"]:
+                                st.markdown(f"- :material/check_circle: {_ent}")
+                            else:
+                                st.markdown(f"- :material/cancel: ~~{_ent}~~")
+
+                    with st.container(border=True):
+                        st.markdown("**Tabs**")
+                        _tab_cols = st.columns(3)
+                        for _i, _tab in enumerate(_ov_all_tabs):
+                            with _tab_cols[_i % 3]:
+                                if _tab in _su["tabs"]:
+                                    st.markdown(f":material/check_circle: {_tab}")
+                                else:
+                                    st.markdown(f":material/cancel: ~~{_tab}~~")
+
+                    if ALL_MGMT_PAGES:
+                        with st.container(border=True):
+                            st.markdown("**Management Pages**")
+                            if not _su["mgmt_pages"]:
+                                st.caption("No management access")
+                            else:
+                                for _mp in ALL_MGMT_PAGES:
+                                    if _mp in _su["mgmt_pages"]:
+                                        st.markdown(f"- :material/check_circle: {_mp}")
+                                    else:
+                                        st.markdown(f"- :material/cancel: ~~{_mp}~~")
+
+        elif _ov_view == "Per Project":
+            st.markdown("#### Per-Project Access")
+            _sel_ent = st.selectbox("Select project", _ov_all_ents, key="ov_sel_ent")
+            if _sel_ent:
+                _ent_users = [(u, r) for u, r in _ov_resolved.items() if _sel_ent in r["entities"]]
+                _no_access = [(u, r) for u, r in _ov_resolved.items() if _sel_ent not in r["entities"]]
+
+                st.markdown(f"**{len(_ent_users)} users** have access to **{_sel_ent}**")
+
+                if _ent_users:
+                    _ent_rows = []
+                    for _eu, _er in sorted(_ent_users, key=lambda x: x[1]["role"]):
+                        _tabs_str = ", ".join(_er["tabs"][:8])
+                        if len(_er["tabs"]) > 8:
+                            _tabs_str += f" +{len(_er['tabs'])-8} more"
+                        _ent_rows.append({
+                            "User": _eu,
+                            "Name": _er["name"],
+                            "Role": _er["role"],
+                            "Tabs": _tabs_str,
+                            "Mgmt Pages": len(_er["mgmt_pages"]),
+                            "Admin": "Yes" if _er["can_manage"] else "",
+                        })
+                    st.dataframe(pd.DataFrame(_ent_rows), use_container_width=True, hide_index=True)
+
+                if _no_access:
+                    with st.expander(f"{len(_no_access)} users without access"):
+                        for _nu, _nr in _no_access:
+                            st.caption(f"{_nu} ({_nr['name']}) — {_nr['role']}")
 
 # Footer
 st.markdown("---")

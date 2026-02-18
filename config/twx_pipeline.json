@@ -1,0 +1,530 @@
+{
+  "_metadata": {
+    "last_extraction": "2026-02-18T11:04:50",
+    "total_projects": 13,
+    "total_twx_value_zar": 427284000.0,
+    "total_project_value_zar": 1237600000.0,
+    "total_gp_30pct_zar": 128185200.0
+  },
+  "pipeline_stages": [
+    {
+      "key": "prospect",
+      "label": "Prospect",
+      "sort_order": 1,
+      "count": 3,
+      "total_twx_zar": 249900000.0,
+      "total_project_zar": 735000000.0
+    },
+    {
+      "key": "qualified",
+      "label": "Qualified",
+      "sort_order": 2,
+      "count": 6,
+      "total_twx_zar": 16104000.0,
+      "total_project_zar": 35600000.0
+    },
+    {
+      "key": "costed",
+      "label": "Costed",
+      "sort_order": 3,
+      "count": 1,
+      "total_twx_zar": 87500000.0,
+      "total_project_zar": 250000000.0
+    },
+    {
+      "key": "committed",
+      "label": "Committed",
+      "sort_order": 4,
+      "count": 3,
+      "total_twx_zar": 73780000.0,
+      "total_project_zar": 217000000.0
+    },
+    {
+      "key": "in_progress",
+      "label": "In Progress",
+      "sort_order": 5,
+      "count": 0,
+      "total_twx_zar": 0,
+      "total_project_zar": 0
+    },
+    {
+      "key": "completed",
+      "label": "Completed",
+      "sort_order": 6,
+      "count": 0,
+      "total_twx_zar": 0,
+      "total_project_zar": 0
+    },
+    {
+      "key": "on_hold",
+      "label": "On Hold",
+      "sort_order": 7,
+      "count": 0,
+      "total_twx_zar": 0,
+      "total_project_zar": 0
+    }
+  ],
+  "projects": [
+    {
+      "project_id": "f6a76ea442d2",
+      "project_name": "Bungani Small Church",
+      "phase": "Phase 1",
+      "updated": "2026-02-06",
+      "area": "Gauteng - Vereeniging",
+      "total_project_value": 2000000.0,
+      "twx_project_value": 680000.0,
+      "projected_gp_30pct": 204000.0,
+      "construction_company": "Green Block Construction",
+      "client": "Kennedy Bungani - CEO African Bank",
+      "client_funds": null,
+      "notes": "Architect is busy with conceptual plans. Site Visit with architect 7/2/2026",
+      "risks": "None Identified",
+      "estimated_takeoff_date": "2026-02-01",
+      "estimated_completion_date": null,
+      "estimated_completion_raw": "8 weeks",
+      "estimated_duration_months": 1.8,
+      "inferred_stage": "committed",
+      "first_seen_date": "2026-02-18T11:02:44",
+      "last_seen_date": "2026-02-18T11:04:50",
+      "is_active": true
+    },
+    {
+      "project_id": "89504f29787f",
+      "project_name": "Giants Castle Lodge Expansion \u2013 15 Units (in 3 phases of 5)",
+      "phase": "Phase 1",
+      "updated": "2026-02-18",
+      "area": "KZN",
+      "total_project_value": 15000000.0,
+      "twx_project_value": 5100000.0,
+      "projected_gp_30pct": 1530000.0,
+      "construction_company": "Green Block Construction",
+      "client": "Devin Botha",
+      "client_funds": null,
+      "notes": "Met with client 11/02/2026, they want 13 units in total, delivered in blocks of 4. Architect appointed",
+      "risks": "None Identified",
+      "estimated_takeoff_date": "2026-05-01",
+      "estimated_completion_date": null,
+      "estimated_completion_raw": "6 Months",
+      "estimated_duration_months": 6.0,
+      "inferred_stage": "committed",
+      "first_seen_date": "2026-02-18T11:02:44",
+      "last_seen_date": "2026-02-18T11:04:50",
+      "is_active": true
+    },
+    {
+      "project_id": "74859aa5f073",
+      "project_name": "NBI Youth Development Centers",
+      "phase": "Phase 1",
+      "updated": "2026-02-06",
+      "area": "Gauteng, WC and KZN",
+      "total_project_value": 200000000.0,
+      "twx_project_value": 68000000.0,
+      "projected_gp_30pct": 20400000.0,
+      "construction_company": "Green Block Construction",
+      "client": "NBI",
+      "client_funds": "\u2022\tKfW (German Development Bank)",
+      "notes": "KfW (German Development Bank) has already allocated funding to NBI. The project consists of 5 buildings situated at different sites in SA\nTimber components will be sole-sourced to Werner (outside tender) due to technical capability.\nTimeline: Break ground in 2026. Tender documents expected to be received in Feb 2026",
+      "risks": "Greenfield Resources is the appointed consultants driving the project and there is no sense of urgency",
+      "estimated_takeoff_date": "2026-08-01",
+      "estimated_completion_date": null,
+      "estimated_completion_raw": "24 months as it will 5 buildings staged",
+      "estimated_duration_months": 24.0,
+      "inferred_stage": "committed",
+      "first_seen_date": "2026-02-18T11:02:44",
+      "last_seen_date": "2026-02-18T11:04:50",
+      "is_active": true
+    },
+    {
+      "project_id": "7f438bd79211",
+      "project_name": "Muratie Wedding Venue",
+      "phase": "Phase 1",
+      "updated": "2026-02-18",
+      "area": "WC",
+      "total_project_value": 15000000.0,
+      "twx_project_value": 5100000.0,
+      "projected_gp_30pct": 1530000.0,
+      "construction_company": "Green Block Construction",
+      "client": "Rijk Melek (owner)",
+      "client_funds": null,
+      "notes": "Introduction made by Rutger. Require 2 cottages and a Wedding Hall. Value of project based on previous project estimates. Intro email sent to client",
+      "risks": "We don\u2019t have enough information yet.",
+      "estimated_takeoff_date": null,
+      "estimated_completion_date": null,
+      "estimated_completion_raw": "Unknown",
+      "estimated_duration_months": null,
+      "inferred_stage": "prospect",
+      "first_seen_date": "2026-02-18T11:02:44",
+      "last_seen_date": "2026-02-18T11:04:50",
+      "is_active": true
+    },
+    {
+      "project_id": "8f1c61a1f46c",
+      "project_name": "AQuelle HQ Expansion",
+      "phase": "Phase 1",
+      "updated": "2025-08-12",
+      "area": "KZN",
+      "total_project_value": 4000000.0,
+      "twx_project_value": 1360000.0,
+      "projected_gp_30pct": 408000.0,
+      "construction_company": "Green Block Construction",
+      "client": "aQuelle",
+      "client_funds": null,
+      "notes": "Architects are busy updating final plans",
+      "risks": "None Identified",
+      "estimated_takeoff_date": "2026-05-01",
+      "estimated_completion_date": null,
+      "estimated_completion_raw": "4 Months",
+      "estimated_duration_months": 4.0,
+      "inferred_stage": "qualified",
+      "first_seen_date": "2026-02-18T11:02:44",
+      "last_seen_date": "2026-02-18T11:04:50",
+      "is_active": true
+    },
+    {
+      "project_id": "ab3fe49c0673",
+      "project_name": "B&E International \u2013 20 Middle-Management Units",
+      "phase": "Phase 1",
+      "updated": "2025-08-12",
+      "area": "Pofadder, NC",
+      "total_project_value": 12000000.0,
+      "twx_project_value": 4080000.0,
+      "projected_gp_30pct": 1224000.0,
+      "construction_company": "Green Block Construction",
+      "client": "B&E International",
+      "client_funds": null,
+      "notes": "The are still busy negotiating the mining operation",
+      "risks": "They could find a cheaper solution",
+      "estimated_takeoff_date": null,
+      "estimated_completion_date": null,
+      "estimated_completion_raw": "Uknown",
+      "estimated_duration_months": null,
+      "inferred_stage": "qualified",
+      "first_seen_date": "2026-02-18T11:02:44",
+      "last_seen_date": "2026-02-18T11:04:50",
+      "is_active": true
+    },
+    {
+      "project_id": "0efce512f151",
+      "project_name": "Garden Route Projects",
+      "phase": "Phase 1",
+      "updated": "2025-08-12",
+      "area": "WC",
+      "total_project_value": 18000000.0,
+      "twx_project_value": 6120000.0,
+      "projected_gp_30pct": 1836000.0,
+      "construction_company": "Green Block Construction",
+      "client": "Private Clients",
+      "client_funds": null,
+      "notes": "These are projects already secured by Green  Block with approved plans, these projects may not be viable for TWX but if we could transport the house components affordably these projects could be factory built. Keep in mind that 1 super link will be +- R 50 000 per trip and we need to multiple trips",
+      "risks": null,
+      "estimated_takeoff_date": "2026-01-01",
+      "estimated_completion_date": "2026-12-01",
+      "estimated_completion_raw": "2026-12-01 00:00:00",
+      "estimated_duration_months": null,
+      "inferred_stage": "qualified",
+      "first_seen_date": "2026-02-18T11:02:44",
+      "last_seen_date": "2026-02-18T11:04:50",
+      "is_active": true
+    },
+    {
+      "project_id": "1099c884de6f",
+      "project_name": "Jewish Chev - Restaurant Extension",
+      "phase": "Phase 1",
+      "updated": "2025-08-12",
+      "area": "Gauteng",
+      "total_project_value": 1000000.0,
+      "twx_project_value": 340000.0,
+      "projected_gp_30pct": 102000.0,
+      "construction_company": "Green Block Construction",
+      "client": "Chevrah Kadisha",
+      "client_funds": "Donations",
+      "notes": "Architect is busy with conceptual plans",
+      "risks": null,
+      "estimated_takeoff_date": "2025-06-26",
+      "estimated_completion_date": null,
+      "estimated_completion_raw": "1 month",
+      "estimated_duration_months": 1.0,
+      "inferred_stage": "qualified",
+      "first_seen_date": "2026-02-18T11:02:44",
+      "last_seen_date": "2026-02-18T11:04:50",
+      "is_active": true
+    },
+    {
+      "project_id": "1975cd73fd6c",
+      "project_name": "Low Cost Houses - Langa",
+      "phase": "Phase 1",
+      "updated": "2025-08-12",
+      "area": "WC",
+      "total_project_value": 600000.0,
+      "twx_project_value": 204000.0,
+      "projected_gp_30pct": 61200.0,
+      "construction_company": "Green Block Construction",
+      "client": "Donation by various donors",
+      "client_funds": "Donations",
+      "notes": "Project is being driven by the University of Pretoria",
+      "risks": "Cost of transport to Cape Town",
+      "estimated_takeoff_date": "2026-02-01",
+      "estimated_completion_date": "2026-07-01",
+      "estimated_completion_raw": "2026-07-01 00:00:00",
+      "estimated_duration_months": null,
+      "inferred_stage": "qualified",
+      "first_seen_date": "2026-02-18T11:02:44",
+      "last_seen_date": "2026-02-18T11:04:50",
+      "is_active": true
+    },
+    {
+      "project_id": "a7aad4efedd0",
+      "project_name": "Peace parks Zimbabwean Lodge",
+      "phase": "Phase 1",
+      "updated": "2025-08-12",
+      "area": "Gauteng Manufacturing",
+      "total_project_value": null,
+      "twx_project_value": 4000000.0,
+      "projected_gp_30pct": 1200000.0,
+      "construction_company": "Green Block Construction",
+      "client": "Peaceparks",
+      "client_funds": "International Funding via Peaceparks Foundation",
+      "notes": "Peaceparks is currently securing funding, we already costed some components for the project but we are unsure of the total scope as the site development plan has not been finalized",
+      "risks": "Timeframe unknown",
+      "estimated_takeoff_date": "2027-01-01",
+      "estimated_completion_date": null,
+      "estimated_completion_raw": "Unknown",
+      "estimated_duration_months": null,
+      "inferred_stage": "qualified",
+      "first_seen_date": "2026-02-18T11:02:44",
+      "last_seen_date": "2026-02-18T11:04:50",
+      "is_active": true
+    },
+    {
+      "project_id": "96f923302faa",
+      "project_name": "Limbro Park Development",
+      "phase": "Phase 2",
+      "updated": "2026-02-06",
+      "area": "Gauteng",
+      "total_project_value": 250000000.0,
+      "twx_project_value": 87500000.0,
+      "projected_gp_30pct": 26250000.0,
+      "construction_company": "Green Block Construction",
+      "client": "Akoma",
+      "client_funds": "DBSA Green Fund (Development Bank of South Africa)",
+      "notes": "Large blocks of flats, multiple repeated modular units.\nDeveloper claims DBSA financing is in place, but still significant bankability work required.\nWerner met the architect, engineer, and a director based in London. Wall costing supplied to client January 2026\nTheir previous engagement with Mass Timber Technologies suggested unsustainable cost escalation.\nWerner pitched TimberWorx as:\nIndependent technology expert\nCapable of creating a financially viable design & delivery model",
+      "risks": "Directors seem young and inexperienced",
+      "estimated_takeoff_date": "2027-06-01",
+      "estimated_completion_date": null,
+      "estimated_completion_raw": "work on 24 months but really unknown",
+      "estimated_duration_months": 24.0,
+      "inferred_stage": "costed",
+      "first_seen_date": "2026-02-18T11:02:44",
+      "last_seen_date": "2026-02-18T11:04:50",
+      "is_active": true
+    },
+    {
+      "project_id": "597d5d6799e8",
+      "project_name": "Lesotho Development",
+      "phase": "Phase 2",
+      "updated": "2026-02-18",
+      "area": "Lesotho",
+      "total_project_value": 420000000.0,
+      "twx_project_value": 142800000.0,
+      "projected_gp_30pct": 42840000.0,
+      "construction_company": "Developer",
+      "client": null,
+      "client_funds": null,
+      "notes": "At this point developer was introduced to use via Sechaba and they have shown interest. They have delivered the first 100 of the 800 houses they want to deliver. They houses sell of r ZAR 1 000 000.00 each. They built the first 100 in brick and mortar over 5 years. They are interested in switching over to timber if its cheaper and faster.",
+      "risks": "We don\u2019t have enough information yet.",
+      "estimated_takeoff_date": null,
+      "estimated_completion_date": null,
+      "estimated_completion_raw": "Uknown",
+      "estimated_duration_months": null,
+      "inferred_stage": "prospect",
+      "first_seen_date": "2026-02-18T11:02:44",
+      "last_seen_date": "2026-02-18T11:04:50",
+      "is_active": true
+    },
+    {
+      "project_id": "c1239ddedbef",
+      "project_name": "Student Accommodation",
+      "phase": "Phase 2",
+      "updated": "2026-02-18",
+      "area": "Limpopo - near university of Venda",
+      "total_project_value": 300000000.0,
+      "twx_project_value": 102000000.0,
+      "projected_gp_30pct": 30600000.0,
+      "construction_company": "Developer",
+      "client": null,
+      "client_funds": null,
+      "notes": "The client are also developer, they aim to supply 5 000 beds. We where introduced by Sechaba. We are taking a Quess at the value as the project has not been costed (based on a square meter required per student bed and communal space)",
+      "risks": "We don\u2019t have enough information yet.",
+      "estimated_takeoff_date": null,
+      "estimated_completion_date": null,
+      "estimated_completion_raw": "Uknown",
+      "estimated_duration_months": null,
+      "inferred_stage": "prospect",
+      "first_seen_date": "2026-02-18T11:02:44",
+      "last_seen_date": "2026-02-18T11:04:50",
+      "is_active": true
+    }
+  ],
+  "summary": {
+    "by_phase": {
+      "Phase 1": {
+        "count": 10,
+        "total_twx_zar": 94984000.0,
+        "total_project_zar": 267600000.0
+      },
+      "Phase 2": {
+        "count": 3,
+        "total_twx_zar": 332300000.0,
+        "total_project_zar": 970000000.0
+      }
+    },
+    "by_stage": {
+      "prospect": {
+        "count": 3,
+        "total_twx_zar": 249900000.0
+      },
+      "qualified": {
+        "count": 6,
+        "total_twx_zar": 16104000.0
+      },
+      "costed": {
+        "count": 1,
+        "total_twx_zar": 87500000.0
+      },
+      "committed": {
+        "count": 3,
+        "total_twx_zar": 73780000.0
+      },
+      "in_progress": {
+        "count": 0,
+        "total_twx_zar": 0
+      },
+      "completed": {
+        "count": 0,
+        "total_twx_zar": 0
+      },
+      "on_hold": {
+        "count": 0,
+        "total_twx_zar": 0
+      }
+    },
+    "by_area": {
+      "Gauteng": {
+        "count": 2,
+        "total_twx_zar": 87840000.0
+      },
+      "Gauteng - Vereeniging": {
+        "count": 1,
+        "total_twx_zar": 680000.0
+      },
+      "Gauteng Manufacturing": {
+        "count": 1,
+        "total_twx_zar": 4000000.0
+      },
+      "Gauteng, WC and KZN": {
+        "count": 1,
+        "total_twx_zar": 68000000.0
+      },
+      "KZN": {
+        "count": 2,
+        "total_twx_zar": 6460000.0
+      },
+      "Lesotho": {
+        "count": 1,
+        "total_twx_zar": 142800000.0
+      },
+      "Limpopo - near university of Venda": {
+        "count": 1,
+        "total_twx_zar": 102000000.0
+      },
+      "Pofadder, NC": {
+        "count": 1,
+        "total_twx_zar": 4080000.0
+      },
+      "WC": {
+        "count": 3,
+        "total_twx_zar": 11424000.0
+      }
+    }
+  },
+  "recent_changes": [
+    {
+      "date": "2026-02-18T11:02:44",
+      "project": "Muratie Wedding Venue",
+      "type": "new_project",
+      "detail": "Added to pipeline"
+    },
+    {
+      "date": "2026-02-18T11:02:44",
+      "project": "Student Accommodation",
+      "type": "new_project",
+      "detail": "Added to pipeline"
+    },
+    {
+      "date": "2026-02-18T11:02:44",
+      "project": "Lesotho Development",
+      "type": "new_project",
+      "detail": "Added to pipeline"
+    },
+    {
+      "date": "2026-02-18T11:02:44",
+      "project": "Garden Route Projects",
+      "type": "new_project",
+      "detail": "Added to pipeline"
+    },
+    {
+      "date": "2026-02-18T11:02:44",
+      "project": "Jewish Chev - Restaurant Extension",
+      "type": "new_project",
+      "detail": "Added to pipeline"
+    },
+    {
+      "date": "2026-02-18T11:02:44",
+      "project": "Low Cost Houses - Langa",
+      "type": "new_project",
+      "detail": "Added to pipeline"
+    },
+    {
+      "date": "2026-02-18T11:02:44",
+      "project": "Bungani Small Church",
+      "type": "new_project",
+      "detail": "Added to pipeline"
+    },
+    {
+      "date": "2026-02-18T11:02:44",
+      "project": "AQuelle HQ Expansion",
+      "type": "new_project",
+      "detail": "Added to pipeline"
+    },
+    {
+      "date": "2026-02-18T11:02:44",
+      "project": "Giants Castle Lodge Expansion \u2013 15 Units (in 3 phases of 5)",
+      "type": "new_project",
+      "detail": "Added to pipeline"
+    },
+    {
+      "date": "2026-02-18T11:02:44",
+      "project": "B&E International \u2013 20 Middle-Management Units",
+      "type": "new_project",
+      "detail": "Added to pipeline"
+    },
+    {
+      "date": "2026-02-18T11:02:44",
+      "project": "Peace parks Zimbabwean Lodge",
+      "type": "new_project",
+      "detail": "Added to pipeline"
+    },
+    {
+      "date": "2026-02-18T11:02:44",
+      "project": "NBI Youth Development Centers",
+      "type": "new_project",
+      "detail": "Added to pipeline"
+    },
+    {
+      "date": "2026-02-18T11:02:44",
+      "project": "Limbro Park Development",
+      "type": "new_project",
+      "detail": "Added to pipeline"
+    }
+  ]
+}

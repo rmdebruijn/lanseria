@@ -31,6 +31,7 @@ credentials:
         mgmt_pages: []
         tabs:
         - '*'
+        - Pipeline
       roles:
       - promotor_opco
     mark:
@@ -46,6 +47,7 @@ credentials:
         - '*'
         tabs:
         - '*'
+        - Pipeline
       roles:
       - promotor_opco
     rmdebruijn@nexusnovus.com:
@@ -111,5 +113,20 @@ credentials:
         - CP & CS
         tabs:
         - '*'
+      roles:
+      - promotor_opco
+    werner:
+      email: werner@greenblock.co.za
+      first_name: Werner
+      last_name: Slabbert
+      password: $2b$12$.dV7UZvsdQnOfzVC14dZt.DF1WaPwIEY0F3mz3veXISyUO6tRaqK6
+      permissions:
+        can_manage_users: false
+        entities:
+        - Timberworx
+        mgmt_pages: []
+        tabs:
+        - '*'
+        - Pipeline
       roles:
       - promotor_opco
