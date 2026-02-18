@@ -17860,35 +17860,141 @@ elif entity == "Summary":
 # ============================================================
 elif entity == "Strategy":
     st.header("Strategy")
-    st.markdown("Strategic priorities for the SCLCA capital raising and project delivery.")
+    st.markdown("Internal strategic overview — capital raising, Frontier Funding architecture, "
+                "guarantor positioning, partner deployment, and critical path to financial close.")
 
-    st.subheader("Capital Raising — Critical Path")
+    # ── 1. Capital Stack Overview ──
+    st.subheader("Capital Stack — EUR 15.88M")
     st.markdown("""
-- **Creation Capital closure** — Freddy is leaving, so we need to close now. If CC don't take it to committee now, escalate via Carl
-  - Mezzanine is the most important piece
-  - DSRA makes it fly: DSRA → FEC/Swap via Investec
-  - CC credit note guaranteeing DSRA provision → Investec provides FEC
-  - Bottom line: we *could* do FEC/swap without CC — cards yet to play
-- **Investec meeting** — FEC or swap structure; CC guarantee or Veracity guarantee as underlying
-  - The DSRA exposure needs to be framed as an Investec exposure (or alternative)
+| Source | Provider | Amount (EUR) | Status |
+|--------|----------|-------------|--------|
+| Senior debt | IIC (Invest International) | 13,597,304 | Term sheet in hand |
+| Mezzanine | Creation Capital | 2,282,580 | **Critical — close now** |
+| DSRA | CC via Investec FEC/swap | ~2,201,389 (ZAR 47.5M) | Dependent on CC close |
+| DTIC grant | SA Government | 1,159,313 (ZAR 25M) | Approved |
+| GEPF bulk fee | GEPF + 3rd party | 2,076,691 (ZAR 44.8M) | Committed |
+
+**Deployment via IC loans to three OpCos:**
+
+| OpCo | IC Loan (EUR) | Share | Guarantor | Security Route |
+|------|--------------|-------|-----------|----------------|
+| NWL | 10,632,337 | 67% | Veracity Property Holdings | Corporate guarantee + Atradius ECA (M36 balance) + DSRA |
+| LanRED | 3,199,398 | 20% | *TBD* | CCS against PPA (brownfield) OR underwriting (greenfield) |
+| Timberworx | 2,048,149 | 13% | VH Properties / Phoenix Group | Corporate guarantee + Atradius ECA (full, vanilla) |
 """)
 
-    st.subheader("Project Delivery")
-    st.markdown("""
-- **NWL** — SAWW and Rand Water negotiations on equity investment (buy land below LLC to allow further investment). They will NOT need to provide a guarantee
-- **Timberworx Investment 1** — CoE + €200k panel equipment (current scope)
-- **Timberworx Investment 2** — Houses + lease capitalised = €5M from Germany/France, turn-key houses
-- **LanRED** — Need Carl, Andrew, Sechaba to deliver 1–2 solar projects with underwriting NOW, for €3M. We CAN do 2×€3M, but then need 15% extra equity for second tranche
+    # ── 2. Critical Path ──
+    st.subheader("Critical Path to Financial Close")
+    st.error("""
+**Two blocking items — everything else sequences behind these:**
+
+1. **Creation Capital closure** — Freddy is leaving CC. If they don't take to committee now, escalate via Carl. Mezzanine is the critical piece: it funds the DSRA at M24, which eliminates IIC credit exposure through M36.
+   - DSRA mechanism: CC funds ZAR 47.5M DSRA → held at Investec → covers first 2 senior debt service periods (P1 + P2)
+   - IIC has **zero credit exposure** from M24 to M36; first real exposure at M36 on a substantially reduced balance
+   - Alternative: we *could* do FEC/swap without CC — Veracity guarantee as underlying instead of CC credit note. Cards yet to play.
+
+2. **Investec meeting** — FEC or Cross-Currency Swap structure. CC guarantee or Veracity guarantee as underlying.
+   - Frame DSRA exposure as an Investec banking product, not a project risk
+   - If CC falls through, pivot to Veracity-backed swap with a bank counterparty
 """)
 
+    # ── 3. Project Delivery ──
+    st.subheader("Project Delivery — Per Asset")
+
+    with st.expander("NWL — Water Infrastructure (EUR 10.6M)", expanded=True):
+        st.markdown("""
+**Status:** Technology proven (MABR), offtake confirmed (CoJ LOI + Johannesburg Water + DWS), civil design advanced.
+
+**Immediate actions:**
+- SAWW and Rand Water negotiations on equity investment — buy land below LLC to allow further investment. They will NOT need to provide a guarantee
+- O&M: RFQ to Waterleau + SAWW (call both — request quotes)
+- Owners engineer appointment (WSP or alternative)
+- Mergence: explain guarantee is done, negotiate equity stake, request O&M RFQ (pressure strategy)
+
+**Suppliers:** Oxymem/DuPont (MABR membranes, Ireland EUR 2.45M), Colubris (BoP, Netherlands EUR 1.72M — Dutch content trigger for ECA), NWL Local Civil (SA EUR 3.75M)
+
+**Revenue model:** 2 MLD installed vs 50 MLD latent demand = 25x expansion potential. Sewage treatment fees (municipal piped + brownfield honeysucker) + water reuse sales + bulk services capacity payments.
+""")
+
+    with st.expander("LanRED — Solar + BESS (EUR 3.2M)", expanded=False):
+        st.markdown("""
+**Two pathways (NexusNovus decides which activates):**
+
+**Greenfield:** 2.4 MWp solar PV + 1.5 MWh BESS serving NWL + Smart City. DG&E EPC (European). Inter-company PPA to NWL at Eskom -10%. Smart City PPA (90 MW demand, Phase 1 = 0.5%). BESS arbitrage on TOU HD/LD cycles.
+
+**Brownfield+:** Portfolio of 5 existing C&I solar sites (2,170 kWp + 4,016 kWh BESS). ZAR 60M acquisition, 20-year PPAs, Day 1 revenue R2.08M/mo gross (R1.17M net). Proven cash flow from day one.
+
+**Critical action:** Carl, Andrew, Sechaba must deliver 1-2 solar projects with underwriting NOW for EUR 3M. Can do 2 x EUR 3M but second tranche requires 15% additional equity.
+
+**Credit conversion:** CCS against PPA (brownfield) or underwriting wrap (greenfield) — Carl's mandate (Schedule B-2).
+""")
+
+    with st.expander("Timberworx — Timber Panel Manufacturing (EUR 2.0M)", expanded=False):
+        st.markdown("""
+**Phase 1 (current):** CoE building (Finnish timber tech 60%, French 30%, SA 10%) + EUR 200k panel equipment (100% Dutch — ECA trigger).
+
+**Phase 2 (future):** Houses + lease capitalised = EUR 5M from Germany/France, turn-key houses.
+
+**Revenue:** CoE leased to NWL at capital-recovery rate (~R234k/month). CoE sale to LLC at Y4 at 10% premium. Panel service fee R100k/house (5% p.a. escalation, labour-only, no raw material cost).
+
+**Pipeline:** R177.9M across 10 projects — NBI Youth Centres R68M (KfW funded), Limbro Park R87.5M (DBSA Green Fund), Giants Castle R5.1M, Garden Route R6.1M. All via Green Block Construction.
+
+**ECA:** Atradius full cover from M24. Dutch content trigger = EUR 200k panel equipment (100% Dutch). Vanilla structure — guaranteed from first exposure. VH Properties / Phoenix Group guarantee.
+""")
+
+    st.divider()
+
+    # ── 4. Guarantor Strategy ──
     st.subheader("Guarantor Strategy")
     st.markdown("""
-- Veracity for NWL — show EBITDA control capability, or ability to sell parts of stake for cash
-- VH Properties / Phoenix for TWX — show that companies are now mature and generate stable EBITDA; management overview of anchors, pictures, tenancy schedules
+**Two guarantor entities, one UBO (Mark van Houten):**
+
+| Guarantor | Covers | Portfolio | Key Metric |
+|-----------|--------|-----------|-----------|
+| **Veracity Property Holdings** | NWL (EUR 10.6M) | R746.5M total assets, R692.9M investment property across ~12 subsidiaries/associates | R42.9M EBITDA, D/E 13.0x, interest coverage 0.73x |
+| **VH Properties / Phoenix Group** | TWX (EUR 2.0M) | 6 retail convenience centres + Madelief shopping centre, R926M+ property | Phoenix EBITDA R68.3M; VH 40% attributable = R26.4M; 2yr = R52.8M vs TWX IC R40.6M = **1.34x coverage** |
+
+**Tactical options:**
+- Veracity for NWL — demonstrate EBITDA control capability, or ability to sell part of portfolio for cash if needed
+- VH Properties / Phoenix for TWX — show companies are mature with stable EBITDA; prepare management overview with anchor tenants, photos, tenancy schedules
 - Joint and several liability across projects is acceptable if required by ECA
-- If IIC wants full ECA cover → go full supplier credit, don't apply TWX with Atradius, use both companies to cover ONLY NWL
+- **Fallback:** If IIC demands full ECA cover → go full supplier credit route, don't apply TWX separately with Atradius, use both guarantor companies to cover ONLY NWL
+
+**Data gaps to close:**
+- Veracity management accounts Mar-Dec 2025: pending (Mark said 'mid March 2025')
+- VH Properties consolidated balance sheet (3 years): pending
+- Phoenix Group management accounts: pending — need to verify EBITDA stability
+- Legal opinion on guarantee enforceability under RSA law: both entities
+- Check whether Veracity subsidiary loans are cross-collateralized
+- Evaluate Phoenix direct guarantee (bypassing VH Properties) as alternative
 """)
 
+    st.divider()
+
+    # ── 5. ECA Positioning ──
+    st.subheader("ECA Positioning — Atradius DSB")
+    st.markdown("""
+**Dutch content:** 24.9% of total project cost (min 20% required) — met.
+**SA local content:** 32.5% (max 33% allowed) — tight but acceptable.
+
+| Content Trigger | Amount (EUR) | Entity | Purpose |
+|----------------|-------------|--------|---------|
+| Colubris BoP | 1,721,925 | NWL | Main Dutch content for water segment |
+| Panel Equipment | 200,000 | TWX | 100% Dutch — triggers standalone ECA cover |
+| IIC fees + IDC + integration | ~2,395,351 | Various | Additional Dutch-eligible costs |
+| **Total Dutch ECV** | **~4,317,276 (24.9%)** | | |
+
+**Three ECA segments:**
+1. **Water Infrastructure (NWL):** Atradius covers M36 exposed balance (~EUR 4.2M); Dutch trigger = Colubris BoP
+2. **CoE + Panel Equipment (TWX):** Atradius covers full IC loan EUR 2.05M from M24; Dutch trigger = panel equipment; vanilla structure
+3. **Solar (LanRED):** Independently underwritten — carved out from ECA entirely (Carl's mandate)
+
+**Application status:** To be filed. Dutch content schedule needs preparation. Board resolutions authorising guarantees required.
+""")
+
+    st.divider()
+
+    # ── 6. DevCo Shareholding ──
     st.subheader("DevCo Shareholding Strategy")
     st.error("""
 **INTERNAL ONLY — Outside Robbert's vision**
@@ -17906,8 +18012,6 @@ Reason: The Indian company "NexusNovus Airport Waste Management Pvt" has had iss
 Name association creates reputational risk during ECA due diligence. Once capital raising is closed,
 NexusNovus Holdings can be formally introduced via the contractual substitution mechanism.
 """)
-
-    st.divider()
 
     st.subheader("Smart City Lanseria DevCo — Ownership")
     st.markdown("**ECA-facing view** (for Atradius/IIC application):")
@@ -17929,23 +18033,29 @@ NexusNovus Holdings can be formally introduced via the contractual substitution 
 
     st.divider()
 
+    # ── 7. Frontier Funding Partner Architecture ──
     st.subheader("Frontier Funding — Partner Architecture")
     st.markdown("""
-**Three partners** carry the Frontier Funding chain in sequenced, bounded layers:
+Frontier Funding operates a sequenced chain: **Vendor structuring → First-loss absorption → Credit conversion → Institutional liquidity.** Three partners carry this chain in bounded layers under the Master Partnership Agreement.
 
 | Partner | Primary Scope | Layer | Key Instruments |
 |---------|--------------|-------|----------------|
-| **Philip** | Technology & Exporter Pre-Selection, Subsidy Access | Upstream | Vendor structuring, exporter-of-record, Nordic/Swedish pipeline (Hannah as sub-agent) |
-| **Carl / Terayon** | First-Loss, Equity/Mezz, Underwriting/Swap | Layer A + B | Corporate guarantees, PE cash-backed guarantees, captive cell insurance, CCS, underwriting |
-| **Robbert** | ECA Packaging & Credit Conversion | Layer B + C | Captive ECA integrator, country specialists, pan-European banking network |
+| **Philip** | Technology & Exporter Pre-Selection (S-02), Subsidy Access (S-09) | Upstream | Vendor structuring, exporter-of-record positioning, Nordic/Swedish pipeline. Sub-agent: Hannah (Sweden). No supplier commissions. |
+| **Carl / Terayon** | First-Loss (S-03), Equity/Mezz (S-04), Underwriting/Swap (S-08) | Layer A + B | Corporate guarantees, PE cash-backed guarantees, captive cell insurance JV, CCS, underwriting. Retainer: ZAR 25k/month (creditable). |
+| **Robbert** | ECA Packaging (S-05) | Layer B + C | Captive ECA integrator (programme-level, all European ECAs), country specialists as sub-agents, pan-European banking network for Follow-On Liquidity. Retainer: conditional on subsidy application. |
 
-**Active mandates (Carl):**
+**Active mandates (Carl — Schedule B-1 and B-2):**
 - **NWL** — Cross Currency Swap (~EUR 2M) against books of Veracity as guarantor
 - **LanRED** — CCS (~EUR 3M) against PPA (brownfield) OR underwriting (greenfield)
 
-**Fee architecture:** Three formula families — Fixed-Rate (equity 5%, mezz 4%, debt 3%), Root-Curve (guarantees A=63 calibrated to ~2% at EUR 10M), Repeat-Decay (origination 2%, tech 1%). Slab waterfall for FF layers. All retainers creditable. No equity conversion on lease projects.
+**Fee architecture:** Three formula families:
+- *Fixed-Rate:* equity 5%, mezzanine 4%, non-recourse debt 3%, subsidy success 5%
+- *Root-Curve:* guarantees A=63 (~2% effective at EUR 10M), captive cell A=16 (~0.5% at EUR 10M, JV-compensated)
+- *Repeat-Decay:* origination A=2%, tech pre-selection A=1% — declining per instance from same source
 
-**Contract status:** Master Partnership Agreement + base templates complete. Partner-specific annex sets generated for all three. See **Partnerships** management page for full documents.
+Slab waterfall for FF layers (Root-Curve only): Layer A full fee, Layer B +0.75%, Layer C +0.50%, Layer D +0.25%. All retainers creditable against triggered fees. No equity conversion on lease projects.
+
+**Contract status:** Master Partnership Agreement body + 6 base annex templates + 3 partner-specific annex sets complete. See **Partnerships** management page for all documents.
 """)
 
 # ============================================================
