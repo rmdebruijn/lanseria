@@ -18827,37 +18827,104 @@ elif entity == "Users" and _can_manage:
 
         if _ov_view == "Full Matrix":
             st.markdown("#### All Users x All Permissions")
+            st.caption("Toggle checkboxes to grant or revoke access, then click **Save Changes**.")
 
-            # Build matrix: rows = users, cols = entities + tabs + mgmt + Pipeline
-            _col_headers = ["User", "Role"] + _ov_all_ents + ["—"] + _ov_all_tabs + ["—"] + list(ALL_MGMT_PAGES) + ["Manage Users"]
-            _matrix_rows = []
-            for _ou, _or in sorted(_ov_resolved.items(), key=lambda x: x[1]["role"]):
-                row = [f"**{_ou}**", _or["role"]]
-                for _ent in _ov_all_ents:
-                    row.append("Y" if _ent in _or["entities"] else "")
-                row.append("")  # separator
-                for _tab in _ov_all_tabs:
-                    row.append("Y" if _tab in _or["tabs"] else "")
-                row.append("")  # separator
-                for _mp in ALL_MGMT_PAGES:
-                    row.append("Y" if _mp in _or["mgmt_pages"] else "")
-                row.append("Y" if _or["can_manage"] else "")
-                _matrix_rows.append(row)
+            # Include yourself (admins hidden by default to prevent lockout)
+            _show_me = st.checkbox("Show my account", value=False, key="ov_show_me")
 
-            _df_matrix = pd.DataFrame(_matrix_rows, columns=_col_headers)
+            _ov_visible_users = sorted([
+                u for u, r in _ov_resolved.items()
+                if r["role"] != "admin" or (_show_me and u == _current_user)
+            ])
 
-            # Style: highlight Y cells
-            def _style_access(val):
-                if val == "Y":
-                    return "background-color: #DCFCE7; color: #166534; font-weight: 600; text-align: center"
-                if val == "":
-                    return "color: #D1D5DB; text-align: center"
-                return ""
+            # --- Project Access ---
+            with st.container(border=True):
+                st.markdown("**Project Access**")
+                _ent_rows = []
+                for _ou in _ov_visible_users:
+                    _or = _ov_resolved[_ou]
+                    row = {"User": _ou}
+                    for _ent in _ov_all_ents:
+                        row[_ent] = _ent in _or["entities"]
+                    _ent_rows.append(row)
+                _df_ents = pd.DataFrame(_ent_rows)
+                _ed_ents = st.data_editor(
+                    _df_ents,
+                    use_container_width=True, hide_index=True,
+                    disabled=["User"],
+                    key="ov_ed_ents",
+                )
 
-            _styled = _df_matrix.style.applymap(_style_access, subset=[c for c in _col_headers if c not in ("User", "Role", "—")])
-            st.dataframe(_styled, use_container_width=True, hide_index=True, height=400)
+            # --- Tab Access ---
+            with st.container(border=True):
+                st.markdown("**Tab Access**")
+                _tab_rows = []
+                for _ou in _ov_visible_users:
+                    _or = _ov_resolved[_ou]
+                    row = {"User": _ou}
+                    for _tab in _ov_all_tabs:
+                        row[_tab] = _tab in _or["tabs"]
+                    _tab_rows.append(row)
+                _df_tabs = pd.DataFrame(_tab_rows)
+                _ed_tabs = st.data_editor(
+                    _df_tabs,
+                    use_container_width=True, hide_index=True,
+                    disabled=["User"],
+                    key="ov_ed_tabs",
+                )
 
-            st.caption("Y = access granted. Entities control sidebar visibility. Tabs control sub-tab visibility within an entity. Pipeline is a restricted tab (not included in wildcard).")
+            # --- Management Access ---
+            with st.container(border=True):
+                st.markdown("**Management Access**")
+                _mgmt_rows = []
+                for _ou in _ov_visible_users:
+                    _or = _ov_resolved[_ou]
+                    row = {"User": _ou}
+                    for _mp in ALL_MGMT_PAGES:
+                        row[_mp] = _mp in _or["mgmt_pages"]
+                    row["Manage Users"] = _or["can_manage"]
+                    _mgmt_rows.append(row)
+                _df_mgmt = pd.DataFrame(_mgmt_rows)
+                _ed_mgmt = st.data_editor(
+                    _df_mgmt,
+                    use_container_width=True, hide_index=True,
+                    disabled=["User"],
+                    key="ov_ed_mgmt",
+                )
+
+            # --- Save button ---
+            if st.button("Save Changes", type="primary", key="ov_save"):
+                _changes = 0
+                for _idx, _ou in enumerate(_ov_visible_users):
+                    _new_ents = [e for e in _ov_all_ents if _ed_ents.at[_idx, e]]
+                    _new_tabs = [t for t in _ov_all_tabs if _ed_tabs.at[_idx, t]]
+                    _new_mgmt = [m for m in ALL_MGMT_PAGES if _ed_mgmt.at[_idx, m]]
+                    _new_admin = bool(_ed_mgmt.at[_idx, "Manage Users"])
+
+                    # Compare with current resolved
+                    _cur = _ov_resolved[_ou]
+                    if (set(_new_ents) != set(_cur["entities"]) or
+                        set(_new_tabs) != set(_cur["tabs"]) or
+                        set(_new_mgmt) != set(_cur["mgmt_pages"]) or
+                        _new_admin != _cur["can_manage"]):
+
+                        # Write back to auth config
+                        _auth_config['credentials']['usernames'][_ou]['permissions'] = {
+                            'entities': ['*'] if set(_new_ents) == set(_ov_all_ents) else _new_ents,
+                            'tabs': (['*'] + [t for t in _new_tabs if t in _RESTRICTED_TABS_OV]) if set(_new_tabs) >= set(ALL_TABS) else _new_tabs,
+                            'mgmt_pages': ['*'] if set(_new_mgmt) == set(ALL_MGMT_PAGES) else _new_mgmt,
+                            'can_manage_users': _new_admin,
+                        }
+                        _changes += 1
+
+                if _changes:
+                    _save_users(_auth_config)
+                    st.success(f"Saved changes for {_changes} user{'s' if _changes > 1 else ''}.")
+                    st.rerun()
+                else:
+                    st.info("No changes detected.")
+
+            st.caption("Admin accounts hidden by default to prevent lockout. Pipeline is a restricted tab.")
 
         elif _ov_view == "Per Person":
             st.markdown("#### Per-Person Access Details")

@@ -4,7 +4,7 @@ cookie:
   name: sclca_fm_auth
 credentials:
   usernames:
-    Carl:
+    carl:
       email: carl@terayoncapital.com
       first_name: Carl
       last_name: Liebenberg
@@ -13,8 +13,7 @@ credentials:
         can_manage_users: false
         entities:
         - '*'
-        mgmt_pages:
-        - '*'
+        mgmt_pages: []
         tabs:
         - '*'
       roles:
@@ -27,6 +26,7 @@ credentials:
       permissions:
         can_manage_users: false
         entities:
+        - Catalytic Assets
         - Timberworx
         mgmt_pages: []
         tabs:
@@ -67,9 +67,10 @@ credentials:
         entities:
         - '*'
         mgmt_pages:
-        - '*'
+        - Guarantor Analysis
         tabs:
         - '*'
+        - Pipeline
       roles:
       - promotor_opco
     rutger:
@@ -88,13 +89,10 @@ credentials:
         can_manage_users: false
         entities:
         - '*'
-        mgmt_pages:
-        - Summary
-        - Strategy
-        - Tasks
-        - CP & CS
+        mgmt_pages: []
         tabs:
         - '*'
+        - Pipeline
       roles:
       - promotor_opco
     siza:
