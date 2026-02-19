@@ -9,90 +9,351 @@
       "country": "South Africa",
       "nature_of_business": "Investment property holding"
     },
-    "reporting_period": { "year_end_date": "2025-02-28", "prior_year_end_date": "2024-03-01", "current_year_label": "2025", "prior_year_label": "2024" },
+    "reporting_period": {
+      "year_end_date": "2025-02-28",
+      "prior_year_end_date": "2024-03-01",
+      "current_year_label": "2025",
+      "prior_year_label": "2024"
+    },
     "accounting_framework": "IFRS for Small and Medium-sized Entities",
     "currency": "ZAR",
-    "auditor": { "name": "KCE Accountants and Auditors Inc", "designation": "Reviewed" },
-    "presentation_columns": ["2025", "2024"],
+    "auditor": {
+      "name": "KCE Accountants and Auditors Inc",
+      "designation": "Reviewed"
+    },
+    "presentation_columns": [
+      "2025",
+      "2024"
+    ],
     "guarantor_group": "phoenix",
     "verification_checksums": {
-      "cy_2025": { "total_assets": 142588063, "total_equity_and_liabilities": 142588063, "balance_check": true },
-      "py_2024": { "total_assets": 133001050, "total_equity_and_liabilities": 133001050, "balance_check": true }
-    }
+      "cy_2025": {
+        "total_assets": 142588063,
+        "total_equity_and_liabilities": 142588063,
+        "balance_check": true
+      },
+      "py_2024": {
+        "total_assets": 133001050,
+        "total_equity_and_liabilities": 133001050,
+        "balance_check": true
+      }
+    },
+    "status": "sold",
+    "status_note": "Property sold. No longer an operating asset of the Phoenix group."
   },
   "statement_of_financial_position": {
     "as_at_date": "2025-02-28",
     "assets": {
       "non_current_assets": {
-        "investment_property": { "note": 2, "values": [134500000, 125000000] },
-        "total": { "values": [134500000, 125000000] }
+        "investment_property": {
+          "note": 2,
+          "values": [
+            134500000,
+            125000000
+          ]
+        },
+        "total": {
+          "values": [
+            134500000,
+            125000000
+          ]
+        }
       },
       "current_assets": {
-        "trade_and_other_receivables": { "note": 4, "values": [5071311, 4949957] },
-        "current_tax_receivable": { "note": 5, "values": [null, 227093] },
-        "cash_and_cash_equivalents": { "note": 6, "values": [3016752, 2824000] },
-        "total": { "values": [8088063, 8001050] }
+        "trade_and_other_receivables": {
+          "note": 4,
+          "values": [
+            5071311,
+            4949957
+          ]
+        },
+        "current_tax_receivable": {
+          "note": 5,
+          "values": [
+            null,
+            227093
+          ]
+        },
+        "cash_and_cash_equivalents": {
+          "note": 6,
+          "values": [
+            3016752,
+            2824000
+          ]
+        },
+        "total": {
+          "values": [
+            8088063,
+            8001050
+          ]
+        }
       },
-      "total_assets": { "values": [142588063, 133001050] }
+      "total_assets": {
+        "values": [
+          142588063,
+          133001050
+        ]
+      }
     },
     "equity_and_liabilities": {
       "equity": {
-        "share_capital": { "note": 7, "values": [100, 100] },
-        "retained_income": { "values": [13363738, 1260635] },
-        "total_equity": { "values": [13363838, 1260735] }
+        "share_capital": {
+          "note": 7,
+          "values": [
+            100,
+            100
+          ]
+        },
+        "retained_income": {
+          "values": [
+            13363738,
+            1260635
+          ]
+        },
+        "total_equity": {
+          "values": [
+            13363838,
+            1260735
+          ]
+        }
       },
       "non_current_liabilities": {
-        "other_financial_liabilities": { "note": 8, "values": [121261087, 126782406] },
-        "deferred_tax": { "note": 3, "values": [2309573, 1875586] },
-        "total": { "values": [123570660, 128657992] }
+        "other_financial_liabilities": {
+          "note": 8,
+          "values": [
+            121261087,
+            126782406
+          ]
+        },
+        "deferred_tax": {
+          "note": 3,
+          "values": [
+            2309573,
+            1875586
+          ]
+        },
+        "total": {
+          "values": [
+            123570660,
+            128657992
+          ]
+        }
       },
       "current_liabilities": {
-        "trade_and_other_payables": { "note": 9, "values": [5541739, 3055323] },
-        "current_tax_payable": { "values": [72824, null] },
-        "provisions": { "note": 10, "values": [39002, 27000] },
-        "total": { "values": [5653565, 3082323] }
+        "trade_and_other_payables": {
+          "note": 9,
+          "values": [
+            5541739,
+            3055323
+          ]
+        },
+        "current_tax_payable": {
+          "values": [
+            72824,
+            null
+          ]
+        },
+        "provisions": {
+          "note": 10,
+          "values": [
+            39002,
+            27000
+          ]
+        },
+        "total": {
+          "values": [
+            5653565,
+            3082323
+          ]
+        }
       },
-      "total_liabilities": { "values": [129224225, 131740315] },
-      "total_equity_and_liabilities": { "values": [142588063, 133001050] }
+      "total_liabilities": {
+        "values": [
+          129224225,
+          131740315
+        ]
+      },
+      "total_equity_and_liabilities": {
+        "values": [
+          142588063,
+          133001050
+        ]
+      }
     }
   },
   "statement_of_comprehensive_income": {
-    "revenue": { "note": 11, "values": [13308261, 10693155] },
-    "other_income": { "note": 12, "values": [26799531, 1476296] },
-    "operating_expenses": { "values": [-14483400, -8474432] },
-    "operating_profit": { "values": [25624392, 3694919] },
-    "investment_revenue": { "note": 13, "values": [430699, 315126] },
-    "finance_costs": { "note": 14, "values": [-13445177, -13445177] },
-    "profit_loss_before_taxation": { "values": [12609914, -9435132] },
-    "taxation": { "note": 15, "values": [-506811, 9038924] },
-    "profit_loss_for_the_year": { "values": [12103103, -396208] }
+    "revenue": {
+      "note": 11,
+      "values": [
+        13308261,
+        10693155
+      ]
+    },
+    "other_income": {
+      "note": 12,
+      "values": [
+        26799531,
+        1476296
+      ]
+    },
+    "operating_expenses": {
+      "values": [
+        -14483400,
+        -8474432
+      ]
+    },
+    "operating_profit": {
+      "values": [
+        25624392,
+        3694919
+      ]
+    },
+    "investment_revenue": {
+      "note": 13,
+      "values": [
+        430699,
+        315126
+      ]
+    },
+    "finance_costs": {
+      "note": 14,
+      "values": [
+        -13445177,
+        -13445177
+      ]
+    },
+    "profit_loss_before_taxation": {
+      "values": [
+        12609914,
+        -9435132
+      ]
+    },
+    "taxation": {
+      "note": 15,
+      "values": [
+        -506811,
+        9038924
+      ]
+    },
+    "profit_loss_for_the_year": {
+      "values": [
+        12103103,
+        -396208
+      ]
+    }
   },
   "statement_of_cash_flows": {
     "operating": {
-      "cash_generated_from_operations": { "note": 16, "values": [11199043, 9226684] },
-      "interest_income": { "values": [430699, 315126] },
-      "finance_costs": { "values": [-13445177, -13445177] },
-      "tax_paid": { "values": [-130768, 0] },
-      "net": { "values": [-1946203, -3903367] }
+      "cash_generated_from_operations": {
+        "note": 16,
+        "values": [
+          11199043,
+          9226684
+        ]
+      },
+      "interest_income": {
+        "values": [
+          430699,
+          315126
+        ]
+      },
+      "finance_costs": {
+        "values": [
+          -13445177,
+          -13445177
+        ]
+      },
+      "tax_paid": {
+        "values": [
+          -130768,
+          0
+        ]
+      },
+      "net": {
+        "values": [
+          -1946203,
+          -3903367
+        ]
+      }
     },
     "investing": {
-      "purchase_investment_property": { "values": [null, -87110] },
-      "movement_other_financial_assets": { "values": [-87110, null] },
-      "net": { "values": [-87110, -87110] }
+      "purchase_investment_property": {
+        "values": [
+          null,
+          -87110
+        ]
+      },
+      "movement_other_financial_assets": {
+        "values": [
+          -87110,
+          null
+        ]
+      },
+      "net": {
+        "values": [
+          -87110,
+          -87110
+        ]
+      }
     },
     "financing": {
-      "movement_other_financial_liabilities": { "values": [2225550, 4757132] },
-      "net": { "values": [2225550, 4757132] }
+      "movement_other_financial_liabilities": {
+        "values": [
+          2225550,
+          4757132
+        ]
+      },
+      "net": {
+        "values": [
+          2225550,
+          4757132
+        ]
+      }
     },
-    "net_change": { "values": [192237, 766655] },
-    "closing_cash": { "note": 6, "values": [3016752, 2824000] }
+    "net_change": {
+      "values": [
+        192237,
+        766655
+      ]
+    },
+    "closing_cash": {
+      "note": 6,
+      "values": [
+        3016752,
+        2824000
+      ]
+    }
   },
   "statement_of_changes_in_equity": {
-    "columns": ["share_capital", "retained_income", "total_equity"],
-    "balance_2023_03_01": [100, 1656843, 1656943],
-    "loss_2024": [null, -396208, -396208],
-    "balance_2024_03_01": [100, 1260635, 1260735],
-    "profit_2025": [null, 12103103, 12103103],
-    "balance_2025_02_28": [100, 13363738, 13363838]
+    "columns": [
+      "share_capital",
+      "retained_income",
+      "total_equity"
+    ],
+    "balance_2023_03_01": [
+      100,
+      1656843,
+      1656943
+    ],
+    "loss_2024": [
+      null,
+      -396208,
+      -396208
+    ],
+    "balance_2024_03_01": [
+      100,
+      1260635,
+      1260735
+    ],
+    "profit_2025": [
+      null,
+      12103103,
+      12103103
+    ],
+    "balance_2025_02_28": [
+      100,
+      13363738,
+      13363838
+    ]
   }
 }

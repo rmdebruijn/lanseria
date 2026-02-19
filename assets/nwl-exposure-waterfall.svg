@@ -1,0 +1,151 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 440" font-family="'Segoe UI', Arial, sans-serif" style="background:#f8fafc;">
+
+  <!-- Background -->
+  <rect width="800" height="440" fill="#f8fafc"/>
+
+  <!-- Title -->
+  <text x="400" y="36" text-anchor="middle" font-size="20" font-weight="700" fill="#0f172a">NWL — Layered Risk Reduction</text>
+  <!-- Subtitle -->
+  <text x="400" y="57" text-anchor="middle" font-size="13" fill="#64748b">IIC exposure waterfall: €9.1M senior → €0.9–3.9M residual guaranteed by Veracity</text>
+
+  <!-- Chart area: x-axis baseline y=360, top of chart y=80, chart height=280px, 1M=28px -->
+  <!-- Y-axis left edge x=72, chart right x=720 -->
+
+  <!-- ─── Gridlines & Y-axis labels ─── -->
+  <!-- €10M: y=80 -->
+  <line x1="72" y1="80" x2="720" y2="80" stroke="#e2e8f0" stroke-width="1" stroke-dasharray="4 3"/>
+  <text x="66" y="84" text-anchor="end" font-size="11" fill="#94a3b8">€10M</text>
+  <!-- €8M: y=136 -->
+  <line x1="72" y1="136" x2="720" y2="136" stroke="#e2e8f0" stroke-width="1" stroke-dasharray="4 3"/>
+  <text x="66" y="140" text-anchor="end" font-size="11" fill="#94a3b8">€8M</text>
+  <!-- €6M: y=192 -->
+  <line x1="72" y1="192" x2="720" y2="192" stroke="#e2e8f0" stroke-width="1" stroke-dasharray="4 3"/>
+  <text x="66" y="196" text-anchor="end" font-size="11" fill="#94a3b8">€6M</text>
+  <!-- €4M: y=248 -->
+  <line x1="72" y1="248" x2="720" y2="248" stroke="#e2e8f0" stroke-width="1" stroke-dasharray="4 3"/>
+  <text x="66" y="252" text-anchor="end" font-size="11" fill="#94a3b8">€4M</text>
+  <!-- €2M: y=304 -->
+  <line x1="72" y1="304" x2="720" y2="304" stroke="#e2e8f0" stroke-width="1" stroke-dasharray="4 3"/>
+  <text x="66" y="308" text-anchor="end" font-size="11" fill="#94a3b8">€2M</text>
+  <!-- €0M: y=360 -->
+  <line x1="72" y1="360" x2="720" y2="360" stroke="#94a3b8" stroke-width="1.5"/>
+  <text x="66" y="364" text-anchor="end" font-size="11" fill="#94a3b8">€0M</text>
+
+  <!-- Y-axis line -->
+  <line x1="72" y1="75" x2="72" y2="362" stroke="#cbd5e1" stroke-width="1.5"/>
+
+  <!-- ═══════════════════════════════════════════
+       BAR POSITIONS (bar width=100, gaps=40)
+       Bar centres:
+         Bar1 x=120  (x1=70,  x2=170) — but shift right for y-axis room
+         Using: bar1 left=90, bar2 left=234, bar3 left=378, bar4 left=522, bar5 left=636
+         bar width=100, so centres at 140, 284, 428, 572, 686
+       ═══════════════════════════════════════════ -->
+
+  <!-- ─── Defs: hatching pattern for range bars ─── -->
+  <defs>
+    <pattern id="hatch-red" patternUnits="userSpaceOnUse" width="8" height="8" patternTransform="rotate(45)">
+      <rect width="8" height="8" fill="#fca5a5"/>
+      <line x1="0" y1="0" x2="0" y2="8" stroke="#ef4444" stroke-width="2.5" opacity="0.5"/>
+    </pattern>
+    <pattern id="hatch-green" patternUnits="userSpaceOnUse" width="8" height="8" patternTransform="rotate(45)">
+      <rect width="8" height="8" fill="#bbf7d0"/>
+      <line x1="0" y1="0" x2="0" y2="8" stroke="#16a34a" stroke-width="2.5" opacity="0.5"/>
+    </pattern>
+  </defs>
+
+  <!-- ─── BAR 1: NWL Senior Loan — €9.1M ─── -->
+  <!-- top y = 360 - 9.1*28 = 360 - 254.8 = 105.2, height = 254.8 -->
+  <rect x="90" y="105" width="100" height="255" fill="#2563eb" rx="2"/>
+  <!-- value label above bar -->
+  <text x="140" y="99" text-anchor="middle" font-size="13" font-weight="700" fill="#1e40af">€9.1M</text>
+  <!-- x-axis label -->
+  <text x="140" y="376" text-anchor="middle" font-size="11" font-weight="600" fill="#334155">NWL Senior Loan</text>
+
+  <!-- ─── Connector line: bar1 top → bar2 ─── -->
+  <!-- bar1 right edge x=190, bar2 left edge x=234, level y=105 -->
+  <line x1="190" y1="105" x2="234" y2="105" stroke="#94a3b8" stroke-width="1" stroke-dasharray="3 2"/>
+
+  <!-- ─── BAR 2: DTIC + GEPF grants — -€3.24M ─── -->
+  <!-- Hangs from y=105 downward, height=90.7, bottom y=195.7 -->
+  <rect x="234" y="105" width="100" height="91" fill="#ef4444" rx="2"/>
+  <!-- value label centred on bar -->
+  <text x="284" y="154" text-anchor="middle" font-size="12" font-weight="700" fill="white">−€3.2M</text>
+  <text x="284" y="168" text-anchor="middle" font-size="10" fill="#fee2e2">(R69.8M)</text>
+  <!-- x-axis label (two lines) -->
+  <text x="284" y="376" text-anchor="middle" font-size="10" font-weight="600" fill="#334155">DTIC + GEPF Grants</text>
+  <text x="284" y="388" text-anchor="middle" font-size="10" fill="#334155">&amp; Bulk Services (M12)</text>
+  <!-- risk label -->
+  <text x="284" y="401" text-anchor="middle" font-size="10" font-style="italic" fill="#64748b">Sovereign risk</text>
+
+  <!-- ─── Connector line: bar2 bottom → bar3 ─── -->
+  <!-- level y=196 -->
+  <line x1="334" y1="196" x2="378" y2="196" stroke="#94a3b8" stroke-width="1" stroke-dasharray="3 2"/>
+
+  <!-- ─── BAR 3: Post-Grants subtotal — €5.87M ─── -->
+  <!-- from baseline y=360, top y = 360 - 5.87*28 = 360 - 164.4 = 195.6, height=164.4 -->
+  <rect x="378" y="196" width="100" height="164" fill="#93c5fd" rx="2"/>
+  <!-- value label above bar -->
+  <text x="428" y="190" text-anchor="middle" font-size="13" font-weight="700" fill="#1e40af">€5.9M</text>
+  <!-- x-axis label -->
+  <text x="428" y="376" text-anchor="middle" font-size="11" font-weight="600" fill="#334155">Post-Grants</text>
+
+  <!-- ─── Connector line: bar3 top → bar4 ─── -->
+  <line x1="478" y1="196" x2="522" y2="196" stroke="#94a3b8" stroke-width="1" stroke-dasharray="3 2"/>
+
+  <!-- ─── BAR 4: Investec Cross-Currency Swap — -€2M to -€5M ─── -->
+  <!-- Hangs from y=196 downward:
+       Solid red portion (certain €2M): height=56, from y=196 to y=252
+       Hatched portion (additional €3M possible): height=84, from y=252 to y=336 -->
+  <!-- Solid red: €2M reduction -->
+  <rect x="522" y="196" width="100" height="56" fill="#ef4444" rx="2"/>
+  <!-- Hatched extension: additional €3M possible reduction -->
+  <rect x="522" y="252" width="100" height="84" fill="url(#hatch-red)" rx="2"/>
+  <rect x="522" y="252" width="100" height="84" fill="none" stroke="#ef4444" stroke-width="1" stroke-dasharray="4 2" rx="2"/>
+  <!-- range bracket / label -->
+  <text x="572" y="232" text-anchor="middle" font-size="12" font-weight="700" fill="white">−€2–5M</text>
+  <!-- range indicator arrow on right side -->
+  <line x1="628" y1="196" x2="636" y2="196" stroke="#64748b" stroke-width="1"/>
+  <line x1="628" y1="336" x2="636" y2="336" stroke="#64748b" stroke-width="1"/>
+  <line x1="633" y1="196" x2="633" y2="336" stroke="#64748b" stroke-width="1"/>
+  <text x="648" y="272" text-anchor="start" font-size="9" fill="#64748b">range</text>
+  <!-- x-axis label (two lines) -->
+  <text x="572" y="376" text-anchor="middle" font-size="10" font-weight="600" fill="#334155">Investec Cross-</text>
+  <text x="572" y="388" text-anchor="middle" font-size="10" fill="#334155">Currency Swap</text>
+  <!-- risk label -->
+  <text x="572" y="401" text-anchor="middle" font-size="10" font-style="italic" fill="#64748b">Bank-to-bank risk</text>
+
+  <!-- ─── BAR 5: Residual → Veracity Guarantee — €0.9–3.9M ─── -->
+  <!-- Minimum bar: €0.9M from baseline → top y=360-25.2=334.8, height=25.2 -->
+  <!-- Extension to €3.9M: additional €3M → height=84 more → top y=360-109.2=250.8 -->
+  <!-- Draw hatched extension first, then solid on top -->
+  <!-- Hatched portion (€0.9M to €3.9M range): y=251, height=83 -->
+  <rect x="670" y="251" width="100" height="83" fill="url(#hatch-green)" rx="2"/>
+  <rect x="670" y="251" width="100" height="83" fill="none" stroke="#16a34a" stroke-width="1" stroke-dasharray="4 2" rx="2"/>
+  <!-- Solid green base (min €0.9M): y=335, height=25 -->
+  <rect x="670" y="335" width="100" height="25" fill="#16a34a" rx="2"/>
+  <!-- value label above bar -->
+  <text x="720" y="245" text-anchor="middle" font-size="12" font-weight="700" fill="#15803d">€0.9–3.9M</text>
+  <!-- x-axis label -->
+  <text x="720" y="376" text-anchor="middle" font-size="11" font-weight="600" fill="#334155">Residual →</text>
+  <text x="720" y="388" text-anchor="middle" font-size="10.5" fill="#334155">Veracity Guarantee</text>
+  <!-- risk label -->
+  <text x="720" y="401" text-anchor="middle" font-size="10" font-style="italic" fill="#64748b">Corporate guarantee</text>
+
+  <!-- ─── Legend ─── -->
+  <rect x="90" y="412" width="12" height="10" fill="#2563eb"/>
+  <text x="106" y="421" font-size="10" fill="#475569">Starting balance</text>
+  <rect x="192" y="412" width="12" height="10" fill="#ef4444"/>
+  <text x="208" y="421" font-size="10" fill="#475569">Reduction (certain)</text>
+  <rect x="316" y="412" width="12" height="10" fill="url(#hatch-red)" stroke="#ef4444" stroke-width="0.5"/>
+  <text x="332" y="421" font-size="10" fill="#475569">Reduction (range)</text>
+  <rect x="440" y="412" width="12" height="10" fill="#93c5fd"/>
+  <text x="456" y="421" font-size="10" fill="#475569">Intermediate</text>
+  <rect x="534" y="412" width="12" height="10" fill="#16a34a"/>
+  <text x="550" y="421" font-size="10" fill="#475569">Residual (min)</text>
+  <rect x="630" y="412" width="12" height="10" fill="url(#hatch-green)" stroke="#16a34a" stroke-width="0.5"/>
+  <text x="646" y="421" font-size="10" fill="#475569">Residual (range)</text>
+
+  <!-- Footer removed — shown separately on page -->
+
+</svg>

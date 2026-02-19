@@ -1,0 +1,381 @@
+{
+  "_metadata": {
+    "last_export": "2026-02-19T15:36:49.147213",
+    "export_script": "export_entity_hierarchy.py"
+  },
+  "biohubs": [
+    {
+      "biohub_id": "BH-ASIA",
+      "name": "BioHub Asia",
+      "region": "Southeast Asia (Thailand)",
+      "projects": [
+        {
+          "project_id": "P-TH-ENERGY-EEC",
+          "name": "Energy Platform BioHub Asia (RED TriGen)",
+          "short_name": "EEC",
+          "country": "Thailand",
+          "phase": "origination",
+          "capex_eur": 35000000.0,
+          "promoter": "BioHub Asia RED OpCo (TBD)",
+          "total_subsidy_target_eur": 0,
+          "total_subsidy_approved_eur": 0,
+          "application_count": 0,
+          "blocker_count": 4,
+          "vendors": []
+        },
+        {
+          "project_id": "P-TH-ETHANOL",
+          "name": "Bioethanol OpCo - Waste-to-Biofuels",
+          "short_name": "Ethanol",
+          "country": "Thailand",
+          "phase": "origination",
+          "capex_eur": null,
+          "promoter": "Bioethanol OpCo (TBD)",
+          "total_subsidy_target_eur": 0,
+          "total_subsidy_approved_eur": 0,
+          "application_count": 0,
+          "blocker_count": 0,
+          "vendors": []
+        },
+        {
+          "project_id": "P-TH-LEAFY",
+          "name": "Leafy Greens BioHub Asia",
+          "short_name": "Leafy",
+          "country": "Thailand",
+          "phase": "origination",
+          "capex_eur": 40000000.0,
+          "promoter": "Leafy Greens SPV",
+          "total_subsidy_target_eur": 140000.0,
+          "total_subsidy_approved_eur": 0,
+          "application_count": 1,
+          "blocker_count": 3,
+          "vendors": [
+            {
+              "vendor_id": "V-NL-AMMERLAAN",
+              "name": "Ammerlaan",
+              "country": "Netherlands",
+              "green_lit": 0,
+              "contract_b_budget_eur": null,
+              "application_count": 1
+            },
+            {
+              "vendor_id": "V-NL-HORTILIFE",
+              "name": "HortiLife B.V.",
+              "country": "Netherlands",
+              "green_lit": 0,
+              "contract_b_budget_eur": 140000.0,
+              "application_count": 0
+            },
+            {
+              "vendor_id": "V-NL-VDH",
+              "name": "Van den Hoeven Horticultural Projects",
+              "country": "Netherlands",
+              "green_lit": 0,
+              "contract_b_budget_eur": null,
+              "application_count": 0
+            }
+          ]
+        }
+      ],
+      "total_capex_eur": 75000000.0,
+      "total_subsidy_target_eur": 140000.0,
+      "project_count": 3
+    },
+    {
+      "biohub_id": "BH-INDIA",
+      "name": "BioHub India",
+      "region": "India",
+      "projects": [
+        {
+          "project_id": "P-AFR-IN",
+          "name": "Alternative Fuel Resources (India) TANA",
+          "short_name": "AFR",
+          "country": "India",
+          "phase": "origination",
+          "capex_eur": 1000000.0,
+          "promoter": "TANA SPV",
+          "total_subsidy_target_eur": 200000.0,
+          "total_subsidy_approved_eur": 0,
+          "application_count": 1,
+          "blocker_count": 4,
+          "vendors": [
+            {
+              "vendor_id": "V-FI-TANA",
+              "name": "Tana Oy",
+              "country": "Finland",
+              "green_lit": 0,
+              "contract_b_budget_eur": null,
+              "application_count": 1
+            }
+          ]
+        },
+        {
+          "project_id": "P-BIAL-IN",
+          "name": "BIAL Phase 2 Bangalore WtE",
+          "short_name": "BIAL",
+          "country": "India",
+          "phase": "origination",
+          "capex_eur": 5000000.0,
+          "promoter": "BIAL SPV",
+          "total_subsidy_target_eur": 460000.0,
+          "total_subsidy_approved_eur": 0,
+          "application_count": 4,
+          "blocker_count": 5,
+          "vendors": [
+            {
+              "vendor_id": "V-AT-BIOGAS",
+              "name": "Austrian Supplier (TBD)",
+              "country": "Austria",
+              "green_lit": 0,
+              "contract_b_budget_eur": null,
+              "application_count": 0
+            },
+            {
+              "vendor_id": "V-EU-CANISTERCO",
+              "name": "EU Composite Canister Manufacturer (TBD)",
+              "country": "EU",
+              "green_lit": 0,
+              "contract_b_budget_eur": null,
+              "application_count": 0
+            },
+            {
+              "vendor_id": "V-FI-ARCIPLUG",
+              "name": "AcriPlug",
+              "country": "Finland",
+              "green_lit": 0,
+              "contract_b_budget_eur": 90000.0,
+              "application_count": 1
+            },
+            {
+              "vendor_id": "V-FI-BIOGAS",
+              "name": "Finnish Supplier (TBD)",
+              "country": "Finland",
+              "green_lit": 0,
+              "contract_b_budget_eur": null,
+              "application_count": 0
+            },
+            {
+              "vendor_id": "V-FI-BIOVOIMA",
+              "name": "Biovoima",
+              "country": "Finland",
+              "green_lit": 0,
+              "contract_b_budget_eur": null,
+              "application_count": 0
+            },
+            {
+              "vendor_id": "V-IN-NEPRA",
+              "name": "Nepra",
+              "country": "India",
+              "green_lit": 0,
+              "contract_b_budget_eur": null,
+              "application_count": 0
+            },
+            {
+              "vendor_id": "V-NL-CIRCUWORLD",
+              "name": "CircuWorld",
+              "country": "Netherlands",
+              "green_lit": 0,
+              "contract_b_budget_eur": 190000.0,
+              "application_count": 1
+            },
+            {
+              "vendor_id": "V-NL-COLUBRIS",
+              "name": "Colubris Cleantech B.V.",
+              "country": "Netherlands",
+              "green_lit": 0,
+              "contract_b_budget_eur": 90000.0,
+              "application_count": 1
+            },
+            {
+              "vendor_id": "V-NL-MAVITEC",
+              "name": "Mavitec B.V.",
+              "country": "Netherlands",
+              "green_lit": 0,
+              "contract_b_budget_eur": 90000.0,
+              "application_count": 1
+            },
+            {
+              "vendor_id": "V-SE-SCANIA",
+              "name": "Scania AB",
+              "country": "Sweden",
+              "green_lit": 0,
+              "contract_b_budget_eur": null,
+              "application_count": 0
+            },
+            {
+              "vendor_id": "V-SE-VOLVO",
+              "name": "Volvo Trucks AB",
+              "country": "Sweden",
+              "green_lit": 0,
+              "contract_b_budget_eur": null,
+              "application_count": 0
+            }
+          ]
+        }
+      ],
+      "total_capex_eur": 6000000.0,
+      "total_subsidy_target_eur": 660000.0,
+      "project_count": 2
+    },
+    {
+      "biohub_id": "BH-LANSERIA",
+      "name": "BioHub Lanseria",
+      "region": "South Africa (Gauteng)",
+      "projects": [
+        {
+          "project_id": "P-FI-TIMBERTRADE",
+          "name": "Timber Trade Finland JV",
+          "short_name": "TimberTrade",
+          "country": "Finland",
+          "phase": "origination",
+          "capex_eur": null,
+          "promoter": "Philip JV entity",
+          "total_subsidy_target_eur": 0,
+          "total_subsidy_approved_eur": 0,
+          "application_count": 0,
+          "blocker_count": 0,
+          "vendors": []
+        },
+        {
+          "project_id": "P-ZA-CRADLE-CLOUD",
+          "name": "Cradle Cloud AI Data Sovereignty",
+          "short_name": "CradleCloud",
+          "country": "South Africa",
+          "phase": "origination",
+          "capex_eur": 70000000.0,
+          "promoter": "Roots Digital / LeafCloud / Cradle Cloud LLC",
+          "total_subsidy_target_eur": 200000.0,
+          "total_subsidy_approved_eur": 0,
+          "application_count": 1,
+          "blocker_count": 6,
+          "vendors": [
+            {
+              "vendor_id": "V-EU-AISTACK",
+              "name": "EU AI/Digital Partners (TBD)",
+              "country": "EU",
+              "green_lit": 0,
+              "contract_b_budget_eur": null,
+              "application_count": 0
+            },
+            {
+              "vendor_id": "V-NL-LEAFCLOUD",
+              "name": "LeafCloud",
+              "country": "Netherlands",
+              "green_lit": 0,
+              "contract_b_budget_eur": 200000.0,
+              "application_count": 1
+            }
+          ]
+        },
+        {
+          "project_id": "P-ZA-HERM",
+          "name": "Hermetics Health SA - Tri-generation",
+          "short_name": "HERM",
+          "country": "South Africa",
+          "phase": "incubation",
+          "capex_eur": 5500000.0,
+          "promoter": "Hermetics SPV",
+          "total_subsidy_target_eur": 0,
+          "total_subsidy_approved_eur": 0,
+          "application_count": 0,
+          "blocker_count": 4,
+          "vendors": [
+            {
+              "vendor_id": "V-NL-VDH",
+              "name": "Van den Hoeven Horticultural Projects",
+              "country": "Netherlands",
+              "green_lit": 0,
+              "contract_b_budget_eur": null,
+              "application_count": 0
+            }
+          ]
+        },
+        {
+          "project_id": "P-ZA-IWSA-GG-ESIM",
+          "name": "IWSA/Lanseria Smart City - GG ESIM Lot 4",
+          "short_name": "ESIM",
+          "country": "South Africa",
+          "phase": "origination",
+          "capex_eur": null,
+          "promoter": "KIRAHub/SCIC + IWSA",
+          "total_subsidy_target_eur": 1500000.0,
+          "total_subsidy_approved_eur": 0,
+          "application_count": 1,
+          "blocker_count": 0,
+          "vendors": []
+        },
+        {
+          "project_id": "P-ZA-LANRED",
+          "name": "LanRED Energy Storage",
+          "short_name": "LanRED",
+          "country": "South Africa",
+          "phase": "incubation",
+          "capex_eur": null,
+          "promoter": null,
+          "total_subsidy_target_eur": 270000.0,
+          "total_subsidy_approved_eur": 0,
+          "application_count": 1,
+          "blocker_count": 0,
+          "vendors": []
+        },
+        {
+          "project_id": "P-ZA-LANSERIA",
+          "name": "Smart City Lanseria IWSA DevCo",
+          "short_name": "Lanseria",
+          "country": "South Africa",
+          "phase": "origination",
+          "capex_eur": 100000000.0,
+          "promoter": "IWSA DevCo Lanseria",
+          "total_subsidy_target_eur": 1125000.0,
+          "total_subsidy_approved_eur": 0,
+          "application_count": 3,
+          "blocker_count": 5,
+          "vendors": [
+            {
+              "vendor_id": "V-SE-SWECO",
+              "name": "Sweco AB",
+              "country": "Sweden",
+              "green_lit": 0,
+              "contract_b_budget_eur": null,
+              "application_count": 1
+            }
+          ]
+        },
+        {
+          "project_id": "P-ZA-TIMBERWORKS",
+          "name": "Timberworks - Prefab Housing",
+          "short_name": "TWX",
+          "country": "South Africa",
+          "phase": "incubation",
+          "capex_eur": null,
+          "promoter": "Timberworks SPV",
+          "total_subsidy_target_eur": 460000.0,
+          "total_subsidy_approved_eur": 0,
+          "application_count": 3,
+          "blocker_count": 0,
+          "vendors": [
+            {
+              "vendor_id": "V-FI-NPM-PHILIP",
+              "name": "NPM (Philip)",
+              "country": "Finland",
+              "green_lit": 0,
+              "contract_b_budget_eur": null,
+              "application_count": 1
+            },
+            {
+              "vendor_id": "V-NL-OPTIMAT",
+              "name": "OptiMat",
+              "country": "Netherlands",
+              "green_lit": 0,
+              "contract_b_budget_eur": 200000.0,
+              "application_count": 1
+            }
+          ]
+        }
+      ],
+      "total_capex_eur": 175500000.0,
+      "total_subsidy_target_eur": 3555000.0,
+      "project_count": 7
+    }
+  ]
+}

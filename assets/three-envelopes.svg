@@ -1,0 +1,148 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 760" font-family="'Segoe UI', Arial, sans-serif">
+  <defs>
+    <marker id="loanArrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#2563eb"/>
+    </marker>
+    <marker id="secArrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#dc2626"/>
+    </marker>
+    <filter id="shadow" x="-4%" y="-4%" width="108%" height="116%">
+      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-opacity="0.12"/>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="900" height="760" fill="#f1f5f9" rx="0"/>
+
+  <!-- ============================================================ -->
+  <!-- TITLE BLOCK -->
+  <!-- ============================================================ -->
+  <text x="450" y="38" text-anchor="middle" font-size="24" font-weight="700" fill="#0f172a" letter-spacing="0.3">Three Operating Companies, Three Envelopes</text>
+  <text x="450" y="60" text-anchor="middle" font-size="14" fill="#64748b">SCLCA Senior Facility &#8212; Three-Envelope Security Structure</text>
+
+  <!-- ============================================================ -->
+  <!-- ROW 1: IIC BOX (centered, y=80) -->
+  <!-- ============================================================ -->
+  <rect x="270" y="80" width="360" height="80" rx="10" fill="#1e3a5f" filter="url(#shadow)"/>
+  <text x="450" y="113" text-anchor="middle" font-size="15" font-weight="700" fill="#ffffff">Invest International Capital B.V.</text>
+  <text x="450" y="134" text-anchor="middle" font-size="13" fill="#93c5fd">Senior Facility &#8364;13,597,304</text>
+
+  <!-- ============================================================ -->
+  <!-- ARROW: IIC down to SCLCA -->
+  <!-- ============================================================ -->
+  <line x1="450" y1="160" x2="450" y2="214" stroke="#2563eb" stroke-width="2.5" marker-end="url(#loanArrow)"/>
+  <rect x="375" y="175" width="150" height="20" rx="10" fill="#2563eb" opacity="0.90"/>
+  <text x="450" y="189" text-anchor="middle" font-size="12" font-weight="600" fill="#ffffff">Onward lending</text>
+
+  <!-- ============================================================ -->
+  <!-- ROW 2: SCLCA BOX (full-width-ish, y=220) -->
+  <!-- ============================================================ -->
+  <rect x="60" y="220" width="780" height="80" rx="10" fill="#1e40af" filter="url(#shadow)"/>
+  <text x="450" y="254" text-anchor="middle" font-size="15" font-weight="700" fill="#ffffff">SCLCA (Holding Company)</text>
+  <text x="450" y="275" text-anchor="middle" font-size="13" fill="#bfdbfe">Onward-lends to 3 subsidiaries</text>
+
+  <!-- ============================================================ -->
+  <!-- ARROWS: SCLCA down to 3 subsidiaries -->
+  <!-- NWL center x=165, LanRED center x=450, Timberworx center x=735 -->
+  <!-- ============================================================ -->
+
+  <!-- Arrow to NWL -->
+  <line x1="200" y1="300" x2="200" y2="368" stroke="#2563eb" stroke-width="2.5" marker-end="url(#loanArrow)"/>
+
+  <!-- Arrow to LanRED -->
+  <line x1="450" y1="300" x2="450" y2="368" stroke="#2563eb" stroke-width="2.5" marker-end="url(#loanArrow)"/>
+
+  <!-- Arrow to Timberworx -->
+  <line x1="700" y1="300" x2="700" y2="368" stroke="#2563eb" stroke-width="2.5" marker-end="url(#loanArrow)"/>
+
+  <!-- ============================================================ -->
+  <!-- ROW 3: THREE SUBSIDIARY BOXES (y=375, height=260) -->
+  <!-- Box 1: NWL   x=60  width=255 -->
+  <!-- Box 2: LanRED  x=323 width=255 -->
+  <!-- Box 3: Timberworx x=585 width=255 -->
+  <!-- ============================================================ -->
+
+  <!-- ===== NWL BOX ===== -->
+  <rect x="60" y="375" width="255" height="268" rx="10" fill="#1d4ed8" filter="url(#shadow)"/>
+  <!-- Entity name -->
+  <text x="187" y="404" text-anchor="middle" font-size="15" font-weight="700" fill="#ffffff">NWL</text>
+  <!-- Loan amount -->
+  <text x="187" y="425" text-anchor="middle" font-size="13" font-weight="600" fill="#bfdbfe">&#8364;9,104,041</text>
+  <!-- Description -->
+  <text x="187" y="446" text-anchor="middle" font-size="12" fill="#dbeafe">Water treatment &amp; reuse</text>
+  <!-- Divider -->
+  <line x1="80" y1="460" x2="295" y2="460" stroke="#93c5fd" stroke-width="1" stroke-opacity="0.5"/>
+  <!-- LAYER 2 pill -->
+  <rect x="130" y="468" width="114" height="22" rx="11" fill="#f97316"/>
+  <text x="187" y="483" text-anchor="middle" font-size="11" font-weight="700" fill="#ffffff">LAYER 2 SECURITY</text>
+  <!-- Security description lines -->
+  <text x="187" y="508" text-anchor="middle" font-size="11" fill="#dbeafe">Grants &amp; bulk services*</text>
+  <text x="187" y="524" text-anchor="middle" font-size="11" fill="#dbeafe">+ Currency Swap**</text>
+  <text x="187" y="540" text-anchor="middle" font-size="11" fill="#dbeafe">+ Veracity guarantee</text>
+  <text x="187" y="556" text-anchor="middle" font-size="11" fill="#dbeafe">+ ECA cover</text>
+  <!-- Red dashed security arrow back up -->
+  <line x1="162" y1="375" x2="162" y2="303" stroke="#dc2626" stroke-width="1.8" stroke-dasharray="5,4" marker-end="url(#secArrow)"/>
+
+  <!-- ===== LanRED BOX ===== -->
+  <rect x="323" y="375" width="255" height="268" rx="10" fill="#eab308" filter="url(#shadow)"/>
+  <!-- Entity name -->
+  <text x="450" y="404" text-anchor="middle" font-size="15" font-weight="700" fill="#422006">LanRED</text>
+  <!-- Loan amount -->
+  <text x="450" y="425" text-anchor="middle" font-size="13" font-weight="600" fill="#422006">&#8364;2,739,516</text>
+  <!-- Description -->
+  <text x="450" y="446" text-anchor="middle" font-size="12" fill="#422006">Solar energy &amp; storage</text>
+  <!-- Divider -->
+  <line x1="343" y1="460" x2="558" y2="460" stroke="#78350f" stroke-width="1" stroke-opacity="0.4"/>
+  <!-- LAYER 2 pill -->
+  <rect x="393" y="468" width="114" height="22" rx="11" fill="#f97316"/>
+  <text x="450" y="483" text-anchor="middle" font-size="11" font-weight="700" fill="#ffffff">LAYER 2 SECURITY</text>
+  <!-- Security description lines -->
+  <text x="450" y="508" text-anchor="middle" font-size="11" fill="#422006">Underwrite*** or</text>
+  <text x="450" y="524" text-anchor="middle" font-size="11" fill="#422006">Currency Swap**</text>
+  <text x="450" y="540" text-anchor="middle" font-size="11" fill="#422006">+ ECA&#8224;</text>
+  <!-- Red dashed security arrow back up -->
+  <line x1="425" y1="375" x2="425" y2="303" stroke="#dc2626" stroke-width="1.8" stroke-dasharray="5,4" marker-end="url(#secArrow)"/>
+
+  <!-- ===== TIMBERWORX BOX ===== -->
+  <rect x="585" y="375" width="255" height="268" rx="10" fill="#8b4513" filter="url(#shadow)"/>
+  <!-- Entity name -->
+  <text x="712" y="404" text-anchor="middle" font-size="15" font-weight="700" fill="#ffffff">Timberworx</text>
+  <!-- Loan amount -->
+  <text x="712" y="425" text-anchor="middle" font-size="13" font-weight="600" fill="#fde68a">&#8364;1,753,747</text>
+  <!-- Description -->
+  <text x="712" y="446" text-anchor="middle" font-size="12" fill="#fed7aa">CoE + Mfg timber panels</text>
+  <!-- Divider -->
+  <line x1="605" y1="460" x2="820" y2="460" stroke="#fbbf24" stroke-width="1" stroke-opacity="0.4"/>
+  <!-- LAYER 2 pill -->
+  <rect x="655" y="468" width="114" height="22" rx="11" fill="#f97316"/>
+  <text x="712" y="483" text-anchor="middle" font-size="11" font-weight="700" fill="#ffffff">LAYER 2 SECURITY</text>
+  <!-- Security description lines -->
+  <text x="712" y="508" text-anchor="middle" font-size="11" fill="#fed7aa">Phoenix corporate</text>
+  <text x="712" y="524" text-anchor="middle" font-size="11" fill="#fed7aa">guarantee</text>
+  <text x="712" y="540" text-anchor="middle" font-size="11" fill="#fed7aa">+ ECA cover</text>
+  <!-- Red dashed security arrow back up -->
+  <line x1="688" y1="375" x2="688" y2="303" stroke="#dc2626" stroke-width="1.8" stroke-dasharray="5,4" marker-end="url(#secArrow)"/>
+
+  <!-- ============================================================ -->
+  <!-- ATRADIUS NOTE (below boxes) -->
+  <!-- ============================================================ -->
+  <rect x="120" y="660" width="660" height="32" rx="8" fill="#e0f2fe" stroke="#0ea5e9" stroke-width="1"/>
+  <text x="450" y="680" text-anchor="middle" font-size="12" fill="#0c4a6e" font-weight="600">Atradius DSB (Netherlands) ECA cover to be applied for on all three envelopes.</text>
+
+  <!-- ============================================================ -->
+  <!-- FOOTNOTES -->
+  <!-- ============================================================ -->
+  <text x="60" y="712" font-size="10.5" fill="#475569">* Sovereign risk (DTIC + GEPF)</text>
+  <text x="60" y="727" font-size="10.5" fill="#475569">** Bank-to-bank risk (Investec)</text>
+  <text x="60" y="742" font-size="10.5" fill="#475569">*** Insurance company risk</text>
+  <text x="370" y="712" font-size="10.5" fill="#475569">&#8224; May be absent/thin depending on Dutch content</text>
+
+  <!-- ============================================================ -->
+  <!-- LEGEND: Arrow types -->
+  <!-- ============================================================ -->
+  <line x1="710" y1="722" x2="745" y2="722" stroke="#2563eb" stroke-width="2" marker-end="url(#loanArrow)"/>
+  <text x="750" y="726" font-size="10.5" fill="#475569">Loan flow</text>
+  <line x1="710" y1="740" x2="745" y2="740" stroke="#dc2626" stroke-width="2" stroke-dasharray="5,3" marker-end="url(#secArrow)"/>
+  <text x="750" y="744" font-size="10.5" fill="#475569">Security / recourse</text>
+
+</svg>

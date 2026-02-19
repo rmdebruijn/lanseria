@@ -1,0 +1,83 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 740 380" font-family="'Segoe UI', Arial, sans-serif">
+  <defs>
+    <filter id="shadow" x="-6%" y="-6%" width="112%" height="118%">
+      <feDropShadow dx="1" dy="2" stdDeviation="3" flood-opacity="0.13"/>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="740" height="380" rx="12" fill="#f8fafc"/>
+
+  <!-- Title -->
+  <text x="370" y="34" text-anchor="middle" font-size="20" font-weight="700" fill="#0f172a">LanRED Security — Bank-to-Bank or Bank-to-Underwriter</text>
+
+  <!-- Subtitle -->
+  <text x="370" y="56" text-anchor="middle" font-size="13" fill="#64748b">LanRED's security depends on the asset strategy. In both scenarios, IIC has no direct project credit risk.</text>
+
+  <!-- ═══════════════ LEFT BOX: Greenfield ═══════════════ -->
+  <rect x="30" y="75" width="320" height="195" rx="10" fill="#0d9488" filter="url(#shadow)"/>
+
+  <!-- Scenario pill -->
+  <rect x="115" y="88" width="150" height="24" rx="8" fill="#134e4a"/>
+  <text x="190" y="104" text-anchor="middle" font-size="11" font-weight="700" fill="#99f6e4" letter-spacing="1">GREENFIELD</text>
+
+  <!-- Amount -->
+  <text x="190" y="136" text-anchor="middle" font-size="19" font-weight="700" fill="#ffffff">&#8364;2,739,516</text>
+
+  <!-- Separator line -->
+  <line x1="50" y1="150" x2="330" y2="150" stroke="#ffffff" stroke-opacity="0.25" stroke-width="1"/>
+
+  <!-- Description lines -->
+  <text x="190" y="169" text-anchor="middle" font-size="12" fill="#ccfbf1">Independently underwritten</text>
+  <text x="190" y="187" text-anchor="middle" font-size="12" fill="#ccfbf1">Insurance company assumes</text>
+  <text x="190" y="203" text-anchor="middle" font-size="12" fill="#ccfbf1">IIC&#8217;s credit exposure</text>
+  <text x="190" y="221" text-anchor="middle" font-size="12" fill="#99f6e4">IIC exposure transfers to underwriter</text>
+
+  <!-- Sub-separator -->
+  <line x1="50" y1="232" x2="330" y2="232" stroke="#ffffff" stroke-opacity="0.15" stroke-width="1" stroke-dasharray="4,3"/>
+
+  <!-- Risk pill -->
+  <rect x="90" y="243" width="200" height="22" rx="11" fill="#134e4a"/>
+  <text x="190" y="258" text-anchor="middle" font-size="11" font-weight="600" fill="#99f6e4">(insurance company risk)</text>
+
+  <!-- ═══════════════ RIGHT BOX: Brownfield+ ═══════════════ -->
+  <rect x="390" y="75" width="320" height="195" rx="10" fill="#b45309" filter="url(#shadow)"/>
+
+  <!-- Scenario pill -->
+  <rect x="465" y="88" width="170" height="24" rx="8" fill="#78350f"/>
+  <text x="550" y="104" text-anchor="middle" font-size="11" font-weight="700" fill="#fde68a" letter-spacing="1">BROWNFIELD+</text>
+
+  <!-- Amount -->
+  <text x="550" y="136" text-anchor="middle" font-size="19" font-weight="700" fill="#ffffff">&#8364;2,739,516</text>
+
+  <!-- Separator line -->
+  <line x1="410" y1="150" x2="690" y2="150" stroke="#ffffff" stroke-opacity="0.25" stroke-width="1"/>
+
+  <!-- Description lines -->
+  <text x="550" y="169" text-anchor="middle" font-size="12" fill="#fef3c7">Cross-Currency Swap against existing PPAs</text>
+  <text x="550" y="187" text-anchor="middle" font-size="12" fill="#fef3c7">Investec receives EUR from entity,</text>
+  <text x="550" y="203" text-anchor="middle" font-size="12" fill="#fef3c7">delivers EUR to IIC. Entity repays</text>
+  <text x="550" y="221" text-anchor="middle" font-size="12" fill="#fde68a">in ZAR from PPA revenue. Bank-to-bank.</text>
+
+  <!-- Sub-separator -->
+  <line x1="410" y1="232" x2="690" y2="232" stroke="#ffffff" stroke-opacity="0.15" stroke-width="1" stroke-dasharray="4,3"/>
+
+  <!-- Risk pill -->
+  <rect x="450" y="243" width="200" height="22" rx="11" fill="#78350f"/>
+  <text x="550" y="258" text-anchor="middle" font-size="11" font-weight="600" fill="#fde68a">(bank-to-bank risk)</text>
+
+  <!-- ═══════════════ OR circle ═══════════════ -->
+  <circle cx="370" cy="172" r="22" fill="#e2e8f0" stroke="#94a3b8" stroke-width="1.5"/>
+  <text x="370" y="177" text-anchor="middle" font-size="13" font-weight="700" fill="#475569">OR</text>
+
+  <!-- ═══════════════ FOOTER ═══════════════ -->
+  <!-- Bold centred message -->
+  <text x="370" y="298" text-anchor="middle" font-size="14" font-weight="700" fill="#0f172a">Either way: IIC has no direct LanRED project credit risk.</text>
+
+  <!-- Brownfield revenue note -->
+  <text x="370" y="318" text-anchor="middle" font-size="11" fill="#64748b">The brownfield portfolio generates R2.08M/month from 5 existing PPA sites — contracted, escalating revenue from Day 1.</text>
+
+  <!-- Atradius note -->
+  <text x="370" y="338" text-anchor="middle" font-size="11" fill="#94a3b8" font-style="italic">Atradius ECA cover: may be absent or limited for LanRED depending on chosen asset strategy and IIC comfort.</text>
+
+</svg>

@@ -1,0 +1,925 @@
+{
+  "metadata": {
+    "entity": {
+      "legal_name": "Ridgeview Centre (Pty) Ltd",
+      "entity_key": "RidgeviewCentre_2025_structured",
+      "guarantor_group": "phoenix"
+    },
+    "reporting_period": {
+      "start_date": "2025-03-01",
+      "end_date": "2025-12-31",
+      "months": 10
+    },
+    "currency": "ZAR",
+    "property_managers": {
+      "name": "Broll Property Group / Retail Africa / Fedgroup",
+      "contact": "Corney van Niekerk (cvanniekerk@broll.com), Kallie Jooste (kjooste@broll.com), Gene Uys (guys@broll.com)",
+      "report_date": "2025-12-31"
+    },
+    "verification": {
+      "extracted_by": "claude",
+      "extraction_date": "2026-02-18",
+      "crosscheck_notes": [
+        "Management meeting held 20 November 2025 at Retail Africa offices, Amdec House, Melrose Arch",
+        "Previous meeting held 23 October 2025",
+        "Building transferred to Fedgroup on 19 August 2025",
+        "Adjustment account to be concluded by 17 November 2025 (90 days from transfer)",
+        "YTD figures affected by Sept figures still to be journalised once adjustment account finalised",
+        "PPA cost for Oct, Nov and Dec included in Dec expense affecting utility recovery",
+        "GL period is 10 months (Mar-Dec 2025) of FY ending Feb 2026",
+        "GL uses sign convention: negative = income/profit, positive = expense/loss"
+      ]
+    }
+  },
+  "property_details": {
+    "address": "200 Ouklip Road, Helderkruin, 1724",
+    "erf_number": "1010, Helderkruin ext 1, Johannesburg",
+    "municipal_valuation": 66800000,
+    "building_sum_insured": 320000000,
+    "gla_breakdown": {
+      "national": { "gla_m2": null, "pct": null },
+      "regional": { "gla_m2": null, "pct": null },
+      "local": { "gla_m2": null, "pct": null },
+      "offices": { "gla_m2": null, "pct": null },
+      "storage_other": { "gla_m2": null, "pct": null }
+    },
+    "total_gla_m2": 10043,
+    "gla_as_per_current_and_historic_leases_m2": 9976,
+    "rentable_gla_m2": 9870,
+    "mezzanine_m2": 0,
+    "outside_seating_m2": 168,
+    "atm_m2": 5,
+    "rentable_units": 32,
+    "tenant_count": 32,
+    "parking_bays": {
+      "mall_required": 388,
+      "mall_provided": 350,
+      "taxi": 5,
+      "delivery": 10,
+      "parking_allowance_per_100m2": 4
+    },
+    "monthly_rates": {
+      "calculation": "66800000 x 0.023862 / 12 = 132831.80 per month",
+      "rate_in_rand_cent": 0.023862,
+      "monthly_amount": 132831.80,
+      "rate_per_m2": 13.23
+    },
+    "insurance": {
+      "annual_premium_2025_2026": 485544.00,
+      "monthly_debit_order_jun2025_may2026": 40462.00,
+      "building_sum_insured": 320000000
+    }
+  },
+  "financial_summary": {
+    "net_income_ytd": {
+      "actual": 4590361,
+      "budget": 6871401,
+      "variance": -2281240
+    },
+    "net_income_monthly": {
+      "actual": 1299266,
+      "budget": 1695737,
+      "variance": -396471
+    },
+    "annual_forecast": 7942224,
+    "annual_budget": 7942224,
+    "py_actual": 16445675,
+    "py_variance": -8503451,
+    "monthly_avg": 459036.10,
+    "variance_factors": {
+      "monthly_negative_variance_on_income": -834838,
+      "income_note": "Utility recovery lower than budgeted but still on 116% recovery",
+      "monthly_negative_variance_on_expenses": -396471,
+      "expense_notes": [
+        "Electricity expense higher than budgeted due to solar PPA invoice for Oct and Nov received late and now included in Dec figures",
+        "Accrual for Checkers cladding claim raised"
+      ]
+    }
+  },
+  "leasing_summary": {
+    "vacancy_rate_pct": 0.0,
+    "vacancy_gla_m2": 0,
+    "vacancy_shops": 0,
+    "potential_vacancy_gla_m2": 0,
+    "potential_vacancy_pct": 0.0,
+    "potential_vacancy_shops": 0,
+    "lease_expiry_profile": {
+      "0_12m": { "gla_m2": 1028, "pct": 10.30, "count": 10 },
+      "12_24m": { "gla_m2": null, "pct": null },
+      "24_36m": { "gla_m2": null, "pct": null },
+      "36_plus_m": { "gla_m2": null, "pct": null }
+    },
+    "renewals_concluded": {
+      "count": 0,
+      "gla_m2": 0,
+      "pct_of_gla": 0.0
+    },
+    "avg_rental_per_m2": {
+      "anchors": { "centre_current": 112.85, "market_benchmarking": 122.38 },
+      "nationals": { "centre_current": 185.91, "market_benchmarking": 174.76 },
+      "food_and_restaurants": { "centre_current": 267.90, "market_benchmarking": 255.96 },
+      "line_shops_201_500m2": { "centre_current": 150.00, "market_benchmarking": 222.38 },
+      "line_shops_90_200m2": { "centre_current": 284.83, "market_benchmarking": 202.12 }
+    },
+    "tenant_mix_by_income_pct": {
+      "anchors": { "pct": 35, "count": 3 },
+      "nationals": { "pct": 23, "count": 7 },
+      "food_and_restaurants": { "pct": 12, "count": 5 },
+      "line_shops_201_500m2": { "pct": 6, "count": 1 },
+      "line_shops_90_200m2": { "pct": 4, "count": 2 }
+    }
+  },
+  "turnover_summary": {
+    "total_reported_turnover": 47898679,
+    "trading_density_per_m2": 3856.00,
+    "centre_trading_density_annual": 3754,
+    "rent_to_turnover_pct": null,
+    "anchor_turnovers": [
+      {
+        "tenant": "Checkers",
+        "annual_turnover": 18793000.00,
+        "avg_monthly_trading_density": 8571,
+        "avg_annual_trading_density": 6449,
+        "turnover_pct_as_per_lease": 1.75,
+        "rent_to_turnover_pct": 2.29
+      },
+      {
+        "tenant": "Checkers Liquor",
+        "annual_turnover": 2634000.00,
+        "avg_monthly_trading_density": 11865,
+        "avg_annual_trading_density": 6190,
+        "turnover_pct_as_per_lease": 1.75,
+        "rent_to_turnover_pct": 3.51
+      },
+      {
+        "tenant": "Woolworths Food",
+        "annual_turnover": 8878376.00,
+        "avg_monthly_trading_density": 6803,
+        "avg_annual_trading_density": 7141,
+        "turnover_pct_as_per_lease": 2.50,
+        "rent_to_turnover_pct": 0.71
+      },
+      {
+        "tenant": "Dis-Chem",
+        "annual_turnover": 6069219.00,
+        "avg_monthly_trading_density": 6039,
+        "avg_annual_trading_density": 5801,
+        "turnover_pct_as_per_lease": 1.50,
+        "rent_to_turnover_pct": 3.36
+      }
+    ],
+    "restaurant_turnovers": [
+      {
+        "tenant": "Lucy's Pizzeria",
+        "monthly_turnover": 591927.00,
+        "avg_monthly_trading_density": 5147,
+        "avg_annual_trading_density": 3095,
+        "turnover_pct_as_per_lease": 0.00,
+        "rent_to_turnover_pct": 7.58
+      },
+      {
+        "tenant": "Panos Diner",
+        "monthly_turnover": 535000.00,
+        "avg_monthly_trading_density": 1602,
+        "avg_annual_trading_density": 1531,
+        "turnover_pct_as_per_lease": 0.00,
+        "rent_to_turnover_pct": 16.66
+      },
+      {
+        "tenant": "Bootleggers",
+        "monthly_turnover": 428492.00,
+        "avg_monthly_trading_density": 1921,
+        "avg_annual_trading_density": 1817,
+        "turnover_pct_as_per_lease": 6.00,
+        "rent_to_turnover_pct": 11.91
+      },
+      {
+        "tenant": "Fish and Chips",
+        "monthly_turnover": 341000.00,
+        "avg_monthly_trading_density": 2869,
+        "avg_annual_trading_density": 2189,
+        "turnover_pct_as_per_lease": 3.00,
+        "rent_to_turnover_pct": 12.18
+      }
+    ],
+    "tenant_performance": [
+      { "tenant": "THE VAPE GURUS", "annual_trading_density": 7146, "rent_to_turnover_pct": 5.16 },
+      { "tenant": "WOOLWORTHS", "annual_trading_density": 6977, "rent_to_turnover_pct": 0.74 },
+      { "tenant": "CHECKERS SUPERMARKET", "annual_trading_density": 6199, "rent_to_turnover_pct": 2.38 },
+      { "tenant": "CHECKERS LIQUORSHOP", "annual_trading_density": 5913, "rent_to_turnover_pct": 3.67 },
+      { "tenant": "BUCCANEER BILTONG AND BEAN", "annual_trading_density": 5153, "rent_to_turnover_pct": 8.03 },
+      { "tenant": "DIS-CHEM", "annual_trading_density": 4820, "rent_to_turnover_pct": 3.49 },
+      { "tenant": "ABSOLUTE PETS", "annual_trading_density": 4270, "rent_to_turnover_pct": 8.35 },
+      { "tenant": "CENTRE TRADING DENSITY", "annual_trading_density": 3754, "rent_to_turnover_pct": null },
+      { "tenant": "LUCY'S", "annual_trading_density": 3137, "rent_to_turnover_pct": 7.48 },
+      { "tenant": "WAX IT", "annual_trading_density": 2964, "rent_to_turnover_pct": 11.84 },
+      { "tenant": "SPEC-SAVERS", "annual_trading_density": 2962, "rent_to_turnover_pct": 11.56 },
+      { "tenant": "FIX TECH", "annual_trading_density": 2895, "rent_to_turnover_pct": 16.57 },
+      { "tenant": "NIKKI'S : THE GIFT SHOP", "annual_trading_density": 2877, "rent_to_turnover_pct": 16.42 },
+      { "tenant": "THE FISH AND CHIP CO", "annual_trading_density": 2200, "rent_to_turnover_pct": 12.12 },
+      { "tenant": "PICK 'N PAY CLOTHING", "annual_trading_density": 2162, "rent_to_turnover_pct": 9.25 },
+      { "tenant": "GOOD CHEF", "annual_trading_density": 2038, "rent_to_turnover_pct": 16.68 },
+      { "tenant": "BOOTLEGGER RIDGEVIEW", "annual_trading_density": 1781, "rent_to_turnover_pct": 12.02 },
+      { "tenant": "PANOS DINER", "annual_trading_density": 1696, "rent_to_turnover_pct": 14.04 },
+      { "tenant": "MILADY'S", "annual_trading_density": 1632, "rent_to_turnover_pct": 10.69 },
+      { "tenant": "THE CRAZY STORE", "annual_trading_density": 1577, "rent_to_turnover_pct": 14.80 },
+      { "tenant": "W EDIT", "annual_trading_density": 1558, "rent_to_turnover_pct": 13.74 },
+      { "tenant": "PEP HOME", "annual_trading_density": 1501, "rent_to_turnover_pct": 13.76 },
+      { "tenant": "CRISP & CLEAN", "annual_trading_density": 1423, "rent_to_turnover_pct": 31.11 },
+      { "tenant": "KIME NAIL HAIR & BEAUTY SALON", "annual_trading_density": 1416, "rent_to_turnover_pct": 25.21 },
+      { "tenant": "3@1 RIDGEVIEW", "annual_trading_density": 1383, "rent_to_turnover_pct": 27.46 },
+      { "tenant": "MR PRICE HOME", "annual_trading_density": 1362, "rent_to_turnover_pct": 11.39 },
+      { "tenant": "MOROCCAN CUT BARBER", "annual_trading_density": 1355, "rent_to_turnover_pct": 27.42 },
+      { "tenant": "CRAZY PETS", "annual_trading_density": 1275, "rent_to_turnover_pct": 13.78 },
+      { "tenant": "SILK BEAUTY SALON", "annual_trading_density": 694, "rent_to_turnover_pct": 42.28 },
+      { "tenant": "MEGA GENERAL STORE", "annual_trading_density": 692, "rent_to_turnover_pct": 17.25 },
+      { "tenant": "GEARGET RIDGEVIEW", "annual_trading_density": 571, "rent_to_turnover_pct": 59.08 }
+    ]
+  },
+  "utility_recovery": {
+    "electricity": { "recovery_pct_ytd": 140, "recovery_pct_monthly": 116, "recovery_pct_budgeted": 175, "cost": null, "recovered": null, "shortfall": null },
+    "rates": { "recovery_pct_ytd": 53, "recovery_pct_monthly": 53, "recovery_pct_budgeted": 53, "cost": null, "recovered": null, "shortfall": null },
+    "refuse": { "recovery_pct_ytd": 96, "recovery_pct_monthly": 100, "recovery_pct_budgeted": 100, "cost": null, "recovered": null, "shortfall": null },
+    "sewer": { "recovery_pct_ytd": 71, "recovery_pct_monthly": 78, "recovery_pct_budgeted": 38, "cost": null, "recovered": null, "shortfall": null },
+    "water": { "recovery_pct_ytd": 85, "recovery_pct_monthly": 91, "recovery_pct_budgeted": 52, "cost": null, "recovered": null, "shortfall": null },
+    "_note": "PPA cost for Oct, Nov and Dec included in Dec expense"
+  },
+  "arrears_overview": {
+    "total": 1661932.08,
+    "category_breakdown": {
+      "current": null,
+      "30_days": null,
+      "60_days": null,
+      "90_plus": null,
+      "deposits": { "pct": 8.12, "amount": 93598 },
+      "legal": { "pct": 50.86, "amount": 585930 },
+      "ex_tenants": { "pct": 0.00, "amount": 0 },
+      "deposits_category": { "pct": 74.30, "amount": 856020 },
+      "nationals": { "pct": -14.65, "amount": -168727 },
+      "normal_tenants": { "pct": -18.64, "amount": -214714 }
+    },
+    "total_including_credits": 1152107,
+    "plus_credits": -49884,
+    "grand_total": 1102223,
+    "collections_pct": 90.20,
+    "bad_debts_written_off": 0.00,
+    "payment_profile": {
+      "deposits_only": { "count": 3, "pct": 9 },
+      "full_payments": { "count": 21, "pct": 64 },
+      "short_payments": { "count": 6, "pct": 18 },
+      "irregular_payments": { "count": 0, "pct": 0 },
+      "legal": { "count": 1, "pct": 3 },
+      "no_payments": { "count": 1, "pct": 3 },
+      "arrangements": { "count": 1, "pct": 3 },
+      "total_tenants": 33
+    }
+  },
+  "arrears_detail": [
+    {
+      "tenant_name": "Mega General Store",
+      "amount": 364413.97,
+      "days_outstanding": null,
+      "status": "Outstanding relates to deposit only - BG to be amended",
+      "action": "Delivery stairs secured to building 13 Nov 2025; Stair climber delivery week of 24 Nov 2025; Addendum to lease re: generator disconnection; Tenant requested feedback on unstable staircase - support beams est R45K ex VAT",
+      "deposit_held": null
+    },
+    {
+      "tenant_name": "Panos Grill",
+      "amount": 449519.04,
+      "days_outstanding": null,
+      "status": "Deposit appropriated to outstanding account; Cancellation agreement not signed",
+      "action": "Received request from tenant attorney to discuss trading to end Dec 2025 - declined; Instruction sent to Fourie for summons and eviction; Pre take back inspection 20 Nov",
+      "deposit_held": null
+    },
+    {
+      "tenant_name": "Woolworths",
+      "amount": 372910.37,
+      "days_outstanding": null,
+      "status": "Turnover rental outstanding",
+      "action": null,
+      "deposit_held": null
+    },
+    {
+      "tenant_name": "Crisp and Clean",
+      "amount": 151444.59,
+      "days_outstanding": null,
+      "status": "R60,658.40 deposit included in arrears - BG to be amended; Tenant opted to sign mandate to re-let",
+      "action": "Tenant suggested to sublet to tailor to reduce rental expense and expand offering - Landlord in agreement",
+      "deposit_held": 60658.40
+    },
+    {
+      "tenant_name": "Bootleggers",
+      "amount": 119285.95,
+      "days_outstanding": null,
+      "status": "Deposit outstanding - BG to be amended",
+      "action": null,
+      "deposit_held": null
+    },
+    {
+      "tenant_name": "Kime",
+      "amount": 99553.63,
+      "days_outstanding": null,
+      "status": "Tenant behind on payment plan; New leaks (slab movement)",
+      "action": "Payment plan",
+      "deposit_held": null
+    },
+    {
+      "tenant_name": "Crazy Pets",
+      "amount": 77452.50,
+      "days_outstanding": null,
+      "status": "Outstanding relates to deposit - Amended BG in process",
+      "action": null,
+      "deposit_held": null
+    },
+    {
+      "tenant_name": "Absolute Pets",
+      "amount": 49917.64,
+      "days_outstanding": null,
+      "status": "Outstanding relates to deposit - Amended BG in process",
+      "action": null,
+      "deposit_held": null
+    }
+  ],
+  "tenant_data": [
+    {
+      "name": "Bob Box",
+      "trading_name": "Bob Box",
+      "gla_m2": null,
+      "lease_start": null,
+      "lease_end": "2025-09-30",
+      "rental_monthly": null,
+      "rental_per_m2": null,
+      "escalation_pct": 7,
+      "tenant_type": null,
+      "monthly_turnover": [],
+      "renewal_status": "Renewal loaded on Dec billing with back billing for Oct and Nov 2025; Budgeted 6%, negotiated 7%"
+    },
+    {
+      "name": "Crazy Store",
+      "trading_name": "The Crazy Store",
+      "gla_m2": null,
+      "lease_start": null,
+      "lease_end": "2026-09-30",
+      "rental_monthly": null,
+      "rental_per_m2": 226.29,
+      "escalation_pct": 6,
+      "tenant_type": null,
+      "monthly_turnover": [],
+      "renewal_status": "Option to be exercised by 30 June 2026; Proposed budgeted renewal R239.87/m2; Current trading density R1577/m2; Current rent to TO 14.8%"
+    },
+    {
+      "name": "Buccaneer Biltong & Bean",
+      "trading_name": "Buccaneer Biltong and Bean",
+      "gla_m2": null,
+      "lease_start": null,
+      "lease_end": "2026-09-30",
+      "rental_monthly": null,
+      "rental_per_m2": 369.80,
+      "escalation_pct": 7,
+      "tenant_type": null,
+      "monthly_turnover": [],
+      "renewal_status": "Proposed budgeted renewal R395.69/m2; Current trading density R5153/m2; Current rent to TO 8.03%"
+    },
+    {
+      "name": "Pep Home",
+      "trading_name": "Pep Home",
+      "gla_m2": null,
+      "lease_start": null,
+      "lease_end": "2026-09-30",
+      "rental_monthly": null,
+      "rental_per_m2": 195.15,
+      "escalation_pct": 6,
+      "tenant_type": "national",
+      "monthly_turnover": [],
+      "renewal_status": "Option to be exercised by 30 June 2026; Proposed budgeted renewal R206.86/m2; Current trading density R1501/m2; Current rent to TO 13.76%"
+    },
+    {
+      "name": "Vape Gurus",
+      "trading_name": "The Vape Gurus",
+      "gla_m2": null,
+      "lease_start": null,
+      "lease_end": "2026-09-30",
+      "rental_monthly": null,
+      "rental_per_m2": 324.26,
+      "escalation_pct": 7,
+      "tenant_type": null,
+      "monthly_turnover": [],
+      "renewal_status": "Option to be exercised by 31 March 2026; Proposed budgeted renewal R346.96/m2; Current trading density R7146/m2; Current rent to TO 5.16%"
+    },
+    {
+      "name": "Fix Tech",
+      "trading_name": "Fix Tech",
+      "gla_m2": null,
+      "lease_start": null,
+      "lease_end": "2026-09-30",
+      "rental_monthly": null,
+      "rental_per_m2": 435.07,
+      "escalation_pct": 7,
+      "tenant_type": null,
+      "monthly_turnover": [],
+      "renewal_status": "Discussion to combine Gear Get and Fix Tech; Tenant does not want to give up lower level shop; Proposed budgeted renewal R465.52/m2; Current trading density R2895/m2; Current rent to TO 16.57%"
+    },
+    {
+      "name": "Absolute Pets",
+      "trading_name": "Absolute Pets",
+      "gla_m2": null,
+      "lease_start": null,
+      "lease_end": "2026-09-30",
+      "rental_monthly": null,
+      "rental_per_m2": 312.56,
+      "escalation_pct": 6,
+      "tenant_type": "national",
+      "monthly_turnover": [],
+      "renewal_status": "Option to be exercised by 31 March 2026; Proposed budgeted renewal R331.31/m2; Current trading density R4270/m2; Current rent to TO 8.35%"
+    },
+    {
+      "name": "Kime Nail & Hair",
+      "trading_name": "Kime Nail Hair & Beauty Salon",
+      "gla_m2": null,
+      "lease_start": null,
+      "lease_end": "2026-09-30",
+      "rental_monthly": null,
+      "rental_per_m2": 312.56,
+      "escalation_pct": 6,
+      "tenant_type": null,
+      "monthly_turnover": [],
+      "renewal_status": "Proposed budgeted renewal R334.44/m2; Possible non-renewal - Sorbet to be considered; Current trading density R1416/m2; Current rent to TO 25.21%"
+    },
+    {
+      "name": "Good Chef",
+      "trading_name": "Good Chef",
+      "gla_m2": null,
+      "lease_start": null,
+      "lease_end": "2026-09-30",
+      "rental_monthly": null,
+      "rental_per_m2": 295.10,
+      "escalation_pct": 7,
+      "tenant_type": null,
+      "monthly_turnover": [],
+      "renewal_status": "Proposed budgeted renewal R318.71/m2; Current trading density R2038/m2; Current rent to TO 16.68%"
+    },
+    {
+      "name": "Gear Get",
+      "trading_name": "Gearget Ridgeview",
+      "gla_m2": null,
+      "lease_start": null,
+      "lease_end": "2026-10-31",
+      "rental_monthly": null,
+      "rental_per_m2": 318.43,
+      "escalation_pct": 7,
+      "tenant_type": null,
+      "monthly_turnover": [],
+      "renewal_status": "Proposed budgeted renewal R343.90/m2; Current trading density R571/m2; Current rent to TO 59.08%; Possibility of combining two shops / possible non-renewal"
+    }
+  ],
+  "lease_expiry_detail": [
+    {
+      "tenant": "Bob Box",
+      "expiry_date": "2025-09-30",
+      "gla_m2": null,
+      "rental_monthly": null,
+      "renewal_status": "Renewed - 7% escalation (budgeted 6%)",
+      "proposed_escalation_pct": 7,
+      "counter_escalation_pct": null,
+      "notes": "Renewal loaded on Dec billing with back billing for Oct and Nov 2025"
+    },
+    {
+      "tenant": "Crazy Store",
+      "expiry_date": "2026-09-30",
+      "gla_m2": null,
+      "rental_monthly": null,
+      "renewal_status": "Pending - option to exercise by 30 June 2026",
+      "proposed_escalation_pct": 6,
+      "counter_escalation_pct": null,
+      "notes": "Current rental R226.29/m2; Proposed R239.87/m2"
+    },
+    {
+      "tenant": "Buccaneer Biltong & Bean",
+      "expiry_date": "2026-09-30",
+      "gla_m2": null,
+      "rental_monthly": null,
+      "renewal_status": "Pending",
+      "proposed_escalation_pct": 7,
+      "counter_escalation_pct": null,
+      "notes": "Current rental R369.80/m2; Proposed R395.69/m2"
+    },
+    {
+      "tenant": "Pep Home",
+      "expiry_date": "2026-09-30",
+      "gla_m2": null,
+      "rental_monthly": null,
+      "renewal_status": "Pending - option to exercise by 30 June 2026",
+      "proposed_escalation_pct": 6,
+      "counter_escalation_pct": null,
+      "notes": "Current rental R195.15/m2; Proposed R206.86/m2"
+    },
+    {
+      "tenant": "Vape Gurus",
+      "expiry_date": "2026-09-30",
+      "gla_m2": null,
+      "rental_monthly": null,
+      "renewal_status": "Pending - option to exercise by 31 March 2026",
+      "proposed_escalation_pct": 7,
+      "counter_escalation_pct": null,
+      "notes": "Current rental R324.26/m2; Proposed R346.96/m2"
+    },
+    {
+      "tenant": "Fix Tech",
+      "expiry_date": "2026-09-30",
+      "gla_m2": null,
+      "rental_monthly": null,
+      "renewal_status": "Pending - discussion to combine with Gear Get",
+      "proposed_escalation_pct": 7,
+      "counter_escalation_pct": null,
+      "notes": "Current rental R435.07/m2; Proposed R465.52/m2"
+    },
+    {
+      "tenant": "Absolute Pets",
+      "expiry_date": "2026-09-30",
+      "gla_m2": null,
+      "rental_monthly": null,
+      "renewal_status": "Pending - option to exercise by 31 March 2026",
+      "proposed_escalation_pct": 6,
+      "counter_escalation_pct": null,
+      "notes": "Current rental R312.56/m2; Proposed R331.31/m2"
+    },
+    {
+      "tenant": "Kime Nail & Hair",
+      "expiry_date": "2026-09-30",
+      "gla_m2": null,
+      "rental_monthly": null,
+      "renewal_status": "Possible non-renewal - Sorbet to be considered",
+      "proposed_escalation_pct": 6,
+      "counter_escalation_pct": null,
+      "notes": "Current rental R312.56/m2; Proposed R334.44/m2"
+    },
+    {
+      "tenant": "Good Chef",
+      "expiry_date": "2026-09-30",
+      "gla_m2": null,
+      "rental_monthly": null,
+      "renewal_status": "Pending",
+      "proposed_escalation_pct": 7,
+      "counter_escalation_pct": null,
+      "notes": "Current rental R295.10/m2; Proposed R318.71/m2"
+    },
+    {
+      "tenant": "Gear Get",
+      "expiry_date": "2026-10-31",
+      "gla_m2": null,
+      "rental_monthly": null,
+      "renewal_status": "Possible non-renewal / combine shops",
+      "proposed_escalation_pct": 7,
+      "counter_escalation_pct": null,
+      "notes": "Current rental R318.43/m2; Proposed R343.90/m2; Rent to TO 59.08% - very high"
+    }
+  ],
+  "income_statement_property": {
+    "gross_rental": { "actual": null, "budget": null, "variance": null },
+    "other_income": { "actual": null, "budget": null, "variance": null },
+    "total_income": { "actual": null, "budget": null, "variance": null },
+    "operating_expenses": { "actual": null, "budget": null, "variance": null },
+    "NOI": { "actual": 4590361, "budget": 6871401, "variance": -2281240 },
+    "finance_costs": { "actual": null, "budget": null, "variance": null },
+    "net_income_after_finance": { "actual": null, "budget": null, "variance": null },
+    "distributions": { "actual": null, "budget": null, "variance": null },
+    "capex": { "actual": null, "budget": null, "variance": null },
+    "net_retained": { "actual": null, "budget": null, "variance": null }
+  },
+  "cashflow_property": {
+    "receipts_ytd": null,
+    "payments_ytd": null,
+    "net_ytd": null,
+    "bank_balance_18_nov_2025": 4646828.74,
+    "november_2025_distribution": 1800000,
+    "quarterly_projection": []
+  },
+  "budget_variance": {
+    "revenue": { "actual": null, "budget": null, "variance": null, "variance_pct": null },
+    "opex": { "actual": null, "budget": null, "variance": null, "variance_pct": null },
+    "NOI": { "actual": 4590361, "budget": 6871401, "variance": -2281240, "variance_pct": -33.2 }
+  },
+  "capex_maintenance": {
+    "projects": [
+      {
+        "description": "Priority 1 & 2: Sink hole repair before delivery entrance; Concrete slab from Pep Home to W Edit for sub-soil drainage",
+        "budget": 378907.35,
+        "actual": null,
+        "status": "Work on Priority 1 started 11/11/2025 on butcher side",
+        "category": "structural"
+      },
+      {
+        "description": "Priority 3: Service delivery to waste area - drain point, slab sloping, water line",
+        "budget": 10804.50,
+        "actual": null,
+        "status": "Plumbing and paving scheduled for first week in December 2025",
+        "category": "plumbing"
+      },
+      {
+        "description": "Priority 4: Tenant parking - awnings for parking, security revision at entrance",
+        "budget": null,
+        "actual": null,
+        "status": "Parking lines painted; Awaiting cost for awnings",
+        "category": "parking"
+      },
+      {
+        "description": "Checkers cladding completion",
+        "budget": 170557.42,
+        "actual": 170557.42,
+        "status": "Approved as final costing",
+        "category": "building_fabric"
+      },
+      {
+        "description": "Kiosk step design / staircase redesign under Mega Store",
+        "budget": 320000,
+        "actual": null,
+        "status": "New design and material being discussed; Awaiting design from Axiom for cladding",
+        "category": "structural"
+      },
+      {
+        "description": "Checkers truck damage to waste area",
+        "budget": 40000,
+        "actual": null,
+        "status": "Quotation sent to Checkers for recovery",
+        "category": "repairs"
+      },
+      {
+        "description": "Water ingress repair - Passenger Lift & Checkers Deli / Spec Savers area",
+        "budget": null,
+        "actual": null,
+        "status": "Work in progress; Box gutter installation pending architect drawing; 60 degree flashing to be installed",
+        "category": "waterproofing"
+      },
+      {
+        "description": "Woolworths water meter installation",
+        "budget": null,
+        "actual": null,
+        "status": "Completed",
+        "category": "plumbing"
+      },
+      {
+        "description": "Water ingress behind line shops Kime to Crisp and Clean",
+        "budget": 378907.35,
+        "actual": null,
+        "status": "Work started; to be completed before contractors shut down",
+        "category": "waterproofing"
+      },
+      {
+        "description": "Waxit steps - abrasive black strip installation",
+        "budget": null,
+        "actual": null,
+        "status": "Tape delivered; to be installed by end of November",
+        "category": "safety"
+      },
+      {
+        "description": "Traffic light - Ouklip Road replacement and generator connection",
+        "budget": null,
+        "actual": null,
+        "status": "Traffic light replaced; Council connection done; Generator power connection outstanding",
+        "category": "electrical"
+      },
+      {
+        "description": "Santa Drive marketing event",
+        "budget": 29084.88,
+        "actual": 29084.88,
+        "status": "Approved",
+        "category": "marketing"
+      }
+    ],
+    "deferred_maintenance": [
+      {
+        "description": "Borehole exploration - combined proposal for Olivedale and Ridgeview",
+        "estimated_cost": null,
+        "priority": "medium"
+      },
+      {
+        "description": "Insurance claim for water ingress from slab - pending letter of confirmation on rectification",
+        "estimated_cost": null,
+        "priority": "high"
+      },
+      {
+        "description": "Building needs attention on some painted areas; Main gate replacement following truck incident",
+        "estimated_cost": null,
+        "priority": "medium"
+      },
+      {
+        "description": "Expansion joints need attention (structural inspection note)",
+        "estimated_cost": null,
+        "priority": "medium"
+      }
+    ]
+  },
+  "solar_pv": {
+    "has_solar": true,
+    "system_kwp": null,
+    "commissioning_date": null,
+    "monthly_production": [
+      {
+        "month": "2025-12",
+        "target_kwh": null,
+        "actual_kwh": 65500,
+        "note": "65.50 MWh consumed from solar plant; no council reading for total consumption"
+      }
+    ],
+    "savings_ytd": {
+      "actual": null,
+      "projected": null
+    },
+    "cumulative_savings": null,
+    "o_and_m_logbook": [
+      "PPA with Hallcore / Matriarch",
+      "PPA invoices for Oct, Nov received late - included in Dec expense",
+      "System active, reports to follow in September (per operations checklist)",
+      "Investigating total power consumption reading with Matriarch"
+    ]
+  },
+  "security": {
+    "provider": "Quatro Security Services",
+    "psira_registration": 2190120,
+    "patrol_completion_pct": 100,
+    "tag_scan_pct": null,
+    "total_cameras_monitored": 22,
+    "alarm_activations_december": 12921,
+    "alarm_activations_november": 10431,
+    "top_alarm_zones": [
+      { "rank": 1, "location": "Outside Bathroom 1", "total_alarms": 3209 },
+      { "rank": 2, "location": "PnP Liquor", "total_alarms": 1414 },
+      { "rank": 3, "location": "Bathroom 2", "total_alarms": 1214 },
+      { "rank": 4, "location": "Romance Pizza", "total_alarms": 1001 },
+      { "rank": 5, "location": "PnP Clothing", "total_alarms": 996 }
+    ],
+    "lpr_data": {
+      "total_reads_december": 100135,
+      "previous_month_reads": 123430,
+      "gate_1_reads": 46006,
+      "gate_2_reads": 54129,
+      "peak_day": "Wednesday",
+      "peak_day_reads": 16043,
+      "lowest_day": "Thursday",
+      "lowest_day_reads": 12184,
+      "peak_hour": "16H00",
+      "peak_hour_reads": 9558,
+      "reads_by_day": {
+        "Monday": 12773,
+        "Tuesday": 15999,
+        "Wednesday": 16043,
+        "Thursday": 12184,
+        "Friday": 13377,
+        "Saturday": 14694,
+        "Sunday": 15065
+      },
+      "reads_by_hour": {
+        "00H00": 28, "01H00": 6, "02H00": 15, "03H00": 5, "04H00": 15,
+        "05H00": 37, "06H00": 370, "07H00": 1030, "08H00": 4470, "09H00": 7679,
+        "10H00": 8534, "11H00": 10055, "12H00": 9432, "13H00": 9468, "14H00": 8907,
+        "15H00": 8985, "16H00": 9558, "17H00": 9083, "18H00": 8274, "19H00": 3724,
+        "20H00": 284, "21H00": 99, "22H00": 38, "23H00": 3
+      }
+    },
+    "incidents": [
+      {
+        "date": "2025-12-02",
+        "time": "08:36",
+        "description": "Damage of property. Truck damaged the height restriction sign at basement parking.",
+        "action": "Client informed"
+      },
+      {
+        "date": "2025-12-08",
+        "time": "18:20",
+        "description": "Slip and fall incident in front of WaxIt. A customer Mr Velly slipped and fell.",
+        "action": "Client informed; Surface tested by KO and KJ - not slippery; Signs to be installed re wet conditions"
+      },
+      {
+        "date": "2026-01-04",
+        "time": "14:00",
+        "description": "Fire in Woolworths Liquor Storeroom. Smoke from chimney noticed by security officer Mpongo. ADT responded at 14:11, fire fighters at 14:14, JHB Fire Brigade at 14:31. Woolworths staff received medical assessments for smoke inhalation.",
+        "action": "Fire extinguished; Cause under investigation; Recommendation to reduce flammable material in liquor store"
+      }
+    ],
+    "management_visits": {
+      "inspector": 2,
+      "area_manager": 1,
+      "regional_manager": 0,
+      "total": 3
+    },
+    "panic_tests": [
+      { "date": "2025-12-01", "time": "09:00", "response": "Absolute responded" },
+      { "date": "2025-12-08", "time": "11:35", "response": "Absolute responded" },
+      { "date": "2025-12-15", "time": "08:17", "response": "Absolute responded" },
+      { "date": "2025-12-22", "time": "10:15", "response": "Absolute responded" }
+    ],
+    "generator": {
+      "name": "Deltaben",
+      "weekly_inspections": 5,
+      "all_checks_pass": true
+    },
+    "cctv_faults": "No faults"
+  },
+  "service_providers": {
+    "security": { "provider": "Quatro Security", "notice": "60 Day notice sent on 01/01/2026" },
+    "cleaning": { "provider": "Quatro Cleaning", "notice": "60 Day notice sent on 01/01/2026" },
+    "waste_management": { "provider": "A Bach", "notice": "60 Day notice sent on 01/01/2026" },
+    "car_park_assistance": { "provider": "Reamore Cpa Services", "notice": "60 Day notice sent on 01/01/2026" },
+    "gardening": { "provider": "Quatro Horticulture", "status": "Service rendered satisfactory" },
+    "odor_control": { "provider": "Odorcure", "status": "Service rendered satisfactory" }
+  },
+  "tenant_deposits": {
+    "total_deposits_in_hand": 1395091.04,
+    "cash_movement_october": 425072.37,
+    "deposits_loaded_for_bank_guarantee_amendments": {
+      "mega_store": 364413.97,
+      "crisp_and_clean": 60658.40
+    },
+    "effective_cash_deposits": 940018.67
+  },
+  "compliance": {
+    "last_ohs_audit": "2025-09-08",
+    "next_ohs_audit": "2026-09-08",
+    "disclaimer_boards_visible": true,
+    "fire_service_next_date": "2026-10",
+    "quarterly_building_inspection": false,
+    "quarterly_ohs_inspection": false,
+    "annual_structural_inspection": false,
+    "escalators_compliant": false,
+    "hvac_inspection": false
+  },
+  "operational_notes": {
+    "key_issues": [
+      "Building transferred to Fedgroup on 19 August 2025; adjustment account in progress",
+      "Multiple water ingress issues being addressed with professional team and insurance",
+      "Solar PPA invoices for Oct/Nov received late, included in Dec, distorting utility recovery figures",
+      "Panos Grill eviction proceedings in progress - R449,519 in arrears",
+      "Kiosk staircase redesign under Mega Store - R320K estimate under discussion",
+      "Fire incident at Woolworths Liquor Storeroom on 4 January 2026",
+      "60-day notice served to all service providers on 01/01/2026",
+      "Recruitment ongoing to fill pending security guard posts",
+      "Insurance claim for water ingress from slab pending letter of confirmation",
+      "Checkers truck damage to waste area - R40K recovery pending from Checkers"
+    ],
+    "action_items": [
+      "Finalise adjustment account with all parties (CvN)",
+      "Share proposed budget 2026/2027 within 2 weeks (CvN)",
+      "Install signs at main meter and irrigation meter to avoid council confusion (KJ)",
+      "Open council account in new owners name (KJ)",
+      "Send notifications to tenants re: bank guarantee amendments with Fedgroup as beneficiary (CvN)",
+      "Complete Priority 1 waterproofing works before contractor shutdown",
+      "Review borehole proposal for combined Olivedale/Ridgeview (KJ/MP)",
+      "Rubicon to investigate all lighting issues on site"
+    ],
+    "manager_recommendation": null
+  },
+  "variances": {
+    "net_income_entity_vs_property": {
+      "source_a": "property_management_report",
+      "source_b": "entity_gl_management_accounts",
+      "source_a_value": 4590361,
+      "source_b_value": 2645867.71,
+      "difference": 1944493.29,
+      "explanation": "PDF reports net income YTD actual R4,590,361. GL ebitda_recurring is -R2,645,867.71 (GL sign convention: negative=profit, so this represents R2,645,868 income). Difference of R1,944,493 likely due to: (a) different treatment of adjustment account items post-transfer to Fedgroup, (b) GL includes ad hoc fee of R5,096,478, (c) GL includes non-recurring items removed from ebitda_recurring (sale of property R185.15M, profit share R4.5M), and (d) timing of accruals and PPA cost allocation differences between property management and entity GL."
+    },
+    "revenue_report_vs_gl": {
+      "source_a": "property_management_report",
+      "source_b": "entity_gl_management_accounts",
+      "source_a_value": null,
+      "source_b_value": 11170560.77,
+      "difference": null,
+      "explanation": "PDF does not separately disclose total income line. GL total_revenue is R11,170,560.77 (10 months). GL gross_profit (revenue after COGS) also R11,170,560.77 as COGS is zero. Total other income in GL is R191,184,584.20 (includes R185.15M sale of property and R4.5M profit share as non-recurring)."
+    },
+    "insured_vs_book": {
+      "source_a": "building_sum_insured",
+      "source_b": "afs_investment_property",
+      "source_a_value": 320000000,
+      "source_b_value": 185150000,
+      "difference": 134850000,
+      "explanation": "Building sum insured R320M vs AFS investment property at fair value R185.15M (Feb 2025). Insurance-to-book ratio of 1.73x. This is typical for replacement cost insurance exceeding fair market value, especially for a relatively new centre with going concern issues (negative equity of R21.6M, sale agreement with bondholder). Municipal valuation is R66.8M."
+    }
+  },
+  "derived_signals": {
+    "vacancy_rate": 0.0,
+    "collections_efficiency": 90.20,
+    "trading_density": 3754,
+    "property_net_income_monthly": 459036.10,
+    "lease_expiry_concentration_12m": 10.30,
+    "insurance_vs_book_ratio": 1.73,
+    "utility_recovery_composite": 89.0,
+    "has_solar_pv": true,
+    "has_active_capex": true,
+    "national_tenant_pct": null,
+    "anchor_count": 3,
+    "weighted_escalation": null,
+    "_computation_notes": {
+      "vacancy_rate": "0 m2 vacant / 10043 m2 total GLA = 0.0%",
+      "collections_efficiency": "Collections as % of Billings YTD = 90.20% (from PDF arrears overview)",
+      "trading_density": "Centre trading density R3,754/m2 per annum (from PDF turnover summary)",
+      "property_net_income_monthly": "R4,590,361 YTD actual / 10 months = R459,036.10",
+      "lease_expiry_concentration_12m": "1,028 m2 (10.30% of GLA) expiring in next 12 months (10 leases)",
+      "insurance_vs_book_ratio": "R320,000,000 / R185,150,000 = 1.73",
+      "utility_recovery_composite": "Weighted average of YTD recovery %: (140+53+96+71+85)/5 = 89.0% (simple average as individual utility costs not disclosed)",
+      "has_solar_pv": "Solar PV active on site; 65.50 MWh consumed in December 2025 from solar plant",
+      "has_active_capex": "Multiple active projects: Priority 1-4 works, kiosk redesign, waterproofing, Checkers cladding",
+      "national_tenant_pct": "Cannot compute precisely - tenant GLA breakdown not available in PDF. Tenant mix shows 23% of income from nationals (7 tenants) and 35% from anchors (3 tenants)",
+      "anchor_count": "3 anchors per tenant mix table (Checkers, Woolworths, Dis-Chem based on trading density data)",
+      "weighted_escalation": "Cannot compute precisely - individual tenant GLA not available in PDF. Proposed escalations range from 6% to 7% across 10 renewal tenants"
+    }
+  }
+}

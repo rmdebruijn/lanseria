@@ -1,0 +1,140 @@
+{
+  "_metadata": {
+    "last_export": "2026-02-19T15:36:49.191357",
+    "export_script": "export_contract_b.py"
+  },
+  "budgets": [
+    {
+      "project_id": "P-BIAL-IN",
+      "project_name": "BIAL Phase 2 Bangalore WtE",
+      "project_short": "BIAL",
+      "vendor_id": "V-FI-ARCIPLUG",
+      "vendor_name": "AcriPlug",
+      "green_lit": 0,
+      "contract_b_budget_eur": 90000.0,
+      "promoter_retainer_eur": 0.0,
+      "specialist_budget_eur": 20000.0,
+      "asset_budget_eur": null,
+      "buffer_eur": 52000.0,
+      "total_allocated_eur": 72000.0,
+      "unallocated_eur": 18000.0
+    },
+    {
+      "project_id": "P-BIAL-IN",
+      "project_name": "BIAL Phase 2 Bangalore WtE",
+      "project_short": "BIAL",
+      "vendor_id": "V-NL-CIRCUWORLD",
+      "vendor_name": "CircuWorld",
+      "green_lit": 0,
+      "contract_b_budget_eur": 190000.0,
+      "promoter_retainer_eur": 0.0,
+      "specialist_budget_eur": 20000.0,
+      "asset_budget_eur": null,
+      "buffer_eur": 82000.0,
+      "total_allocated_eur": 102000.0,
+      "unallocated_eur": 88000.0
+    },
+    {
+      "project_id": "P-BIAL-IN",
+      "project_name": "BIAL Phase 2 Bangalore WtE",
+      "project_short": "BIAL",
+      "vendor_id": "V-NL-COLUBRIS",
+      "vendor_name": "Colubris Cleantech B.V.",
+      "green_lit": 0,
+      "contract_b_budget_eur": 90000.0,
+      "promoter_retainer_eur": 40000.0,
+      "specialist_budget_eur": 20000.0,
+      "asset_budget_eur": null,
+      "buffer_eur": 12000.0,
+      "total_allocated_eur": 72000.0,
+      "unallocated_eur": 18000.0
+    },
+    {
+      "project_id": "P-BIAL-IN",
+      "project_name": "BIAL Phase 2 Bangalore WtE",
+      "project_short": "BIAL",
+      "vendor_id": "V-NL-MAVITEC",
+      "vendor_name": "Mavitec B.V.",
+      "green_lit": 0,
+      "contract_b_budget_eur": 90000.0,
+      "promoter_retainer_eur": 0.0,
+      "specialist_budget_eur": 20000.0,
+      "asset_budget_eur": null,
+      "buffer_eur": 52000.0,
+      "total_allocated_eur": 72000.0,
+      "unallocated_eur": 18000.0
+    },
+    {
+      "project_id": "P-TH-LEAFY",
+      "project_name": "Leafy Greens BioHub Asia",
+      "project_short": "Leafy",
+      "vendor_id": "V-NL-HORTILIFE",
+      "vendor_name": "HortiLife B.V.",
+      "green_lit": 0,
+      "contract_b_budget_eur": 140000.0,
+      "promoter_retainer_eur": 20000.0,
+      "specialist_budget_eur": 20000.0,
+      "asset_budget_eur": null,
+      "buffer_eur": null,
+      "total_allocated_eur": 40000.0,
+      "unallocated_eur": 100000.0
+    },
+    {
+      "project_id": "P-ZA-CRADLE-CLOUD",
+      "project_name": "Cradle Cloud AI Data Sovereignty",
+      "project_short": "CradleCloud",
+      "vendor_id": "V-NL-LEAFCLOUD",
+      "vendor_name": "LeafCloud",
+      "green_lit": 0,
+      "contract_b_budget_eur": 200000.0,
+      "promoter_retainer_eur": 60000.0,
+      "specialist_budget_eur": 42000.0,
+      "asset_budget_eur": null,
+      "buffer_eur": null,
+      "total_allocated_eur": 102000.0,
+      "unallocated_eur": 98000.0
+    },
+    {
+      "project_id": "P-ZA-TIMBERWORKS",
+      "project_name": "Timberworks - Prefab Housing",
+      "project_short": "TWX",
+      "vendor_id": "V-NL-OPTIMAT",
+      "vendor_name": "OptiMat",
+      "green_lit": 0,
+      "contract_b_budget_eur": 200000.0,
+      "promoter_retainer_eur": 40000.0,
+      "specialist_budget_eur": 20000.0,
+      "asset_budget_eur": null,
+      "buffer_eur": null,
+      "total_allocated_eur": 60000.0,
+      "unallocated_eur": 140000.0
+    }
+  ],
+  "summary": {
+    "total_budget_eur": 1000000.0,
+    "total_allocated_eur": 520000.0,
+    "total_unallocated_eur": 480000.0,
+    "by_project": {
+      "P-BIAL-IN": {
+        "budget": 460000.0,
+        "allocated": 318000.0,
+        "vendor_count": 4
+      },
+      "P-TH-LEAFY": {
+        "budget": 140000.0,
+        "allocated": 40000.0,
+        "vendor_count": 1
+      },
+      "P-ZA-CRADLE-CLOUD": {
+        "budget": 200000.0,
+        "allocated": 102000.0,
+        "vendor_count": 1
+      },
+      "P-ZA-TIMBERWORKS": {
+        "budget": 200000.0,
+        "allocated": 60000.0,
+        "vendor_count": 1
+      }
+    }
+  }
+}

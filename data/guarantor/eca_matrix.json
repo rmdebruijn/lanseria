@@ -1,0 +1,290 @@
+[
+  {
+    "eca_country": "Netherlands",
+    "eca_country_flag": "🇳🇱",
+    "eca_name": "Atradius DSB",
+    "guarantor_group": "veracity",
+    "projects": "NWL: 5/5m",
+    "sort_order": 1,
+    "relevance": "active"
+  },
+  {
+    "eca_country": "Netherlands",
+    "eca_country_flag": "🇳🇱",
+    "eca_name": "Atradius DSB",
+    "guarantor_group": "phoenix",
+    "projects": "TWX: 2/5m",
+    "sort_order": 1,
+    "relevance": "active"
+  },
+  {
+    "eca_country": "Finland",
+    "eca_country_flag": "🇫🇮",
+    "eca_name": "Finnvera",
+    "guarantor_group": "veracity",
+    "projects": "AFR, AD: 3/5m",
+    "sort_order": 2,
+    "relevance": "active"
+  },
+  {
+    "eca_country": "Germany",
+    "eca_country_flag": "🇩🇪",
+    "eca_name": "Euler Hermes (Allianz Trade)",
+    "guarantor_group": null,
+    "projects": null,
+    "sort_order": 11,
+    "relevance": "high"
+  },
+  {
+    "eca_country": "Denmark",
+    "eca_country_flag": "🇩🇰",
+    "eca_name": "EKF",
+    "guarantor_group": null,
+    "projects": null,
+    "sort_order": 12,
+    "relevance": "high"
+  },
+  {
+    "eca_country": "Sweden",
+    "eca_country_flag": "🇸🇪",
+    "eca_name": "EKN",
+    "guarantor_group": null,
+    "projects": null,
+    "sort_order": 13,
+    "relevance": "high"
+  },
+  {
+    "eca_country": "France",
+    "eca_country_flag": "🇫🇷",
+    "eca_name": "Bpifrance Assurance Export",
+    "guarantor_group": null,
+    "projects": null,
+    "sort_order": 14,
+    "relevance": "high"
+  },
+  {
+    "eca_country": "Italy",
+    "eca_country_flag": "🇮🇹",
+    "eca_name": "SACE",
+    "guarantor_group": null,
+    "projects": null,
+    "sort_order": 15,
+    "relevance": "high"
+  },
+  {
+    "eca_country": "United Kingdom",
+    "eca_country_flag": "🇬🇧",
+    "eca_name": "UKEF",
+    "guarantor_group": null,
+    "projects": null,
+    "sort_order": 16,
+    "relevance": "high"
+  },
+  {
+    "eca_country": "Spain",
+    "eca_country_flag": "🇪🇸",
+    "eca_name": "CESCE",
+    "guarantor_group": null,
+    "projects": null,
+    "sort_order": 17,
+    "relevance": "high"
+  },
+  {
+    "eca_country": "Austria",
+    "eca_country_flag": "🇦🇹",
+    "eca_name": "OeKB",
+    "guarantor_group": null,
+    "projects": null,
+    "sort_order": 18,
+    "relevance": "high"
+  },
+  {
+    "eca_country": "Belgium",
+    "eca_country_flag": "🇧🇪",
+    "eca_name": "Credendo",
+    "guarantor_group": null,
+    "projects": null,
+    "sort_order": 19,
+    "relevance": "high"
+  },
+  {
+    "eca_country": "Switzerland",
+    "eca_country_flag": "🇨🇭",
+    "eca_name": "SERV",
+    "guarantor_group": null,
+    "projects": null,
+    "sort_order": 20,
+    "relevance": "high"
+  },
+  {
+    "eca_country": "Norway",
+    "eca_country_flag": "🇳🇴",
+    "eca_name": "GIEK / Eksfin",
+    "guarantor_group": null,
+    "projects": null,
+    "sort_order": 21,
+    "relevance": "high"
+  },
+  {
+    "eca_country": "Poland",
+    "eca_country_flag": "🇵🇱",
+    "eca_name": "KUKE",
+    "guarantor_group": null,
+    "projects": null,
+    "sort_order": 31,
+    "relevance": "listed"
+  },
+  {
+    "eca_country": "Czech Republic",
+    "eca_country_flag": "🇨🇿",
+    "eca_name": "EGAP",
+    "guarantor_group": null,
+    "projects": null,
+    "sort_order": 32,
+    "relevance": "listed"
+  },
+  {
+    "eca_country": "Hungary",
+    "eca_country_flag": "🇭🇺",
+    "eca_name": "MEHIB / Exim",
+    "guarantor_group": null,
+    "projects": null,
+    "sort_order": 33,
+    "relevance": "listed"
+  },
+  {
+    "eca_country": "Portugal",
+    "eca_country_flag": "🇵🇹",
+    "eca_name": "COSEC",
+    "guarantor_group": null,
+    "projects": null,
+    "sort_order": 34,
+    "relevance": "listed"
+  },
+  {
+    "eca_country": "Ireland",
+    "eca_country_flag": "🇮🇪",
+    "eca_name": "n/a (no dedicated ECA)",
+    "guarantor_group": null,
+    "projects": null,
+    "sort_order": 35,
+    "relevance": "listed"
+  },
+  {
+    "eca_country": "Greece",
+    "eca_country_flag": "🇬🇷",
+    "eca_name": "ECIO",
+    "guarantor_group": null,
+    "projects": null,
+    "sort_order": 36,
+    "relevance": "listed"
+  },
+  {
+    "eca_country": "Luxembourg",
+    "eca_country_flag": "🇱🇺",
+    "eca_name": "ODL",
+    "guarantor_group": null,
+    "projects": null,
+    "sort_order": 37,
+    "relevance": "listed"
+  },
+  {
+    "eca_country": "Romania",
+    "eca_country_flag": "🇷🇴",
+    "eca_name": "EximBank Romania",
+    "guarantor_group": null,
+    "projects": null,
+    "sort_order": 38,
+    "relevance": "listed"
+  },
+  {
+    "eca_country": "Bulgaria",
+    "eca_country_flag": "🇧🇬",
+    "eca_name": "BAEZ",
+    "guarantor_group": null,
+    "projects": null,
+    "sort_order": 39,
+    "relevance": "listed"
+  },
+  {
+    "eca_country": "Croatia",
+    "eca_country_flag": "🇭🇷",
+    "eca_name": "HBOR",
+    "guarantor_group": null,
+    "projects": null,
+    "sort_order": 40,
+    "relevance": "listed"
+  },
+  {
+    "eca_country": "Slovakia",
+    "eca_country_flag": "🇸🇰",
+    "eca_name": "EXIMBANKA SR",
+    "guarantor_group": null,
+    "projects": null,
+    "sort_order": 41,
+    "relevance": "listed"
+  },
+  {
+    "eca_country": "Slovenia",
+    "eca_country_flag": "🇸🇮",
+    "eca_name": "SID Banka",
+    "guarantor_group": null,
+    "projects": null,
+    "sort_order": 42,
+    "relevance": "listed"
+  },
+  {
+    "eca_country": "Estonia",
+    "eca_country_flag": "🇪🇪",
+    "eca_name": "KredEx",
+    "guarantor_group": null,
+    "projects": null,
+    "sort_order": 43,
+    "relevance": "listed"
+  },
+  {
+    "eca_country": "Latvia",
+    "eca_country_flag": "🇱🇻",
+    "eca_name": "ALTUM",
+    "guarantor_group": null,
+    "projects": null,
+    "sort_order": 44,
+    "relevance": "listed"
+  },
+  {
+    "eca_country": "Lithuania",
+    "eca_country_flag": "🇱🇹",
+    "eca_name": "INVEGA",
+    "guarantor_group": null,
+    "projects": null,
+    "sort_order": 45,
+    "relevance": "listed"
+  },
+  {
+    "eca_country": "Cyprus",
+    "eca_country_flag": "🇨🇾",
+    "eca_name": "n/a",
+    "guarantor_group": null,
+    "projects": null,
+    "sort_order": 46,
+    "relevance": "listed"
+  },
+  {
+    "eca_country": "Malta",
+    "eca_country_flag": "🇲🇹",
+    "eca_name": "n/a",
+    "guarantor_group": null,
+    "projects": null,
+    "sort_order": 47,
+    "relevance": "listed"
+  },
+  {
+    "eca_country": "Iceland",
+    "eca_country_flag": "🇮🇸",
+    "eca_name": "n/a",
+    "guarantor_group": null,
+    "projects": null,
+    "sort_order": 48,
+    "relevance": "listed"
+  }
+]

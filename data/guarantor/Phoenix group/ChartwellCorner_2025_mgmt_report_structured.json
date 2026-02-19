@@ -1,0 +1,1770 @@
+{
+  "metadata": {
+    "entity": {
+      "legal_name": "Chartwell Corner (Pty) Ltd",
+      "entity_key": "ChartwellCorner_2025_structured",
+      "guarantor_group": "phoenix"
+    },
+    "reporting_period": {
+      "start_date": "2025-03-01",
+      "end_date": "2025-12-12",
+      "months": 10
+    },
+    "currency": "ZAR",
+    "property_managers": {
+      "name": "Broll Property Group / Retail Africa / JHB 101 Group",
+      "contact": "KJ (Centre Manager), CVDB (Leasing)",
+      "report_date": "2025-12-12"
+    },
+    "verification": {
+      "extracted_by": "claude",
+      "extraction_date": "2026-02-18",
+      "crosscheck_notes": [
+        "Property-level report for Chartwell Corner Co-Ownership (the property management trust), NOT the Chartwell Corner (Pty) Ltd entity. The entity owns via a co-ownership interest.",
+        "Net Income YTD Actual R14,148,071 per income statement p11, confirmed on executive summary p9.",
+        "Total Income YTD R24,904,710 actual vs R27,139,992 budget per income statement p5.",
+        "Total Expenses YTD R10,520,883 actual vs R12,853,727 budget per income statement p10.",
+        "Net Income after other expenses R14,148,071 actual vs R13,216,513 budget per income statement p11.",
+        "RFC cumulative net income R16,372,878 includes other income R200,089 and other expenses R435,844.",
+        "Balance sheet total assets R71,590,786 vs R56,547,015 prior year per balance sheet p31.",
+        "Cash flow period: 21 Nov 2025 to 12 Dec 2025 only (1 month). Receipts R4,716,264.66, Payments R3,397,988.27.",
+        "Vacancy 767 m2 = 9.02% of 8,500 m2 GLA per vacancy schedule p16.",
+        "Turnover schedule grand total YTD R505,289,264 across 8,301 m2 reporting area (p45).",
+        "Building sum insured R216,000,000 (building) + R4,500,000 (solar) = R220,500,000 total per executive summary.",
+        "Municipal valuation: R78,300,000 (council evaluation) per executive summary.",
+        "Insurance annual premium R402,326.88 (R366,068.64 building Oct25-Oct26 + R36,258.24 solar Jul25-Jul26)."
+      ]
+    }
+  },
+  "property_details": {
+    "address": "Corner Cedar and Gateside Ave, Dainfern 2055",
+    "erf_number": "2225, Dainfern Ext 13 (also referenced as Erf 862 Chartwell Extension 20)",
+    "municipal_valuation": 78300000,
+    "building_sum_insured": 216000000,
+    "building_sum_insured_incl_solar": 220500000,
+    "insurance_annual_premium": 402326.88,
+    "insurance_monthly_debit_order": {
+      "building": 30508.72,
+      "solar": 3021.52
+    },
+    "monthly_rates": {
+      "amount": 155500.70,
+      "rate_per_m2": 17.54,
+      "based_on_valuation": 78300000,
+      "cent_in_rand": 0.023862
+    },
+    "gla_breakdown": {
+      "national": { "gla_m2": 5853, "pct": 68.86 },
+      "regional": { "gla_m2": null, "pct": null },
+      "local": { "gla_m2": null, "pct": null },
+      "offices": { "gla_m2": null, "pct": null },
+      "storage_other": { "gla_m2": null, "pct": null }
+    },
+    "_gla_detailed": {
+      "gla_per_current_leases": 8863,
+      "actual_total_gla_new_measurements": 8863,
+      "rentable_gla": 7584,
+      "restraining_area": 836,
+      "outside_seating": 415,
+      "atm": 18
+    },
+    "total_gla_m2": 8500,
+    "rentable_units": 30,
+    "tenant_count": 24,
+    "parking_bays": 443,
+    "_parking_detail": {
+      "mall_required": 380,
+      "mall_provided": 440,
+      "taxi": 4,
+      "basement": 34,
+      "parking_allowance_ratio": "5 bays per 100m2"
+    }
+  },
+  "financial_summary": {
+    "net_income_ytd": {
+      "actual": 14148071,
+      "budget": 13216513,
+      "variance": 931558
+    },
+    "net_income_monthly": {
+      "actual": 1401629,
+      "budget": 1405737,
+      "variance": -4108
+    },
+    "annual_forecast": 16972878,
+    "annual_budget": 16019245,
+    "py_actual": 12668010,
+    "monthly_avg": 1414807,
+    "_variance_notes": [
+      "Monthly negative variance on income (R264,691) mainly due to: (1) Electricity recovery vs budget variance R542,912 recovery 130%. (2) Variance on rent, ops, marketing, tenant installation due to Cream Car Wash and Nuhuman that moved out.",
+      "Monthly positive variance on expenses (R168,850) mainly due to: (1) Sewer (R66,907), Water (R73,269). Positive variance on water and sewer due to the borehole. (2) R&M not utilised. Positive variance R25,082.",
+      "YTD Net Income R14,148,071 actual vs R13,216,513 budget = R931,558 favorable (7.0%).",
+      "Annual RFC net income R16,372,878 vs budget R16,019,245 = R353,633 favorable (2.2%)."
+    ]
+  },
+  "leasing_summary": {
+    "vacancy_rate_pct": 9.02,
+    "vacancy_gla_m2": 767,
+    "_vacancy_detail": [
+      { "premises": "BASESTATION", "tenant": "CELL C BASE STATION", "area_m2": 1, "rent": 11802.91, "vacant_months": 31, "total_loss": 365890.21 },
+      { "premises": "OUTSIDE SEATING SHOP 23", "tenant": "NUHUMAN", "area_m2": 261, "rent": 2610.00, "vacant_months": 39, "total_loss": 101790.00 },
+      { "premises": "SHOP 2 OUTSIDE SEATING", "tenant": "SOUL MEDITERRANEAN", "area_m2": 64, "rent": 0.00, "vacant_months": 44, "total_loss": 0.00 },
+      { "premises": "SHOP 23", "tenant": "NUHUMAN", "area_m2": 441, "rent": 58597.63, "vacant_months": 6, "total_loss": 351585.78 }
+    ],
+    "_vacancy_total_loss": 819265.99,
+    "potential_vacancies": {
+      "gla_m2": 0,
+      "pct": 0.0,
+      "number_of_shops": 0
+    },
+    "lease_expiry_profile": {
+      "0_12m": { "gla_m2": 835, "pct": 9.42, "count": 11 },
+      "12_24m": { "gla_m2": null, "pct": null },
+      "24_36m": { "gla_m2": null, "pct": null },
+      "36_plus_m": { "gla_m2": null, "pct": null }
+    },
+    "_renewals": {
+      "number_expiring_12m": 11,
+      "gla_expiring_12m": 835,
+      "pct_gla_expiring_12m": 9.42,
+      "number_concluded": 0,
+      "gla_concluded": 0,
+      "pct_concluded": 0.0
+    },
+    "avg_rental_per_m2": {
+      "national": null,
+      "regional": null,
+      "local": null,
+      "offices": null
+    },
+    "_avg_rental_centre": {
+      "anchors": 130.28,
+      "nationals": 168.85,
+      "food_and_restaurants": 227.15,
+      "line_shops_200_350m2": 138.81,
+      "line_shops_90_200m2": 222.87
+    },
+    "market_benchmark_per_m2": {
+      "anchors": 125.20,
+      "nationals": 153.73,
+      "food_and_restaurants": 291.57,
+      "line_shops_200_350m2": 234.18,
+      "line_shops_90_200m2": 288.35
+    },
+    "_tenant_mix_by_income_pct": {
+      "anchors": 54,
+      "nationals": 71,
+      "food_and_restaurants": 7,
+      "line_shops_200_350m2": 15,
+      "line_shops_90_200m2": 15
+    },
+    "_number_of_tenants_per_category": {
+      "anchors": 3,
+      "nationals": 8,
+      "food_and_restaurants": 3,
+      "line_shops_200_350m2": 8,
+      "line_shops_90_200m2": 7
+    }
+  },
+  "turnover_summary": {
+    "total_reported_turnover": 505289264,
+    "trading_density_per_m2": {
+      "annual": 6050.90,
+      "monthly": 5133.80
+    },
+    "rent_to_turnover_pct": 3.68,
+    "_current_month_rental": 1548142,
+    "_leased_area_reporting_turnover_m2": 8202,
+    "_anchor_turnovers": {
+      "dischem": { "monthly_turnover": 6354898, "annual_trading_density": 4782, "rent_to_turnover_pct": 3.46 },
+      "woolworths": { "monthly_turnover": 4946000, "annual_trading_density": 8646, "rent_to_turnover_pct": 1.40 },
+      "checkers": { "monthly_turnover": 27532876, "annual_trading_density": 6002, "rent_to_turnover_pct": 1.75 }
+    },
+    "_restaurant_turnovers": {
+      "hao_li_lai": { "monthly_turnover": 99076, "avg_monthly_density": 1032, "rent_to_turnover_pct": 7.00, "pct_as_lease": 30.82 },
+      "bootleggers": { "monthly_turnover": 425913, "avg_monthly_density": 1936, "rent_to_turnover_pct": 4.00, "pct_as_lease": 10.44 },
+      "pizza_baby": { "monthly_turnover": 355858, "avg_monthly_density": 4682, "rent_to_turnover_pct": 4.00, "pct_as_lease": 8.69 }
+    },
+    "_centre_trading_density_annual": 5151.35,
+    "_checkers_liquor_annual_turnover_payment": 226632.74,
+    "_checkers_liquor_annual_turnover_budget": 223602.68,
+    "_woolworths_annual_turnover_payment": 278897.62,
+    "_woolworths_annual_turnover_budget": 232806.04,
+    "_woolworths_additional_per_m2_month": 32.78
+  },
+  "utility_recovery": {
+    "electricity": {
+      "recovery_pct": 125,
+      "monthly_recovery_pct": 130,
+      "budgeted_ytd_recovery_pct": 141,
+      "_note": "recoveries include the solar, saving and proceeds",
+      "cost": 6445946,
+      "recovered": 7976757,
+      "shortfall": -1530811,
+      "_budget_cost": 5655627,
+      "_budget_recovered": null,
+      "_budget_shortfall": null,
+      "_total_budget": 6708771,
+      "_solar_cost_ytd": 0,
+      "_solar_budget_ytd": 199807,
+      "_electricity_accrual": 466548
+    },
+    "rates": {
+      "recovery_pct": 31,
+      "monthly_recovery_pct": 22,
+      "budgeted_ytd_recovery_pct": 25,
+      "cost": 1053818,
+      "recovered": 389940,
+      "shortfall": 663878,
+      "_actual_recovery_130pct": true,
+      "_budget_recovery_102pct": true,
+      "_note": "Actual 22% Budget 27%. Lower recovery due to cancellation on Nuhuman and Cream Car Wash."
+    },
+    "refuse": {
+      "recovery_pct": 100,
+      "monthly_recovery_pct": 130,
+      "budgeted_ytd_recovery_pct": 102,
+      "cost": 228599,
+      "recovered": 231182,
+      "shortfall": -2583,
+      "_total_budget": 271168
+    },
+    "sewer": {
+      "recovery_pct": 378,
+      "monthly_recovery_pct": 217,
+      "budgeted_ytd_recovery_pct": 67,
+      "_note": "recoveries include the borehole",
+      "cost": 352003,
+      "recovered": 229210,
+      "shortfall": 122793,
+      "_total_budget": 272265
+    },
+    "water": {
+      "recovery_pct": 121,
+      "monthly_recovery_pct": 316,
+      "budgeted_ytd_recovery_pct": 93,
+      "cost": 714051,
+      "recovered": 729358,
+      "shortfall": -15307,
+      "_total_budget": 55162,
+      "_note": "MTD: Actual 316%, Budget 106%. Lower recovery due to Hall Core expense allocated to water."
+    },
+    "_nett_utilities_ytd": {
+      "expense": 7175157,
+      "recovered": 8195617,
+      "under_over_recovered": -1020460,
+      "pct_budget_recovered": 108,
+      "pct_actual_recovered": 114,
+      "total_budget": 10931238,
+      "_total_budget_recovered": 11845973
+    }
+  },
+  "arrears_overview": {
+    "total": 481132,
+    "category_breakdown": {
+      "current": null,
+      "30_days": null,
+      "60_days": null,
+      "90_plus": null
+    },
+    "_category_pct": {
+      "AOD": { "pct": 11.35, "amount": 77597 },
+      "disputed": { "pct": 0.00, "amount": 0 },
+      "legal": { "pct": 70.52, "amount": 482415 },
+      "ex_tenants": { "pct": 0.27, "amount": 1818 },
+      "deposits": { "pct": 0.00, "amount": 0 },
+      "nationals": { "pct": 6.63, "amount": 45360 },
+      "normal_tenants": { "pct": 11.24, "amount": 76893 }
+    },
+    "_total_including_credits": 683886,
+    "_plus_credits": 202749,
+    "_debit_balance": 481137,
+    "payment_profile_pct": null,
+    "_payment_profile": {
+      "deposits_only": { "tenants": 0, "pct": 0 },
+      "full_payments": { "tenants": 10, "pct": 66 },
+      "short_payments": { "tenants": 7, "pct": 24 },
+      "irregular_payments": { "tenants": 0, "pct": 0 },
+      "legal": { "tenants": 2, "pct": 7 },
+      "no_payments": { "tenants": 0, "pct": 0 },
+      "arrangements": { "tenants": 1, "pct": 3 },
+      "total_tenants": 29
+    },
+    "collections_pct": 94.00,
+    "_collections_as_pct_of_billings": 94.00,
+    "bad_debts_written_off": 586.48
+  },
+  "arrears_detail": [
+    {
+      "tenant_name": "BB GLAMS (PTY) LTD",
+      "trading_as": "IBLOOM POWERED BY PLACECOL",
+      "amount": 77596.82,
+      "days_outstanding": null,
+      "status": "AOD",
+      "action": "LEGAL: Settlement Agreement. Tenant received Notice to Vacate 7 June 2023. Installment of R5,000 monthly starting 7 April 2024. Instruction dispatched to Sheriff for execution.",
+      "deposit_held": null,
+      "opening_balance": 76785.62,
+      "lease_charges": 0.00,
+      "adjustments": 811.20,
+      "receipts": 0.00,
+      "closing_balance": 77596.82
+    },
+    {
+      "tenant_name": "DIS-CHEM PARMACIES LTD",
+      "trading_as": "DIS-CHEM",
+      "amount": -0.01,
+      "days_outstanding": null,
+      "status": "Credit",
+      "action": "09.12.2025: Tenant paid full amount.",
+      "deposit_held": null,
+      "opening_balance": 0.00,
+      "lease_charges": 248435.20,
+      "adjustments": 102677.30,
+      "receipts": -351112.51,
+      "closing_balance": -0.01
+    },
+    {
+      "tenant_name": "TUGELA TRADING (PTY) LTD",
+      "trading_as": "EMERGE MARKETING",
+      "amount": -30.01,
+      "days_outstanding": null,
+      "status": "Credit",
+      "action": "09.12.2025: Tenant paid full amount.",
+      "deposit_held": null,
+      "opening_balance": 0.00,
+      "lease_charges": 0.00,
+      "adjustments": 14574.99,
+      "receipts": -14605.00,
+      "closing_balance": -30.01
+    },
+    {
+      "tenant_name": "SUPREME AUCTIONEERS CC",
+      "trading_as": "PERSIAN RUGS",
+      "amount": -40.68,
+      "days_outstanding": null,
+      "status": "Credit",
+      "action": "NOTE: Tenant made an over payment.",
+      "deposit_held": null,
+      "opening_balance": -40.68,
+      "lease_charges": 0.00,
+      "adjustments": 0.00,
+      "receipts": 0.00,
+      "closing_balance": -40.68
+    },
+    {
+      "tenant_name": "DELTA GREEN SA (PTY) LTD",
+      "trading_as": "DELTA GREEN SA",
+      "amount": -250.01,
+      "days_outstanding": null,
+      "status": "Credit",
+      "action": "NOTE: Tenant made an over payment.",
+      "deposit_held": null,
+      "opening_balance": -250.01,
+      "lease_charges": 0.00,
+      "adjustments": 0.00,
+      "receipts": 0.00,
+      "closing_balance": -250.01
+    },
+    {
+      "tenant_name": "RED HOT CLEANING AND PLACEMENT SERVICES",
+      "trading_as": "RED HOT CLEANING EMPORIUM",
+      "amount": -363.44,
+      "days_outstanding": null,
+      "status": "Credit",
+      "action": "NOTE: Tenant made an over payment.",
+      "deposit_held": null,
+      "opening_balance": -107.65,
+      "lease_charges": 36662.31,
+      "adjustments": 1581.90,
+      "receipts": -38500.00,
+      "closing_balance": -363.44
+    },
+    {
+      "tenant_name": "CAPITEC BANK LTD",
+      "trading_as": "CAPITEC ATM",
+      "amount": -3948.40,
+      "days_outstanding": null,
+      "status": "Credit",
+      "action": "NOTE: Tenant made an over payment.",
+      "deposit_held": null,
+      "opening_balance": -3948.40,
+      "lease_charges": 5605.46,
+      "adjustments": 0.00,
+      "receipts": -5605.46,
+      "closing_balance": -3948.40
+    },
+    {
+      "tenant_name": "SHOPRITE CHECKERS (PTY) LTD",
+      "trading_as": "CHECKERS",
+      "amount": -16484.76,
+      "days_outstanding": null,
+      "status": "Credit",
+      "action": "NOTE: Tenant paid the exclusive of VAT turnover rental, therefore the balance outstanding. 19.11.2025: Tenant confirmed payment is requested to be made.",
+      "deposit_held": null,
+      "opening_balance": -10044.55,
+      "lease_charges": 626203.62,
+      "adjustments": 498893.76,
+      "receipts": -1131537.59,
+      "closing_balance": -16484.76
+    },
+    {
+      "tenant_name": "MOBILE TELEPHONE NETWORKS (PTY) LTD",
+      "trading_as": "MTN ANTENNA",
+      "amount": 21782.10,
+      "days_outstanding": null,
+      "status": "National",
+      "action": "09.12.2025: Tenant was requested to make utility payment.",
+      "deposit_held": null,
+      "opening_balance": 11329.12,
+      "lease_charges": 8744.69,
+      "adjustments": 10452.99,
+      "receipts": -8744.70,
+      "closing_balance": 21782.10
+    },
+    {
+      "tenant_name": "TELKOM SA SOC LTD",
+      "trading_as": "TELKOM ANTENNA",
+      "amount": 16967.72,
+      "days_outstanding": null,
+      "status": "National",
+      "action": "09.12.2025: Tenant was requested to make rental payment.",
+      "deposit_held": null,
+      "opening_balance": 0.00,
+      "lease_charges": 17013.51,
+      "adjustments": 7254.92,
+      "receipts": -7300.71,
+      "closing_balance": 16967.72
+    },
+    {
+      "tenant_name": "PICK N PAY RETAILERS (PTY) LTD",
+      "trading_as": "PICK N PAY CLOTHING",
+      "amount": 2423.50,
+      "days_outstanding": null,
+      "status": "National",
+      "action": "11.12.2025: In contact with SR to resolve balance outstanding.",
+      "deposit_held": null,
+      "opening_balance": 2441.06,
+      "lease_charges": 75212.48,
+      "adjustments": 17864.93,
+      "receipts": -93094.97,
+      "closing_balance": 2423.50
+    },
+    {
+      "tenant_name": "SHOPRITE CHECKERS (PTY) LTD",
+      "trading_as": "CHECKERS LIQUORSHOP",
+      "amount": 997.06,
+      "days_outstanding": null,
+      "status": "National",
+      "action": "NOTE: Tenant paid the exclusive of VAT turnover rental. 19.11.2025: Tenant confirmed payment is requested to be made.",
+      "deposit_held": null,
+      "opening_balance": 35046.00,
+      "lease_charges": 0.00,
+      "adjustments": 0.00,
+      "receipts": -34048.94,
+      "closing_balance": 997.06
+    },
+    {
+      "tenant_name": "TEMPERED INVESTMENTS CC",
+      "trading_as": "TASKO SWEETS",
+      "amount": 35340.04,
+      "days_outstanding": null,
+      "status": "Normal",
+      "action": "09.12.2025: Tenant was requested to make payment.",
+      "deposit_held": null,
+      "opening_balance": 0.00,
+      "lease_charges": 32335.65,
+      "adjustments": 3004.39,
+      "receipts": 0.00,
+      "closing_balance": 35340.04
+    },
+    {
+      "tenant_name": "PIZZA BABY (PTY) LTD",
+      "trading_as": "PIZZA BABY CHARTWELL",
+      "amount": 0.00,
+      "days_outstanding": null,
+      "status": "Normal",
+      "action": null,
+      "deposit_held": null,
+      "opening_balance": 509.24,
+      "lease_charges": 35061.48,
+      "adjustments": 2852.88,
+      "receipts": -38423.60,
+      "closing_balance": 0.00
+    },
+    {
+      "tenant_name": "POWER METER TECHNICS (PTY) LTD",
+      "trading_as": "VODACOM ANTENNA CHARTWELL HILLS BS 17538",
+      "amount": -4979.25,
+      "days_outstanding": null,
+      "status": "Paid In Advance",
+      "action": "NOTE: Invoice loaded and will reflect on next reporting.",
+      "deposit_held": null,
+      "opening_balance": -131067.04,
+      "lease_charges": 0.00,
+      "adjustments": 126087.79,
+      "receipts": 0.00,
+      "closing_balance": -4979.25
+    },
+    {
+      "tenant_name": "VODACOM (PROPRIETARY) LIMITED",
+      "trading_as": "VODACOM ANTENNA",
+      "amount": -181631.46,
+      "days_outstanding": null,
+      "status": "Paid In Advance",
+      "action": "NOTE: Credit relates to Annual Payment received.",
+      "deposit_held": null,
+      "opening_balance": -229337.10,
+      "lease_charges": 20315.76,
+      "adjustments": 27389.88,
+      "receipts": 0.00,
+      "closing_balance": -181631.46
+    },
+    {
+      "tenant_name": "RELATIV DIGITAL (PTY) LTD",
+      "trading_as": "RELATIV DIGITAL ADVERTISING",
+      "amount": 46490.91,
+      "days_outstanding": null,
+      "status": "Special Arrangement",
+      "action": "NOTE: Tenant pays 45 days from invoice. 09.12.2025: TTH from inception to date forwarded to tenant as requested.",
+      "deposit_held": null,
+      "opening_balance": 90683.52,
+      "lease_charges": 0.00,
+      "adjustments": 19429.94,
+      "receipts": -63622.55,
+      "closing_balance": 46490.91
+    },
+    {
+      "tenant_name": "RANT INVESTMENTS (PTY) LTD",
+      "trading_as": "PUFF CO",
+      "amount": 1817.64,
+      "days_outstanding": null,
+      "status": "Tenant not in Occupation",
+      "action": "09.12.2025: Tenant was requested to make payment of balance outstanding as LL declined a credit.",
+      "deposit_held": null,
+      "opening_balance": 1798.55,
+      "lease_charges": 0.00,
+      "adjustments": 19.09,
+      "receipts": 0.00,
+      "closing_balance": 1817.64
+    },
+    {
+      "tenant_name": "WOOLWORTHS (PTY) LTD",
+      "trading_as": "WOOLWORTHS CHARTWELL CORNER (3185)",
+      "amount": 3198.37,
+      "days_outstanding": null,
+      "status": "Turnover Outstanding",
+      "action": "NOTE: Tenant did not pay turnover rental. 17.11.2025: Tenant confirmed payment for turnover rental will be made by 21 Nov 2025. In contact with CW to make payment of balance outstanding of R3,317.00.",
+      "deposit_held": null,
+      "opening_balance": 324049.26,
+      "lease_charges": 98998.74,
+      "adjustments": 121505.14,
+      "receipts": -541354.77,
+      "closing_balance": 3198.37
+    },
+    {
+      "tenant_name": "SAUBER WASH (PTY) LTD",
+      "trading_as": "CREAM CARWASH CHARTWELL CORNER",
+      "amount": 820.73,
+      "days_outstanding": null,
+      "status": "Ex tenant (vacated)",
+      "action": "NOTE: Tenant paid amount as at end Sept 2025 in full. Balance outstanding is R120 RWS legal fees and R700.73 interest. 10.12.2025: RWS to close file. LL to advise if balance may be written off.",
+      "deposit_held": null,
+      "opening_balance": 23611.51,
+      "lease_charges": 0.00,
+      "adjustments": 249.44,
+      "receipts": -23040.22,
+      "closing_balance": 820.73
+    },
+    {
+      "tenant_name": "NUHUMAN (PTY) LTD",
+      "trading_as": "NUHUMAN",
+      "amount": 481424.47,
+      "days_outstanding": null,
+      "status": "In Liquidation",
+      "action": "LIQUIDATED: Tenant liquidated end Aug 2025. Tenant vacated on 18 June 2025. Deposit of R98,856.23 Appropriated on 3 July 2025. 10.12.2025: RWS confirmed Debtor has gone into voluntary liquidation. No details yet of appointed liquidator.",
+      "deposit_held": null,
+      "opening_balance": 476391.66,
+      "lease_charges": 0.00,
+      "adjustments": 5032.81,
+      "receipts": 0.00,
+      "closing_balance": 481424.47
+    },
+    {
+      "tenant_name": "DR MABELA GROUP (PTY) LTD",
+      "trading_as": "POSTLINK",
+      "amount": 1.00,
+      "days_outstanding": null,
+      "status": "Legal - Ex tenant",
+      "action": "LEGAL: Write-off to R1 on 19 August 2024 of R269,297.76. RWS to re-trace the Defendant and attempt execution of the Warrant.",
+      "deposit_held": null,
+      "opening_balance": 1.00,
+      "lease_charges": 0.00,
+      "adjustments": 0.00,
+      "receipts": 0.00,
+      "closing_balance": 1.00
+    }
+  ],
+  "tenant_data": [
+    {
+      "name": "WOOLWORTHS (PTY) LTD",
+      "trading_name": "WOOLWORTHS CHARTWELL CORNER (3185)",
+      "gla_m2": 709,
+      "lease_start": "2021-12-01",
+      "lease_end": "2027-11-30",
+      "rental_monthly": 86086,
+      "rental_per_m2": 120.40,
+      "escalation_pct": 0.0,
+      "tenant_type": "national",
+      "monthly_turnover": [6746000, 6007000, 5974000, 5256000, 7246000, 5859000, 5532000, 6733000, 5864000, 5998000, 7599000, 4946000],
+      "renewal_status": null,
+      "annual_turnover_ytd": 73560000,
+      "annual_trading_density": 8646,
+      "rent_to_turnover_pct": 1.40,
+      "shop": "SHOP 1"
+    },
+    {
+      "name": "SHOPRITE CHECKERS (PTY) LTD",
+      "trading_name": "CHECKERS",
+      "gla_m2": 3691,
+      "lease_start": "2021-10-01",
+      "lease_end": "2031-09-30",
+      "rental_monthly": null,
+      "rental_per_m2": null,
+      "escalation_pct": 4.0,
+      "tenant_type": "national",
+      "monthly_turnover": [18787255, 18943924, 26320287, 18776993, 19861544, 25505911, 20071177, 19432392, 26842066, 22153004, 21594836, 27532876],
+      "renewal_status": null,
+      "annual_turnover_ytd": 265822263,
+      "annual_trading_density": 6002,
+      "option_period": "10/31 - 9/51",
+      "rent_to_turnover_pct": 2.45,
+      "shop": "SHOP 15A, SHOP 15B"
+    },
+    {
+      "name": "DIS-CHEM PHARMACIES LTD",
+      "trading_name": "DIS-CHEM",
+      "gla_m2": 1305,
+      "lease_start": "2021-10-01",
+      "lease_end": "2031-09-30",
+      "rental_monthly": null,
+      "rental_per_m2": null,
+      "escalation_pct": 0.0,
+      "tenant_type": "national",
+      "monthly_turnover": [6105928, 5257824, 6463493, 5635983, 6768770, 6086074, 6351289, 6285857, 6218399, 6558527, 6804115, 6354898],
+      "renewal_status": null,
+      "annual_turnover_ytd": 74891157,
+      "annual_trading_density": 4782,
+      "option_period": "10/31 - 9/41",
+      "rent_to_turnover_pct": 3.46,
+      "shop": "SHOP 24"
+    },
+    {
+      "name": "SHOPRITE CHECKERS (PTY) LTD",
+      "trading_name": "CHECKERS LIQUORSHOP",
+      "gla_m2": 168,
+      "lease_start": "2021-10-01",
+      "lease_end": "2031-09-30",
+      "rental_monthly": 36685,
+      "rental_per_m2": null,
+      "escalation_pct": 4.0,
+      "tenant_type": "national",
+      "monthly_turnover": [2159929, 2130501, 3051055, 2389745, 2388427, 3008702, 2344783, 2331248, 3313191, 2716733, 2780406, 4853012],
+      "renewal_status": null,
+      "annual_turnover_ytd": 33467733,
+      "annual_trading_density": 16601,
+      "rent_to_turnover_pct": 1.31,
+      "shop": "SHOP 9"
+    },
+    {
+      "name": "MR PRICE GROUP LIMITED",
+      "trading_name": "MILADYS",
+      "gla_m2": 192,
+      "lease_start": "2025-11-30",
+      "lease_end": "2026-11-30",
+      "rental_monthly": null,
+      "rental_per_m2": 34514,
+      "escalation_pct": null,
+      "tenant_type": "national",
+      "monthly_turnover": [215685, 163579, 188042, 180646, 308816, 276927, 215718, 224274, 227860, 267684, 256648, 300510],
+      "renewal_status": null,
+      "annual_turnover_ytd": 2826388,
+      "option_period": "12/28 - 11/38",
+      "shop": "SHOP 5+6"
+    },
+    {
+      "name": "PICK N PAY RETAILERS (PTY) LTD",
+      "trading_name": "PICK N PAY CLOTHING",
+      "gla_m2": 289,
+      "lease_start": "2023-01-01",
+      "lease_end": "2027-12-31",
+      "rental_monthly": null,
+      "rental_per_m2": 63447,
+      "escalation_pct": 5.50,
+      "tenant_type": "national",
+      "monthly_turnover": [351127, 389450, 463094, 603419, 752508, 603763, 439560, 483644, 516414, 508942, 499045, 665195],
+      "renewal_status": null,
+      "annual_turnover_ytd": 6276150,
+      "annual_trading_density": 1810,
+      "shop": "SHOP 2"
+    },
+    {
+      "name": "SPEC SAVERS SA (PTY) LTD",
+      "trading_name": "EXECUSPECS",
+      "gla_m2": 81,
+      "lease_start": "2021-10-01",
+      "lease_end": "2026-09-30",
+      "rental_monthly": null,
+      "rental_per_m2": null,
+      "escalation_pct": 8.0,
+      "tenant_type": "national",
+      "monthly_turnover": [96900, 88500, 92200, 93570, 95600, 108900, 125350, 88500, 86500, 92200, 95600, 123600],
+      "renewal_status": "Renewal to be discussed",
+      "annual_turnover_ytd": 1187420,
+      "annual_trading_density": 1222,
+      "shop": "SHOP 14"
+    },
+    {
+      "name": "MOBILE TELEPHONE NETWORKS (PTY) LTD",
+      "trading_name": "MTN ANTENNA",
+      "gla_m2": 1,
+      "lease_start": "2021-05-01",
+      "lease_end": "2026-04-30",
+      "rental_monthly": null,
+      "rental_per_m2": 14794.36,
+      "escalation_pct": 6.50,
+      "tenant_type": "national",
+      "renewal_status": "5% renewal received. 1 year agreement.",
+      "shop": "ROOFTOP"
+    },
+    {
+      "name": "TELKOM SA SOC LTD",
+      "trading_name": "TELKOM ANTENNA",
+      "gla_m2": 1,
+      "lease_start": "2013-02-01",
+      "lease_end": "2026-08-31",
+      "rental_monthly": null,
+      "rental_per_m2": 14794.36,
+      "escalation_pct": null,
+      "tenant_type": "national",
+      "renewal_status": "Renewal discussion to be held.",
+      "option_period": "07/31 - 09/26",
+      "shop": "ANTENNA B"
+    },
+    {
+      "name": "BILTONG FOR AFRICA (PTY) LTD",
+      "trading_name": "BILTONG REPUBLIC",
+      "gla_m2": 23,
+      "lease_start": "2021-10-01",
+      "lease_end": "2027-09-30",
+      "rental_monthly": null,
+      "rental_per_m2": null,
+      "escalation_pct": 7.0,
+      "tenant_type": "local",
+      "monthly_turnover": [188347, 184996, 222141, 201680, 217800, 251483, 288131, 313680, 297896, 311574, 305168, 313628],
+      "renewal_status": null,
+      "annual_turnover_ytd": 3096523,
+      "annual_trading_density": 11219,
+      "shop": "SHOP 10"
+    },
+    {
+      "name": "TEMPERED INVESTMENTS CC",
+      "trading_name": "TASKO SWEETS",
+      "gla_m2": 129,
+      "lease_start": "2025-02-25",
+      "lease_end": "2027-02-25",
+      "rental_monthly": null,
+      "rental_per_m2": null,
+      "escalation_pct": 7.0,
+      "tenant_type": "local",
+      "monthly_turnover": [0, 0, 143136, 148403, 146673, 123397, 120141, 109743, 116572, 155919, 144886, 150861],
+      "renewal_status": null,
+      "annual_turnover_ytd": 1359731,
+      "annual_trading_density": 1054,
+      "shop": "SHOP 12"
+    },
+    {
+      "name": "CANNAFRICA CHARTWELL (PTY) LTD",
+      "trading_name": "CANNAFRICA CHARTWELL",
+      "gla_m2": 70,
+      "lease_start": "2024-07-01",
+      "lease_end": "2027-06-30",
+      "rental_monthly": null,
+      "rental_per_m2": null,
+      "escalation_pct": 6.0,
+      "tenant_type": "local",
+      "monthly_turnover": [365313, 376389, 427063, 426011, 452981, 475231, 551307, 495399, 522792, 550419, 527135, 585137],
+      "renewal_status": null,
+      "annual_turnover_ytd": 5755176,
+      "annual_trading_density": 6851,
+      "shop": "SHOP 18"
+    },
+    {
+      "name": "CRAFT HAIR AND BEAUTY (PTY) LTD",
+      "trading_name": "CRAFT HAIR AND BEAUTY",
+      "gla_m2": 71,
+      "lease_start": "2021-10-01",
+      "lease_end": "2026-09-30",
+      "rental_monthly": null,
+      "rental_per_m2": null,
+      "escalation_pct": 8.0,
+      "tenant_type": "local",
+      "monthly_turnover": [357100, 317675, 421860, 320331, 386438, 312964, 387253, 366982, 382858, 421452, 452772, 566907],
+      "renewal_status": null,
+      "annual_turnover_ytd": 4694592,
+      "annual_trading_density": 5510,
+      "shop": "SHOP 18A"
+    },
+    {
+      "name": "TECH WORLD (PTY) LTD",
+      "trading_name": "FIX TECH",
+      "gla_m2": 81,
+      "lease_start": "2021-10-01",
+      "lease_end": "2026-09-30",
+      "rental_monthly": null,
+      "rental_per_m2": null,
+      "escalation_pct": 7.0,
+      "tenant_type": "local",
+      "monthly_turnover": [96900, 88500, 92200, 93570, 95600, 108900, 125350, 88500, 86500, 92200, 95600, 123600],
+      "renewal_status": "Renewal to be discussed",
+      "annual_turnover_ytd": 1187420,
+      "annual_trading_density": 1222,
+      "shop": "SHOP 13"
+    },
+    {
+      "name": "MANIC CURE (PTY) LTD",
+      "trading_name": "MANIC CURE",
+      "gla_m2": 105,
+      "lease_start": "2023-09-01",
+      "lease_end": "2026-08-31",
+      "rental_monthly": null,
+      "rental_per_m2": null,
+      "escalation_pct": 7.0,
+      "tenant_type": "local",
+      "monthly_turnover": [250000, 260000, 200000, 180000, 220000, 180000, 180000, 200000, 179800, 156000, 145000, 280000],
+      "renewal_status": "Renewal discussion to be held.",
+      "annual_turnover_ytd": 2430800,
+      "annual_trading_density": 1929,
+      "shop": "SHOP 8"
+    },
+    {
+      "name": "MOROCCAN BARBER BADRMAN CC",
+      "trading_name": "MOROCCAN BARBER",
+      "gla_m2": 71,
+      "lease_start": "2021-10-01",
+      "lease_end": "2026-09-30",
+      "rental_monthly": null,
+      "rental_per_m2": null,
+      "escalation_pct": 6.0,
+      "tenant_type": "local",
+      "monthly_turnover": [73478, 75043, 77478, 78261, 82696, 83217, 85130, 85261, 85826, 86261, 86957, 104348],
+      "renewal_status": null,
+      "annual_turnover_ytd": 1003956,
+      "annual_trading_density": 1178,
+      "shop": "SHOP 19"
+    },
+    {
+      "name": "DR KEZIA GEORGE AND PARTNERS INC",
+      "trading_name": "DR KEZIA GEORGE AND PARTNERS",
+      "gla_m2": 84,
+      "lease_start": "2025-07-01",
+      "lease_end": "2027-06-30",
+      "rental_monthly": 21195,
+      "rental_per_m2": null,
+      "escalation_pct": null,
+      "tenant_type": "local",
+      "monthly_turnover": [],
+      "renewal_status": null,
+      "shop": "SHOP 147"
+    },
+    {
+      "name": "RED HOT CLEANING AND PLACEMENT SERVICES CC",
+      "trading_name": "RED HOT CLEANING EMPORIUM",
+      "gla_m2": 71,
+      "lease_start": "2021-10-01",
+      "lease_end": "2026-09-30",
+      "rental_monthly": null,
+      "rental_per_m2": null,
+      "escalation_pct": 7.0,
+      "tenant_type": "local",
+      "monthly_turnover": [177000, 175000, 177454, 195000, 201000, 181241, 200000, 187000, 193000, 180000, 205000, 221000],
+      "renewal_status": "Renewal to be discussed",
+      "annual_turnover_ytd": 2292694,
+      "annual_trading_density": 2691,
+      "shop": "SHOP 21"
+    },
+    {
+      "name": "MELBRO RETAIL (PTY) LTD",
+      "trading_name": "THE CRAZY STORE",
+      "gla_m2": 192,
+      "lease_start": "2021-10-01",
+      "lease_end": "2026-09-30",
+      "rental_monthly": null,
+      "rental_per_m2": null,
+      "escalation_pct": 6.0,
+      "tenant_type": "local",
+      "monthly_turnover": [339750, 355974, 335834, 364334, 407507, 363425, 345230, 326934, 358673, 415742, 468802, 639952],
+      "renewal_status": null,
+      "annual_turnover_ytd": 4722156,
+      "annual_trading_density": 2050,
+      "shop": "SHOP 7"
+    },
+    {
+      "name": "THE POOL TEAM (PTY) LTD",
+      "trading_name": "THE POOL TEAM",
+      "gla_m2": 70,
+      "lease_start": "2024-03-01",
+      "lease_end": "2027-05-31",
+      "rental_monthly": null,
+      "rental_per_m2": null,
+      "escalation_pct": 6.50,
+      "tenant_type": "local",
+      "monthly_turnover": [118676, 76896, 84104, 72933, 53914, 37771, 43175, 49815, 78403, 114263, 107549, 100496],
+      "renewal_status": null,
+      "annual_turnover_ytd": 937996,
+      "annual_trading_density": 1117,
+      "shop": "SHOP 20"
+    },
+    {
+      "name": "CRAZY PETS (PTY) LTD",
+      "trading_name": "CRAZY PETS",
+      "gla_m2": 346,
+      "lease_start": "2021-10-01",
+      "lease_end": "2026-09-30",
+      "rental_monthly": null,
+      "rental_per_m2": null,
+      "escalation_pct": 8.0,
+      "tenant_type": "local",
+      "monthly_turnover": [547782, 492479, 608157, 557582, 670088, 591549, 637923, 604763, 587110, 608108, 593455, 620376],
+      "renewal_status": "Renewal to be discussed",
+      "annual_turnover_ytd": 7119372,
+      "annual_trading_density": 1715,
+      "shop": "SHOP 22",
+      "option_period": "10/28 - 9/30"
+    },
+    {
+      "name": "THUNDER BROTHERS CAR WASH (PTY) LTD",
+      "trading_name": "THUNDER BROTHERS CAR WASH",
+      "gla_m2": 138,
+      "lease_start": "2025-11-01",
+      "lease_end": "2028-10-31",
+      "rental_monthly": null,
+      "rental_per_m2": null,
+      "escalation_pct": null,
+      "tenant_type": "local",
+      "monthly_turnover": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 35452, 48913],
+      "renewal_status": null,
+      "annual_turnover_ytd": 84365,
+      "annual_trading_density": 306,
+      "shop": "CARWASH"
+    },
+    {
+      "name": "CHANGLONG RESTAURANT (PTY) LTD",
+      "trading_name": "HAO LI LAI",
+      "gla_m2": 96,
+      "lease_start": "2024-03-01",
+      "lease_end": "2027-02-28",
+      "rental_monthly": null,
+      "rental_per_m2": null,
+      "escalation_pct": 7.0,
+      "tenant_type": "local",
+      "monthly_turnover": [99789, 102360, 103937, 101193, 102756, 101385, 101156, 101075, 101295, 101109, 101337, 99076],
+      "renewal_status": null,
+      "annual_turnover_ytd": 1216468,
+      "annual_trading_density": 1056,
+      "shop": "SHOP 4, SHOP 4 OUTSIDE SEATING"
+    },
+    {
+      "name": "JHB COFFEE SNOBS (PTY) LTD",
+      "trading_name": "BOOTLEGGERS COFFEE CO",
+      "gla_m2": 220,
+      "lease_start": "2021-10-01",
+      "lease_end": "2026-09-30",
+      "rental_monthly": null,
+      "rental_per_m2": null,
+      "escalation_pct": 6.0,
+      "tenant_type": "local",
+      "monthly_turnover": [467660, 415598, 511411, 394632, 504003, 451102, 460460, 430690, 479309, 498590, 492239, 425913],
+      "renewal_status": "Renewal to be discussed",
+      "annual_turnover_ytd": 5531607,
+      "annual_trading_density": 2095,
+      "shop": "SHOP 17, SHOP 17 OUTSIDE SEATING"
+    },
+    {
+      "name": "PIZZA BABY (PTY) LTD",
+      "trading_name": "PIZZA BABY CHARTWELL",
+      "gla_m2": 76,
+      "lease_start": "2025-02-01",
+      "lease_end": "2028-01-31",
+      "rental_monthly": null,
+      "rental_per_m2": null,
+      "escalation_pct": null,
+      "tenant_type": "local",
+      "monthly_turnover": [0, 422413, 397437, 260000, 359950, 318928, 320325, 331420, 293474, 316058, 329817, 355858],
+      "renewal_status": null,
+      "annual_turnover_ytd": 3705380,
+      "annual_trading_density": 4432,
+      "shop": "SHOP 3"
+    },
+    {
+      "name": "VAPOR (PTY) LTD",
+      "trading_name": "PUFF CO",
+      "gla_m2": 8,
+      "lease_start": "2022-10-01",
+      "lease_end": "2026-04-30",
+      "rental_monthly": null,
+      "rental_per_m2": null,
+      "escalation_pct": 5.0,
+      "tenant_type": "local",
+      "monthly_turnover": [0, 0, 0, 0, 0, 94086, 91638, 62151, 62853, 60079, 54359, 425167],
+      "renewal_status": "Renewal offer sent.",
+      "annual_turnover_ytd": 425167,
+      "annual_trading_density": 8858,
+      "shop": "SHOP 6A"
+    },
+    {
+      "name": "BOB GROUP (PTY) LTD",
+      "trading_name": "BOB BOX",
+      "gla_m2": 1,
+      "lease_start": "2025-07-01",
+      "lease_end": "2026-06-30",
+      "rental_monthly": 1000,
+      "rental_per_m2": 1000.00,
+      "escalation_pct": 7.0,
+      "tenant_type": "local",
+      "renewal_status": "Will draft the offer on 7% esc.",
+      "shop": "EXH1"
+    },
+    {
+      "name": "PHATZ FOOD (PTY) LTD",
+      "trading_name": "ORGANIC INDIAN FOOD",
+      "gla_m2": 1,
+      "lease_start": "2025-10-01",
+      "lease_end": "2026-09-30",
+      "rental_monthly": 10000,
+      "rental_per_m2": 10000.00,
+      "escalation_pct": null,
+      "tenant_type": "local",
+      "monthly_turnover": [],
+      "renewal_status": "Renewal to be discussed",
+      "shop": "EXH02"
+    },
+    {
+      "name": "RELATIV DIGITAL (PTY) LTD",
+      "trading_name": "RELATIV DIGITAL ADVERTISING",
+      "gla_m2": 0,
+      "lease_start": "2022-09-01",
+      "lease_end": "2027-08-31",
+      "rental_monthly": null,
+      "rental_per_m2": null,
+      "escalation_pct": null,
+      "tenant_type": "signage",
+      "monthly_turnover": [],
+      "renewal_status": null,
+      "shop": "SIGNAGE 1"
+    },
+    {
+      "name": "VODACOM (PROPRIETARY) LIMITED",
+      "trading_name": "VODACOM ANTENNA CHARTWELL HILLS BS 17538",
+      "gla_m2": 1,
+      "lease_start": "2017-05-01",
+      "lease_end": "2027-04-30",
+      "rental_monthly": null,
+      "rental_per_m2": null,
+      "escalation_pct": 6.0,
+      "tenant_type": "national",
+      "monthly_turnover": [],
+      "renewal_status": null,
+      "shop": "ARIEL"
+    },
+    {
+      "name": "VO CONNECT (PTY) LTD",
+      "trading_name": "VO CONNECT",
+      "gla_m2": 1,
+      "lease_start": "2024-05-01",
+      "lease_end": "2027-04-30",
+      "rental_monthly": 5962.56,
+      "rental_per_m2": 5962.56,
+      "escalation_pct": 7.0,
+      "tenant_type": "local",
+      "monthly_turnover": [],
+      "renewal_status": null,
+      "shop": "TOP MOUNTED"
+    },
+    {
+      "name": "CAPITEC BANK LTD",
+      "trading_name": "CAPITEC ATM",
+      "gla_m2": 9,
+      "lease_start": null,
+      "lease_end": null,
+      "rental_monthly": null,
+      "rental_per_m2": null,
+      "escalation_pct": null,
+      "tenant_type": "national",
+      "monthly_turnover": [],
+      "renewal_status": null,
+      "shop": "SHOP 17A"
+    }
+  ],
+  "lease_expiry_detail": [
+    {
+      "tenant": "MOBILE TELEPHONE NETWORKS (PTY) LTD",
+      "trading_name": "MTN ANTENNA",
+      "expiry_date": "2026-04-30",
+      "gla_m2": 1,
+      "rental_monthly": 7604.08,
+      "rental_per_m2": 7604.08,
+      "budget_rental_per_m2": 7555.34,
+      "renewal_status": "5% renewal received. 1 year agreement.",
+      "proposed_escalation_pct": 5.0,
+      "counter_escalation_pct": null,
+      "notes": "4-6 months expiry bracket",
+      "shop": "ROOFTOP"
+    },
+    {
+      "tenant": "VAPOR (PTY) LTD",
+      "trading_name": "PUFF CO",
+      "expiry_date": "2026-04-30",
+      "gla_m2": 8,
+      "rental_monthly": 7383.62,
+      "rental_per_m2": 922.95,
+      "budget_rental_per_m2": 955.48,
+      "renewal_status": "Renewal offer sent.",
+      "proposed_escalation_pct": null,
+      "counter_escalation_pct": null,
+      "notes": "4-6 months expiry bracket",
+      "shop": "SHOP 6A"
+    },
+    {
+      "tenant": "BOB GROUP (PTY) LTD",
+      "trading_name": "BOB BOX",
+      "expiry_date": "2026-06-30",
+      "gla_m2": 1,
+      "rental_monthly": 1000.00,
+      "rental_per_m2": 1000.00,
+      "budget_rental_per_m2": 0.00,
+      "renewal_status": "Will draft the offer on 7% esc.",
+      "proposed_escalation_pct": 7.0,
+      "counter_escalation_pct": null,
+      "notes": "4-6 months expiry bracket",
+      "shop": "EXH1"
+    },
+    {
+      "tenant": "TELKOM SA SOC LTD",
+      "trading_name": "TELKOM ANTENNA",
+      "expiry_date": "2026-08-31",
+      "gla_m2": 1,
+      "rental_monthly": 14794.36,
+      "rental_per_m2": 14794.36,
+      "budget_rental_per_m2": 14287.64,
+      "renewal_status": "Renewal discussion to be held.",
+      "proposed_escalation_pct": null,
+      "counter_escalation_pct": null,
+      "notes": "7-12 months expiry bracket. Option 07/31-09/26.",
+      "shop": "ANTENNA B"
+    },
+    {
+      "tenant": "MANIC CURE (PTY) LTD",
+      "trading_name": "MANIC CURE",
+      "expiry_date": "2026-08-31",
+      "gla_m2": 105,
+      "rental_monthly": 35787.20,
+      "rental_per_m2": 340.83,
+      "budget_rental_per_m2": 265.79,
+      "renewal_status": "Renewal discussion to be held.",
+      "proposed_escalation_pct": null,
+      "counter_escalation_pct": null,
+      "notes": "7-12 months expiry bracket",
+      "shop": "SHOP 8"
+    },
+    {
+      "tenant": "PHATZ FOOD (PTY) LTD",
+      "trading_name": "ORGANIC INDIAN FOOD",
+      "expiry_date": "2026-09-30",
+      "gla_m2": 1,
+      "rental_monthly": 10000.00,
+      "rental_per_m2": 10000.00,
+      "budget_rental_per_m2": 0.00,
+      "renewal_status": "Renewal to be discussed",
+      "proposed_escalation_pct": null,
+      "counter_escalation_pct": null,
+      "notes": "7-12 months expiry bracket",
+      "shop": "EXH02"
+    },
+    {
+      "tenant": "SPEC SAVERS SA (PTY) LTD",
+      "trading_name": "EXECUSPECS",
+      "expiry_date": "2026-09-30",
+      "gla_m2": 81,
+      "rental_monthly": 37657.57,
+      "rental_per_m2": 464.91,
+      "budget_rental_per_m2": 196.68,
+      "renewal_status": "Renewal to be discussed",
+      "proposed_escalation_pct": null,
+      "counter_escalation_pct": null,
+      "notes": "7-12 months expiry bracket",
+      "shop": "SHOP 14"
+    },
+    {
+      "tenant": "JHB COFFEE SNOBS (PTY) LTD",
+      "trading_name": "BOOTLEGGERS COFFEE CO",
+      "expiry_date": "2026-09-30",
+      "gla_m2": 150,
+      "rental_monthly": 49777.07,
+      "rental_per_m2": 331.85,
+      "budget_rental_per_m2": 244.16,
+      "renewal_status": "Renewal to be discussed",
+      "proposed_escalation_pct": null,
+      "counter_escalation_pct": null,
+      "notes": "7-12 months expiry bracket. Shop 17 only (150 m2), excl outside seating (70 m2).",
+      "shop": "SHOP 17"
+    },
+    {
+      "tenant": "JHB COFFEE SNOBS (PTY) LTD",
+      "trading_name": "BOOTLEGGERS COFFEE CO",
+      "expiry_date": "2026-09-30",
+      "gla_m2": 70,
+      "rental_monthly": 3534.93,
+      "rental_per_m2": 50.50,
+      "budget_rental_per_m2": 48.83,
+      "renewal_status": "Renewal to be discussed",
+      "proposed_escalation_pct": null,
+      "counter_escalation_pct": null,
+      "notes": "7-12 months expiry bracket. Shop 17 Outside Seating.",
+      "shop": "SHOP 17 OUTSIDE SEATING"
+    },
+    {
+      "tenant": "RED HOT CLEANING AND PLACEMENT SERVICES CC",
+      "trading_name": "RED HOT CLEANING EMPORIUM",
+      "expiry_date": "2026-09-30",
+      "gla_m2": 71,
+      "rental_monthly": 31224.87,
+      "rental_per_m2": 439.79,
+      "budget_rental_per_m2": 174.64,
+      "renewal_status": "Renewal to be discussed",
+      "proposed_escalation_pct": null,
+      "counter_escalation_pct": null,
+      "notes": "7-12 months expiry bracket",
+      "shop": "SHOP 21"
+    },
+    {
+      "tenant": "CRAZY PETS (PTY) LTD",
+      "trading_name": "CRAZY PETS",
+      "expiry_date": "2026-09-30",
+      "gla_m2": 346,
+      "rental_monthly": 66385.48,
+      "rental_per_m2": 191.87,
+      "budget_rental_per_m2": 158.70,
+      "renewal_status": "Renewal to be discussed",
+      "proposed_escalation_pct": null,
+      "counter_escalation_pct": null,
+      "notes": "7-12 months expiry bracket. Option 09/30-10/26.",
+      "shop": "SHOP 22"
+    }
+  ],
+  "income_statement_property": {
+    "gross_rental": {
+      "actual": 14811151,
+      "budget": 15029411,
+      "variance": -218260,
+      "_detail": {
+        "retail_basic_rental": { "actual": 14211938, "budget": 14479392, "variance": -267454 },
+        "retail_turnover_rental": { "actual": 505595, "budget": 456409, "variance": 49186 },
+        "atm_rental": { "actual": 46562, "budget": 46560, "variance": 2 },
+        "outside_seating": { "actual": 47056, "budget": 47050, "variance": 6 }
+      }
+    },
+    "other_income": {
+      "actual": 10093559,
+      "budget": 12110581,
+      "variance": -2017022,
+      "_detail": {
+        "fibre_income": { "actual": 11046, "budget": 9500, "variance": 1546 },
+        "antenna": { "actual": 446583, "budget": 446573, "variance": 10 },
+        "kiosk_rental": { "actual": 6000, "budget": 0, "variance": 6000 },
+        "sign_rental": { "actual": 186933, "budget": 236940, "variance": -50007 },
+        "parking": { "actual": 38165, "budget": 30208, "variance": 7957 },
+        "rebates_remissions": { "actual": -3335, "budget": 0, "variance": -3335 },
+        "gas_recovery": { "actual": 9159, "budget": 9280, "variance": -121 },
+        "generator_recoveries": { "actual": 73954, "budget": 93900, "variance": -19946 },
+        "diesel_recoveries": { "actual": 47403, "budget": 400000, "variance": -352597 },
+        "legal_fees": { "actual": 21107, "budget": 0, "variance": 21107 },
+        "maintenance_recoveries": { "actual": 13938, "budget": 12360, "variance": 1578 },
+        "marketing_fund": { "actual": 86241, "budget": 91843, "variance": -5602 },
+        "municipal_charges_recovery": { "actual": 8195617, "budget": 9805904, "variance": -1610287 },
+        "operating_costs_recovery": { "actual": 576544, "budget": 641512, "variance": -64968 },
+        "meter_readings": { "actual": 87719, "budget": 77700, "variance": 10019 },
+        "tenant_installation_recoveries": { "actual": 17559, "budget": 44726, "variance": -27167 },
+        "generator_charges": { "actual": 132664, "budget": 160135, "variance": -27471 },
+        "interest_income": { "actual": 55510, "budget": 0, "variance": 55510 },
+        "exhibition_court": { "actual": 90750, "budget": 50000, "variance": 40750 }
+      }
+    },
+    "total_income": {
+      "actual": 24904710,
+      "budget": 27139992,
+      "variance": -2235282
+    },
+    "operating_expenses": {
+      "actual": -10520883,
+      "budget": -12853727,
+      "variance": 2332844,
+      "_detail": {
+        "solar_service_contract": { "actual": -75415, "budget": -33700, "variance": -41715 },
+        "contract_cleaning": { "actual": -354099, "budget": -349684, "variance": -4415 },
+        "consumables": { "actual": -77173, "budget": -53954, "variance": -23219 },
+        "hygienic_service": { "actual": -4808, "budget": -4897, "variance": 89 },
+        "pest_control": { "actual": -13995, "budget": -13400, "variance": -595 },
+        "insurance_premium": { "actual": -298873, "budget": -275606, "variance": -23267 },
+        "collections_legal": { "actual": -21560, "budget": 0, "variance": -21560 },
+        "letting_commission": { "actual": -213587, "budget": 0, "variance": -213587 },
+        "managing_agent": { "actual": -784107, "budget": -874164, "variance": 90057 },
+        "advertising": { "actual": -136948, "budget": -91835, "variance": -45113 },
+        "electricity": { "actual": -5176010, "budget": -5855434, "variance": 679424 },
+        "rates": { "actual": -1053818, "budget": -1540170, "variance": 486352 },
+        "refuse": { "actual": -228599, "budget": -224956, "variance": -3643 },
+        "sewerage": { "actual": -126543, "budget": -707877, "variance": 581334 },
+        "water": { "actual": -590186, "budget": -778313, "variance": 188127 },
+        "gas": { "actual": -2000, "budget": 0, "variance": -2000 },
+        "other_municipal": { "actual": 100, "budget": 0, "variance": 100 },
+        "air_conditioning": { "actual": -15107, "budget": -15110, "variance": 3 },
+        "doors_windows": { "actual": 0, "budget": -35000, "variance": 35000 },
+        "electrical_repairs": { "actual": -5844, "budget": -52305, "variance": 46461 },
+        "equipment": { "actual": -9694, "budget": -25003, "variance": 15309 },
+        "horticulture": { "actual": -120225, "budget": -124730, "variance": 4505 },
+        "lifts": { "actual": -24061, "budget": -24279, "variance": 218 },
+        "locks_keys": { "actual": -1000, "budget": 0, "variance": -1000 },
+        "general_repair": { "actual": -13746, "budget": 0, "variance": -13746 },
+        "painting": { "actual": -5300, "budget": 0, "variance": -5300 },
+        "plumbing": { "actual": -47153, "budget": -39850, "variance": -7303 },
+        "roads_fences": { "actual": 0, "budget": -84800, "variance": 84800 },
+        "generators": { "actual": -96808, "budget": -493900, "variance": 397092 },
+        "transformers": { "actual": -14945, "budget": -5652, "variance": -9293 },
+        "waterproofing": { "actual": 0, "budget": -60000, "variance": 60000 },
+        "signage": { "actual": -5300, "budget": 0, "variance": -5300 },
+        "gutter_cleaning": { "actual": 0, "budget": -20000, "variance": 20000 },
+        "contract_security": { "actual": -927664, "budget": -927662, "variance": -2 },
+        "security_equipment": { "actual": -21350, "budget": -38400, "variance": 17050 },
+        "meter_reading_expense": { "actual": -80410, "budget": -77700, "variance": -2710 }
+      }
+    },
+    "NOI": {
+      "actual": 14383826,
+      "budget": 14286265,
+      "variance": 97561,
+      "_note": "Net Income After Expenses per income statement page 10"
+    },
+    "finance_costs": { "actual": null, "budget": null, "variance": null },
+    "net_income_after_finance": { "actual": null, "budget": null, "variance": null },
+    "distributions": { "actual": null, "budget": null, "variance": null },
+    "capex": {
+      "actual": -432924,
+      "budget": -666000,
+      "variance": 233076,
+      "_note": "Abnormal/Capex per income statement page 11"
+    },
+    "net_retained": {
+      "actual": 14148071,
+      "budget": 13216513,
+      "variance": 931558,
+      "_note": "NET INCOME per income statement page 11 (after other income R200,089, other expenses R435,844 incl capex R432,924)"
+    },
+    "_other_income": {
+      "bank_interest": { "actual": 200089, "budget": 0, "variance": 200089 }
+    },
+    "_other_expenses": {
+      "audit_fees": { "actual": 0, "budget": 0, "variance": 0, "_annual_budget": 50000 },
+      "bad_debts_written_off": { "actual": -586, "budget": 0, "variance": -586 },
+      "bank_charges": { "actual": -2333, "budget": 0, "variance": -2333 },
+      "abnormal_capex": { "actual": -432924, "budget": -666000, "variance": 233076 },
+      "asset_management_fee": { "actual": 0, "budget": -403752, "variance": 403752 },
+      "_total": { "actual": -435844, "budget": -1069752, "variance": 633908 }
+    }
+  },
+  "cashflow_property": {
+    "receipts_ytd": 4716264.66,
+    "payments_ytd": 3397988.27,
+    "net_ytd": 1318276.39,
+    "_period": "21 Nov 2025 to 12 Dec 2025 (current month only)",
+    "_balance_bf": 1637979.90,
+    "_balance_cf": 1318276.41,
+    "_landlord_disbursements": 3397806.10,
+    "_debtor_receipts": 3053648.86,
+    "_bank_interest_received": 24635.92,
+    "_bank_charges": 158.41,
+    "_vat_paid": 23.76,
+    "quarterly_projection": [
+      {
+        "quarter": null,
+        "month": "Jan 2026",
+        "projected_receipts": 3052761.25,
+        "projected_payments": -1537352.65,
+        "projected_net": 1515408.60,
+        "projected_landlord_disbursement": -1000000,
+        "projected_balance_cfwd": 233685.01,
+        "total_safety_net": 46773.43
+      },
+      {
+        "quarter": null,
+        "month": "Feb 2026",
+        "projected_receipts": 2986400.50,
+        "projected_payments": -1896631.05,
+        "projected_net": 1089769.45,
+        "projected_landlord_disbursement": -1000000,
+        "projected_balance_cfwd": 323454.46,
+        "total_safety_net": 136542.88
+      }
+    ],
+    "_monthly_cash_movements": [
+      { "month": "Apr 2025", "bal_bfwd": 2900326.77, "receipts": 2743769.35, "payments": -912872.12, "net_movement": 1830897.23, "landlord_disbursement": -2800000, "bal_cfwd": 1931224.00, "accruals": -403893.89, "total_safety_net": 1527330.11 },
+      { "month": "May 2025", "bal_bfwd": 1931224.00, "receipts": 2416732.40, "payments": -1900482.82, "net_movement": 516249.58, "landlord_disbursement": -1600000, "bal_cfwd": 847473.58, "accruals": 401355.21, "tenant_deposits": -31746.90, "total_safety_net": 1217081.89 },
+      { "month": "Jun 2025", "bal_bfwd": 847473.58, "receipts": 2857603.46, "payments": -1171572.02, "net_movement": 1686031.44, "landlord_disbursement": -1400000, "bal_cfwd": 1133505.02, "accruals": 87493.06, "total_safety_net": 1220998.08 },
+      { "month": "Jul 2025", "bal_bfwd": 1133505.02, "receipts": 2682662.44, "payments": -1135704.34, "net_movement": 1546958.10, "landlord_disbursement": -1400000, "bal_cfwd": 1280463.12, "accruals": 438180.49, "tenant_deposits": -49643.73, "total_safety_net": 1668999.88 },
+      { "month": "Aug 2025", "bal_bfwd": 1280463.12, "receipts": 2736489.11, "payments": -2224216.59, "net_movement": 512272.52, "landlord_disbursement": -1400000, "bal_cfwd": 392735.64, "accruals": 496098.14, "tenant_deposits": -6900.00, "total_safety_net": 881933.78 },
+      { "month": "Sep 2025", "bal_bfwd": 392735.64, "receipts": 2908476.70, "payments": -1358955.10, "net_movement": 1549521.60, "landlord_disbursement": -1400000, "bal_cfwd": 542257.24, "accruals": 456412.27, "total_safety_net": 998669.51 },
+      { "month": "Oct 2025", "bal_bfwd": 542257.24, "receipts": 3104981.19, "payments": -971528.31, "net_movement": 2133452.88, "landlord_disbursement": -1600000, "bal_cfwd": 1075710.12, "accruals": 260549.48, "total_safety_net": 1336259.60 },
+      { "month": "Nov 2025", "bal_bfwd": 1075710.12, "receipts": 3091593.29, "payments": -2529323.51, "net_movement": 562269.78, "landlord_disbursement": -1100000, "bal_cfwd": 537979.90, "accruals": -49769.39, "tenant_deposits": -63870.74, "total_safety_net": 424339.77 },
+      { "month": "Dec 2025", "bal_bfwd": 537979.90, "receipts": 3078284.78, "payments": -2297988.27, "net_movement": 780296.51, "landlord_disbursement": -1600000, "bal_cfwd": -281723.59, "accruals": -186911.58, "total_safety_net": -468635.17 }
+    ]
+  },
+  "budget_variance": {
+    "revenue": {
+      "actual": 24904710,
+      "budget": 27139992,
+      "variance": -2235282,
+      "variance_pct": -8.2
+    },
+    "opex": {
+      "actual": 10520883,
+      "budget": 12853727,
+      "variance": 2332844,
+      "variance_pct": 18.1
+    },
+    "NOI": {
+      "actual": 14383826,
+      "budget": 14286265,
+      "variance": 97561,
+      "variance_pct": 0.7
+    },
+    "_rfc_annual": {
+      "revenue_rfc": 30156155,
+      "revenue_budget": 32656321,
+      "revenue_variance": -2500166,
+      "revenue_variance_pct": -7.66,
+      "opex_rfc": 13162937,
+      "opex_budget": 15382740,
+      "opex_variance": 2219803,
+      "opex_variance_pct": 14.43,
+      "noi_rfc": 16993217,
+      "noi_budget": 17273581,
+      "noi_variance": -280364,
+      "noi_variance_pct": -1.62
+    }
+  },
+  "capex_maintenance": {
+    "projects": [
+      {
+        "description": "Abnormal/Capex - Renovations (Chaos Phase 1 & Phase 2)",
+        "budget": 666000,
+        "actual": 432924,
+        "status": "in_progress",
+        "category": "renovation",
+        "_detail": "March 2025 R206,000 for R106,000 scrubbing machine, R100,000 cameras. September 2025 R100,000 cameras, R360,000 painting of concrete and steel structure. November 2025: R106,709.40 Phase 1, 50% deposit. R109,752.50 Phase 2, 50% deposit."
+      },
+      {
+        "description": "CCTV System - Intellicomms",
+        "budget": 200000,
+        "actual": null,
+        "status": "approved",
+        "category": "security",
+        "_detail": "Intellicomms R154,591.78 excl VAT with R7,590 excl VAT monthly. Security Grade C R17,424.30 excl VAT. HD/LK/CE/MP approved CCTV costing. Commence 1 March 2026."
+      },
+      {
+        "description": "Walkway Ceilings and Paint Work Phase 1",
+        "budget": null,
+        "actual": null,
+        "status": "in_progress",
+        "category": "renovation",
+        "_detail": "Project started October 2025. Weather delay. Phase 1 completion scheduled for January 2026."
+      },
+      {
+        "description": "Roof and Main Facade Phase 2",
+        "budget": null,
+        "actual": null,
+        "status": "planned",
+        "category": "renovation",
+        "_detail": "Scheduled to start January with completion February 2026."
+      },
+      {
+        "description": "Walk Behind Scrubber",
+        "budget": null,
+        "actual": null,
+        "status": "completed",
+        "category": "equipment",
+        "_detail": "Unit delivered 28/10/2025, schedule and training completed 05/11/2025."
+      },
+      {
+        "description": "Boom Gate Replacement",
+        "budget": 94000,
+        "actual": null,
+        "status": "investigating",
+        "category": "infrastructure",
+        "_detail": "Current system Boom Gate Systems, cost increased 12.5%. Investigating Centurion Booms and Intellicoms alternatives. R94,000 purchase price for entry and exit booms only."
+      }
+    ],
+    "deferred_maintenance": [
+      {
+        "description": "Roads and fences maintenance",
+        "estimated_cost": 84800,
+        "priority": "medium",
+        "_note": "Full budget not utilized YTD"
+      },
+      {
+        "description": "Waterproofing",
+        "estimated_cost": 60000,
+        "priority": "high",
+        "_note": "Full budget not utilized YTD"
+      },
+      {
+        "description": "Gutter cleaning",
+        "estimated_cost": 20000,
+        "priority": "medium",
+        "_note": "Full budget not utilized YTD"
+      }
+    ]
+  },
+  "solar_pv": {
+    "has_solar": true,
+    "system_kwp": null,
+    "commissioning_date": null,
+    "monthly_production": [
+      { "month": "Dec 2025", "target_kwh": null, "actual_kwh": 68380, "_total_consumption_kwh": 278730, "_note": "68.38 MWh produced by solar out of 278.73 MWh total consumption" }
+    ],
+    "_prior_year_performance": {
+      "year": 2024,
+      "total_production_mwh": 284.52,
+      "solar_production_mwh": 66.29
+    },
+    "savings_ytd": {
+      "actual": null,
+      "projected": null
+    },
+    "cumulative_savings": null,
+    "o_and_m_logbook": [
+      "One panel to be replaced. All systems and strings functioning correctly.",
+      "PPA not yet concluded. Budget based on solar to move over to PPA from August 2025.",
+      "Solar service contract: YTD actual R75,415 vs budget R33,700. CPI+1 escalations applied.",
+      "Solar insurance: R3,021.52 per month (R36,258.24 annual, Jul 2025 - Jul 2026)."
+    ],
+    "_electricity_solar_expense_ytd": { "actual": 0, "budget": 199807 },
+    "_solar_insurance_annual": 36258.24
+  },
+  "security": {
+    "provider": "Night Guard (60 day notice on 01/01/2026)",
+    "patrol_completion_pct": null,
+    "tag_scan_pct": null,
+    "incidents": [],
+    "_contract_security_ytd": { "actual": 927664, "budget": 927662 },
+    "_security_equipment_ytd": { "actual": 21350, "budget": 38400 }
+  },
+  "operational_notes": {
+    "key_issues": [
+      "Back up water/council connection: Council requested work stopped. Investigation of site pending. Municipal Solutions assisting.",
+      "Borehole: Public participation notice posted 4 Oct 2025 for 30 days. Final document for location of holes being completed.",
+      "Nuhuman (Shop 23 + Outside Seating): Liquidated end Aug 2025, gone into voluntary liquidation. 702 m2 vacant. R481,424 outstanding.",
+      "Boom Gate Services: Cost increased 12.5% from R3,750 to R4,562.40 per month. Investigating replacement options.",
+      "EV Charger: SLA to be amended, no exclusivity. Tenant to reinstate and cannot remove cable when in breach.",
+      "Walkway ceilings paint work: Phase 1 in progress, completion January 2026. Phase 2 (roof and facade) starts January.",
+      "Valve chamber awaiting council connection for water system in centre."
+    ],
+    "action_items": [
+      "KJ: Send CCTV SLA and company profile to LK.",
+      "KJ: Boom gate meeting with Intellicoms scheduled for January 2026.",
+      "CVDB: Ex-Nuhuman premises - Doctors Rooms proposal at R140/m2 for 440 squares. Reform Her Yoga Studio also interested.",
+      "CVDB: Flower Container lease offer sent at R15,000 rent, 1 year agreement.",
+      "CVDB: We Buy Cars - site info sent for 4 bays at R10,000pm. No surety required.",
+      "KJ: Crepes Van location and design to be discussed per site visit.",
+      "CVDB: Continental Linen - OTL to be sent on basic R275/m2 for Tasko Sweets premises.",
+      "KJ: Checkers trolley barriers costing for 60/60 passage."
+    ],
+    "manager_recommendation": null,
+    "_service_providers": {
+      "security": "Night Guard (60 day notice 01/01/2026)",
+      "cleaning": "Quatro Cleaning Services (60 day notice 01/01/2026)",
+      "waste_management": "Waste.Co (60 day notice 01/01/2026)",
+      "car_park_assistance": "Delta (60 day notice 01/01/2026)",
+      "gardening": "Quatro Horticulture (service rendered non-satisfactory)"
+    }
+  },
+  "balance_sheet_property": {
+    "_note": "Property-level balance sheet for Chartwell Corner Co-Ownership trust account, not entity-level.",
+    "as_at": "2025-12-12",
+    "assets": {
+      "current_assets": {
+        "bank": { "current": 1318922, "prior": 1325980, "_detail": { "bpg_fedbond_charges": 646, "bpg_fedbond_ito_s54_1": 1318276 } },
+        "cash": { "current": 1582345, "prior": 1461931 },
+        "debtors": { "current": 1892995, "prior": 1294327, "_detail": { "sundry": 1362542, "take_on_balance_suspense": 49321, "tenants": 481132 } },
+        "deposits": { "current": 309130, "prior": 309130 },
+        "final_payments": { "current": 66453388, "prior": 52121642 },
+        "prepayments": { "current": 34006, "prior": 34006 }
+      },
+      "total_assets": { "current": 71590786, "prior": 56547015 }
+    },
+    "liabilities": {
+      "capital_and_reserves": {
+        "retained_earnings": { "current": -58221728, "prior": -44073656, "_detail": { "current_year": -14148071, "previous_year": -44073656 } }
+      },
+      "non_current_liabilities": {
+        "co_owner_loan_account": { "current": -82109, "prior": -82109 }
+      },
+      "current_liabilities": {
+        "creditors": { "current": -631099, "prior": 0 },
+        "current_accruals": { "current": -1559080, "prior": -3620741 },
+        "tenant_deposits_liability": { "current": -749964, "prior": -759857 },
+        "tenant_deposits_other": { "current": -4400, "prior": -4400 },
+        "vat": { "current": -10342408, "prior": -8006252 }
+      },
+      "total_equity_and_liabilities": { "current": -71590786, "prior": -56547015 }
+    }
+  },
+  "tenant_deposits": {
+    "total": 749963.67,
+    "detail": [
+      { "tenant": "BILTONG FOR AFRICA (PTY) LTD", "trading_as": "BILTONG REPUBLIC", "amount": 35133.31 },
+      { "tenant": "BOB GROUP (PTY) LTD", "trading_as": "BOB BOX", "amount": 6900.00 },
+      { "tenant": "CANNAFRICA CHARTWELL (PTY) LTD", "trading_as": "CANNAFRICA CHARTWELL", "amount": 55970.15 },
+      { "tenant": "CHANGLONG RESTAURANT (PTY) LTD", "trading_as": "HAO LI LAI", "amount": 66821.86 },
+      { "tenant": "CRAFT HAIR AND BEAUTY (PTY) LTD", "trading_as": "CRAFT HAIR AND BEAUTY", "amount": 57943.04 },
+      { "tenant": "CRAZY PETS (PTY) LTD", "trading_as": "CRAZY PETS", "amount": 50815.00 },
+      { "tenant": "DR KEZIA GEORGE AND PARTNERS INC", "trading_as": "DR KEZIA GEORGE AND PARTNERS", "amount": 49643.73 },
+      { "tenant": "MANIC CURE (PTY) LTD", "trading_as": "MANIC CURE", "amount": 77971.12 },
+      { "tenant": "MOROCCAN BARBER BADRMAN CC", "trading_as": "MOROCCAN BARBER", "amount": 79183.42 },
+      { "tenant": "RED HOT CLEANING AND PLACEMENT SERVICES", "trading_as": "RED HOT CLEANING EMPORIUM", "amount": 68613.03 },
+      { "tenant": "TECH WORLD (PTY) LTD", "trading_as": "FIX TECH", "amount": 87445.13 },
+      { "tenant": "TEMPERED INVESTMENTS CC", "trading_as": "TASKO SWEETS", "amount": 31746.90 },
+      { "tenant": "THUNDER BROTHERS CAR WASH (PTY) LTD", "trading_as": "THUNDER BROTHERS CAR WASH", "amount": 63870.74 },
+      { "tenant": "VAPOR (PTY) LTD", "trading_as": "PUFF CO", "amount": 17906.24 }
+    ]
+  },
+  "_rent_roll_dec_2025": {
+    "period": "21 Nov 2025 to 12 Dec 2025",
+    "rent_roll_total_charges": 2493585,
+    "rent_roll_total_vat": 373345,
+    "rent_roll_total_receipts": 3053649,
+    "rent_roll_balance_12_dec": 481132
+  },
+  "_exhibition_income": {
+    "ytd_budget": 30000,
+    "ytd_actual": 94250,
+    "ytd_variance": 64250,
+    "annual_budget": 36000,
+    "annual_actual_projected": 94250,
+    "monthly_detail": [
+      { "month": "March", "budget": 3000, "actual": 0 },
+      { "month": "April", "budget": 3000, "actual": 14000 },
+      { "month": "May", "budget": 3000, "actual": 13000 },
+      { "month": "June", "budget": 3000, "actual": 12850 },
+      { "month": "July", "budget": 3000, "actual": 8500 },
+      { "month": "August", "budget": 3000, "actual": 5850 },
+      { "month": "September", "budget": 3000, "actual": 15000 },
+      { "month": "October", "budget": 3000, "actual": 8850 },
+      { "month": "November", "budget": 3000, "actual": 12700 },
+      { "month": "December", "budget": 3000, "actual": 3500 },
+      { "month": "January", "budget": 3000, "actual": 0 },
+      { "month": "February", "budget": 3000, "actual": 0 }
+    ]
+  },
+  "_marketing_spend": {
+    "q4_approved": 23952.28,
+    "campaigns": [
+      { "name": "Digital Billboard", "actual": 2005, "budget": 2005 },
+      { "name": "Quarter 4 Facebook Cover Set", "actual": 2005, "budget": 2005 },
+      { "name": "Festive Season Trading Hours & Acknowledgement Posts", "actual": 4745, "budget": 4745 },
+      { "name": "Festive Season Handout", "actual": 12798.28, "budget": 12798.28 },
+      { "name": "Professional Photography (Jan 2026)", "estimated": 4404, "budget": 4404 }
+    ],
+    "_social_media_dec_2025": {
+      "meet_santa_post_views": 11152,
+      "hello_december_reel_views": 4612,
+      "festive_trading_hours_views": 8852,
+      "total_festive_handout_views": 11742,
+      "cookies_distributed": 150
+    }
+  },
+  "_legal_matters": [
+    {
+      "ref": "BRL3/1",
+      "tenant": "Cream Car Wash",
+      "start": "January 2025",
+      "status": "Final amount paid by Tenant. Can matter be closed?",
+      "assessment": "Deposit held and tenant has prepaid; recovery fully possible."
+    },
+    {
+      "ref": "BRL3/2",
+      "tenant": "NuHuman",
+      "start": "March 2023",
+      "status": "Nuhuman has gone into voluntary liquidation. No details of appointed liquidator.",
+      "assessment": "Questionable, no surety but in view of possible liquidation tenant may make payment."
+    },
+    {
+      "ref": "BRL3/4",
+      "tenant": "BB Glam",
+      "start": null,
+      "status": "Instruction dispatched to Sheriff for removal and sale of items on inventory; awaiting Sheriff's feedback. On 5/12/25 Sheriff confirmed instruction is still with the deputy sheriff for execution.",
+      "assessment": null
+    }
+  ],
+  "variances": {
+    "net_income_entity_vs_property": {
+      "source_a": "property_management_report",
+      "source_b": "entity_gl_management_accounts",
+      "source_a_value": 14148071,
+      "source_b_value": 3630574.35,
+      "difference": 10517496.65,
+      "explanation": "Large variance expected. PDF net income (R14,148,071) is the property co-ownership trust net income for 10 months (Mar-Dec 2025). GL ebitda_recurring (R3,630,574 = negative in GL convention means profit) is the ENTITY-level recurring EBITDA for the same 10 months, which nets entity revenue (management fees of R3,747,879) against entity operating costs (R117,305 excl finance charges and FV adjustments). The entity receives a management fee from the co-ownership which is only a fraction of the property NOI. The co-ownership trust distributes to multiple co-owners; only a portion flows to this entity."
+    },
+    "revenue_report_vs_gl": {
+      "source_a": "property_management_report",
+      "source_b": "entity_gl_management_accounts",
+      "source_a_value": 24904710,
+      "source_b_value": 3747879.23,
+      "difference": 21156830.77,
+      "explanation": "PDF total income (R24,904,710) is total property-level income for the co-ownership trust (rent, recoveries, parking, etc). GL gross_profit (R3,747,879) is the entity-level revenue which consists solely of management fees received from the Chartwell Co-Ownership. The entity does not record property rental income directly - it receives a management fee distribution from the co-ownership trust."
+    },
+    "insured_vs_book": {
+      "source_a": "building_sum_insured",
+      "source_b": "afs_investment_property",
+      "source_a_value": 216000000,
+      "source_b_value": 90670708,
+      "difference": 125329292,
+      "explanation": "Building sum insured (R216,000,000) is 2.38x the AFS investment property carrying value (R90,670,708 at Feb 2025). The AFS value reflects a significant fair value write-down (R14.3M in FY2025 taking it from R109.8M to R90.7M). The insured value represents replacement cost which typically exceeds book/market value. Note: municipal valuation is R78.3M, also below insured value. The 2.38x ratio suggests adequate insurance coverage relative to replacement cost, though the property is deeply impaired on the books."
+    }
+  },
+  "derived_signals": {
+    "vacancy_rate": 9.02,
+    "collections_efficiency": 94.0,
+    "trading_density": 6050.90,
+    "property_net_income_monthly": 1414807,
+    "lease_expiry_concentration_12m": 9.42,
+    "insurance_vs_book_ratio": 2.38,
+    "utility_recovery_composite": 114.0,
+    "has_solar_pv": true,
+    "has_active_capex": true,
+    "national_tenant_pct": 54.0,
+    "anchor_count": 3,
+    "weighted_escalation": 6.38,
+    "_derivation_notes": {
+      "vacancy_rate": "767 m2 / 8,500 m2 = 9.02% per vacancy schedule",
+      "collections_efficiency": "94.00% collections as % of billings per executive summary arrears overview",
+      "trading_density": "Annual T/O density R6,050.90 per m2 per turnover schedule grand total row (505,289,264 / 8,301 m2 * No of T/O Months)",
+      "property_net_income_monthly": "Net Income YTD R14,148,071 / 10 months = R1,414,807 per month",
+      "lease_expiry_concentration_12m": "835 m2 expiring in next 12 months / total GLA 8,863 m2 (per current leases) = 9.42%",
+      "insurance_vs_book_ratio": "Building sum insured R216,000,000 / AFS investment property R90,670,708 = 2.38x",
+      "utility_recovery_composite": "Total recovered R8,195,617 / Total expense R7,175,157 = 114% (net over-recovery driven by electricity and water)",
+      "has_solar_pv": "Solar system confirmed operational. 68.38 MWh produced in Dec 2025 from 278.73 MWh total consumption = 24.5% solar penetration.",
+      "has_active_capex": "Active capex of R432,924 YTD against R666,000 budget. Chaos Phase 1 & Phase 2 renovations in progress. CCTV upgrade approved.",
+      "national_tenant_pct": "54% of income from anchors per executive summary tenant mix, 71% from nationals. Using income-weighted anchor share of 54%.",
+      "anchor_count": "3 anchors: Checkers (3,691 m2), Dis-Chem (1,305 m2), Woolworths (709 m2)",
+      "weighted_escalation": "GLA-weighted average escalation across tenants with known escalation rates. Checkers 4% (3,691m2) + Woolworths 0% (709m2) + Pick n Pay 5.5% (289m2) + Crazy Pets 8% (346m2) + Bootleggers 6% (220m2) + Miladys N/A + Crazy Store 6% (192m2) + Tasko 7% (129m2) + Manic Cure 7% (105m2) + Hao Li Lai 7% (96m2) + Dr Kezia N/A (84m2) + Execuspecs 8% (81m2) + Fix Tech 7% (81m2) + Craft Hair 8% (71m2) + Moroccan 6% (71m2) + Red Hot 7% (71m2) + Pool Team 6.5% (70m2) + Cannafrica 6% (70m2) + Biltong 7% (23m2) + Puff Co 5% (8m2) + VO Connect 7% (1m2) + MTN 6.5% (1m2). Weighted = approx 6.38% across 5,429 m2 with known escalations."
+    }
+  }
+}

@@ -1,0 +1,824 @@
+{
+  "metadata": {
+    "entity": {
+      "legal_name": "Brackenfell Corner (Pty) Ltd",
+      "entity_key": "BrackenfellCorner_2025_structured",
+      "guarantor_group": "phoenix"
+    },
+    "reporting_period": {
+      "start_date": "2025-03-01",
+      "end_date": "2025-12-31",
+      "months": 10
+    },
+    "currency": "ZAR",
+    "property_managers": {
+      "name": "Broll Property Group / Retail Africa / Fedgroup",
+      "contact": "Phindile Mtipa (PM), pmtipa@broll.com; Corney van Niekerk (CvN), cvanniekerk@broll.com",
+      "report_date": "2025-12-31"
+    },
+    "verification": {
+      "extracted_by": "claude",
+      "extraction_date": "2026-02-18",
+      "crosscheck_notes": [
+        "Financial summary YTD figures are 10 months (Mar-Dec 2025) of FY ending Feb 2026",
+        "GL management accounts confirm 10-month period to Dec 2025",
+        "AFS investment property at R193,463,063 as at 28 Feb 2025",
+        "Sept adjustment account figures still to be journalised per management notes",
+        "Meeting minutes dated 20 November 2025; executive summary as at Dec 2025",
+        "GL gross_profit of -R205,989,006.24 includes sale_of_property R188,700,000 and profit_share R2,800,000 (non-recurring)"
+      ]
+    }
+  },
+  "property_details": {
+    "address": "506 Frans Conradie Drive, Brackenfell, 7560",
+    "erf_number": "8941, Brackenfell",
+    "municipal_valuation": 105600000.00,
+    "building_sum_insured": 285000000.00,
+    "gla_breakdown": {
+      "national": {
+        "gla_m2": null,
+        "pct": null,
+        "_note": "National tenants include Woolworths, Tops@Spar, Dis-Chem Pharmacies, Mr Price Home, Mr Price Sport, Cash Crusaders, Bidvest Waltons, Crown National"
+      },
+      "regional": {
+        "gla_m2": null,
+        "pct": null
+      },
+      "local": {
+        "gla_m2": null,
+        "pct": null
+      },
+      "offices": {
+        "gla_m2": null,
+        "pct": null
+      },
+      "storage_other": {
+        "gla_m2": null,
+        "pct": null
+      }
+    },
+    "total_gla_m2": 8228,
+    "gla_as_per_new_measurements_m2": 9220,
+    "rentable_gla_m2": 7912,
+    "mezzanine_m2": 225,
+    "outside_seating_m2": 73,
+    "atm_m2": 18,
+    "rentable_units": 23,
+    "tenant_count": 14,
+    "parking_bays": {
+      "mall_required": 475,
+      "mall_provided": 245,
+      "taxi": 0,
+      "delivery": 4,
+      "parking_allowance": "6 bays / 100m2"
+    },
+    "solar_building_sum_insured": 5565000.00,
+    "insurance": {
+      "annual_premium_2025_2026": 456578.04,
+      "premium_breakdown": [
+        {
+          "period": "Oct 2025 - Sep 2026",
+          "annual_premium": 422493.40,
+          "monthly_debit_order": 35206.95,
+          "building_sum_insured": 285000000.00
+        },
+        {
+          "period": "Oct 2025 - Sep 2026",
+          "annual_premium": 34084.64,
+          "monthly_debit_order": 2841.22,
+          "building_sum_insured": 5565000.00,
+          "type": "Solar"
+        }
+      ]
+    },
+    "monthly_rates": {
+      "municipal_valuation": 105600000.00,
+      "monthly_amount": 148053.20,
+      "rate_per_m2": 17.98,
+      "annual_amount": 2776614.40
+    }
+  },
+  "financial_summary": {
+    "net_income_ytd": {
+      "actual": 4157350,
+      "budget": 5659983,
+      "variance": -1502633
+    },
+    "net_income_monthly": {
+      "actual": 1377016,
+      "budget": 1355197,
+      "variance": 21819
+    },
+    "annual_forecast": 6918327,
+    "annual_budget": 8371546,
+    "annual_budget_variance": -1453219,
+    "py_actual": 16076910,
+    "py_forecast_variance": -9158583,
+    "monthly_avg": 415735.0,
+    "variance_notes": {
+      "monthly_negative_variance_income": -147233,
+      "monthly_negative_income_explanation": "Lower than budgeted recovery on electricity - but in line with lower expense",
+      "monthly_positive_variance_expenses": 169052,
+      "monthly_positive_expense_explanation": "Electricity expense lower than budgeted - but in line with lower recovery",
+      "ytd_note": "YTD figures affected by the Sept figures still to be journalised once the adjustment account has been finalized"
+    }
+  },
+  "leasing_summary": {
+    "vacancy_rate_pct": 0.00,
+    "vacancy_gla_m2": 0,
+    "vacancy_shops": 0,
+    "potential_vacancies": {
+      "gla_m2": 0,
+      "pct": 0.00,
+      "shops": 0
+    },
+    "lease_expiry_profile": {
+      "0_12m": {
+        "leases": 5,
+        "gla_m2": 1658,
+        "pct": 20.15
+      },
+      "12_24m": {
+        "gla_m2": null,
+        "pct": null
+      },
+      "24_36m": {
+        "gla_m2": null,
+        "pct": null
+      },
+      "36_plus_m": {
+        "gla_m2": null,
+        "pct": null
+      }
+    },
+    "renewals": {
+      "concluded": 1,
+      "concluded_gla_m2": 9,
+      "concluded_pct_of_gla": 0.11
+    },
+    "avg_rental_per_m2": {
+      "anchors": {
+        "centre_current": 141.81,
+        "market_benchmark": 122.38
+      },
+      "nationals": {
+        "centre_current": 381.18,
+        "market_benchmark": 174.76
+      },
+      "food_and_restaurants": {
+        "centre_current": 296.26,
+        "market_benchmark": 255.96
+      },
+      "line_shops_201_500m2": {
+        "centre_current": 395.07,
+        "market_benchmark": 222.38
+      },
+      "line_shops_90_200m2": {
+        "centre_current": 252.00,
+        "market_benchmark": 292.12
+      }
+    },
+    "tenant_mix_by_income_pct": {
+      "anchors": 42,
+      "nationals": 20,
+      "food_and_restaurants": 15,
+      "line_shops_201_500m2": 16,
+      "line_shops_90_200m2": 5
+    },
+    "number_of_tenants_by_category": {
+      "anchors": 3,
+      "nationals": 5,
+      "food_and_restaurants": 4,
+      "line_shops_201_500m2": 3,
+      "line_shops_90_200m2": 1
+    },
+    "market_benchmark_per_m2": {
+      "nationals_gross": 175.00,
+      "line_tenants_gross": 215.00
+    }
+  },
+  "turnover_summary": {
+    "total_reported_turnover": 32978444,
+    "centre_trading_density_per_m2": 3625,
+    "average_monthly_trading_density": 3635.00,
+    "anchor_turnovers": [
+      {
+        "tenant": "Spar",
+        "monthly_turnover": 9166838.43,
+        "avg_monthly_trading_density": 4019,
+        "avg_annual_trading_density": 4289,
+        "turnover_pct_as_per_lease": 1.75,
+        "rent_to_turnover_pct": 3.92
+      },
+      {
+        "tenant": "Tops",
+        "monthly_turnover": 2826306.50,
+        "avg_monthly_trading_density": 9001,
+        "avg_annual_trading_density": 4289,
+        "turnover_pct_as_per_lease": 1.75,
+        "rent_to_turnover_pct": 3.92
+      },
+      {
+        "tenant": "Woolworths",
+        "monthly_turnover": 4561475.00,
+        "avg_monthly_trading_density": 5863,
+        "avg_annual_trading_density": 6560,
+        "turnover_pct_as_per_lease": 2.00,
+        "rent_to_turnover_pct": 2.00
+      }
+    ],
+    "restaurant_turnovers": [
+      {
+        "tenant": "Bok Lounge",
+        "monthly_turnover": 1160653.00,
+        "avg_monthly_trading_density": 3095,
+        "avg_annual_trading_density": 2329,
+        "turnover_pct_as_per_lease": null,
+        "rent_to_turnover_pct": 7.37
+      },
+      {
+        "tenant": "Pizza Perfect",
+        "monthly_turnover": 246919.00,
+        "avg_monthly_trading_density": 3382,
+        "avg_annual_trading_density": 2752,
+        "turnover_pct_as_per_lease": null,
+        "rent_to_turnover_pct": 16.15
+      },
+      {
+        "tenant": "Bootleggers",
+        "monthly_turnover": 251478.00,
+        "avg_monthly_trading_density": 2959,
+        "avg_annual_trading_density": 3427,
+        "turnover_pct_as_per_lease": 5.00,
+        "rent_to_turnover_pct": 8.76
+      }
+    ],
+    "tenant_trading_density": [
+      { "tenant": "WOOLWORTHS", "ann_density": 6592, "pct_of_turnover": 1.99 },
+      { "tenant": "DIS-CHEM PHARMACIES", "ann_density": 5175, "pct_of_turnover": 2.79 },
+      { "tenant": "NEOVISION", "ann_density": 5101, "pct_of_turnover": 7.83 },
+      { "tenant": "TOPS @ SPAR", "ann_density": 4301, "pct_of_turnover": 3.91 },
+      { "tenant": "THE BUTCHER", "ann_density": 4243, "pct_of_turnover": 6.76 },
+      { "tenant": "BOOTLEGGERS COFFEE CO", "ann_density": 3404, "pct_of_turnover": 8.82 },
+      { "tenant": "HEADLINES BARBER", "ann_density": 2973, "pct_of_turnover": 17.16 },
+      { "tenant": "PIZZA PERFECT", "ann_density": 2318, "pct_of_turnover": 17.98 },
+      { "tenant": "BOK LOUNGE AND GRILL", "ann_density": 2268, "pct_of_turnover": 7.57 },
+      { "tenant": "SMART LASER", "ann_density": 2106, "pct_of_turnover": 19.49 },
+      { "tenant": "SWIFT CELL CITY", "ann_density": 1746, "pct_of_turnover": 31.98 },
+      { "tenant": "MR PRICE HOME", "ann_density": 1744, "pct_of_turnover": 9.36 },
+      { "tenant": "CASH CRUSADERS", "ann_density": 1717, "pct_of_turnover": 12.11 },
+      { "tenant": "BIDVEST WALTONS", "ann_density": 1557, "pct_of_turnover": 12.29 },
+      { "tenant": "CRAZY PETS", "ann_density": 1349, "pct_of_turnover": 15.12 },
+      { "tenant": "THE CRAZY STORE", "ann_density": 1336, "pct_of_turnover": 17.83 },
+      { "tenant": "MR PRICE SPORT", "ann_density": 1225, "pct_of_turnover": 13.34 },
+      { "tenant": "CROWN NATIONAL", "ann_density": 744, "pct_of_turnover": 36.37 },
+      { "tenant": "NEW FASHION", "ann_density": 731, "pct_of_turnover": 32.10 }
+    ],
+    "rent_to_turnover_pct": null
+  },
+  "utility_recovery": {
+    "electricity": {
+      "recovery_pct_ytd": 147,
+      "recovery_pct_monthly": 150,
+      "recovery_pct_budgeted": 148
+    },
+    "rates": {
+      "recovery_pct_ytd": 31,
+      "recovery_pct_monthly": 37,
+      "recovery_pct_budgeted": 30
+    },
+    "refuse": {
+      "recovery_pct_ytd": 99,
+      "recovery_pct_monthly": 100,
+      "recovery_pct_budgeted": 100
+    },
+    "sewer": {
+      "recovery_pct_ytd": 81,
+      "recovery_pct_monthly": 80,
+      "recovery_pct_budgeted": 82
+    },
+    "water": {
+      "recovery_pct_ytd": 81,
+      "recovery_pct_monthly": 80,
+      "recovery_pct_budgeted": 78
+    }
+  },
+  "arrears_overview": {
+    "total": 270129,
+    "total_including_credits": 307668,
+    "plus_credits": -37488,
+    "category_breakdown": {
+      "arrangements": { "pct": 41.95, "amount": 129052 },
+      "legal": { "pct": 0.00, "amount": 0 },
+      "ex_tenants": { "pct": 0.00, "amount": 0 },
+      "deposits": { "pct": 0.00, "amount": 0 },
+      "nationals": { "pct": 58.05, "amount": 178616 },
+      "normal_tenants": { "pct": 0.00, "amount": 0 }
+    },
+    "collections_pct": 99.42,
+    "bad_debts_written_off": 8000,
+    "arrears_at_meeting": 413088.78,
+    "arrears_detail_at_meeting": [
+      {
+        "tenant": "Blockman Processing (The Butcher)",
+        "amount": 233215.13,
+        "notes": "Paid Jul-Sep rental and Jul utilities. Outstanding: Oct-Nov rental, Aug-Nov utilities. Making daily payments ~R100K/day. LOD threatened by 21 Nov 2025."
+      },
+      {
+        "tenant": "Woolworths",
+        "amount": 190743.19,
+        "notes": "Rates and turnover rental not yet paid"
+      },
+      {
+        "tenant": "Relative Connect",
+        "amount": 20408.94,
+        "notes": "Due on 45 days terms"
+      },
+      {
+        "tenant": "Nedbank",
+        "amount": 5055.80,
+        "notes": "Nov utilities outstanding"
+      }
+    ],
+    "payment_profile": {
+      "deposits_only": { "tenants": 0, "pct": 0 },
+      "full_payments": { "tenants": 20, "pct": 83 },
+      "short_payments": { "tenants": 3, "pct": 13 },
+      "irregular_payments": { "tenants": 0, "pct": 0 },
+      "legal": { "tenants": 0, "pct": 0 },
+      "no_payments": { "tenants": 0, "pct": 0 },
+      "arrangements": { "tenants": 1, "pct": 4 },
+      "total_tenants": 24
+    }
+  },
+  "arrears_detail": [
+    {
+      "tenant": "Blockman Processing (The Butcher)",
+      "amount": 233215.13,
+      "category": "arrangements",
+      "status": "Making daily payments ~R100K per day since 13 Nov"
+    },
+    {
+      "tenant": "Woolworths",
+      "amount": 190743.19,
+      "category": "nationals",
+      "status": "Rates and turnover rental not yet paid"
+    },
+    {
+      "tenant": "Relative Connect",
+      "amount": 20408.94,
+      "category": "normal",
+      "status": "Due on 45 days terms"
+    },
+    {
+      "tenant": "Nedbank",
+      "amount": 5055.80,
+      "category": "nationals",
+      "status": "Nov utilities outstanding"
+    }
+  ],
+  "tenant_data": [
+    {
+      "name": "ABSA",
+      "trading_name": "ABSA",
+      "gla_m2": null,
+      "lease_start": null,
+      "lease_end": "2025-04-30",
+      "rental_monthly": 4200,
+      "rental_per_m2": null,
+      "escalation_pct": 0,
+      "tenant_type": "national",
+      "monthly_turnover": null,
+      "renewal_status": "Counter offer R4200/month at 0% escalation accepted. FICA screening in progress."
+    },
+    {
+      "name": "Cash Crusaders",
+      "trading_name": "CASH CRUSADERS",
+      "gla_m2": null,
+      "lease_start": "2021-09-01",
+      "lease_end": "2026-08-31",
+      "rental_monthly": null,
+      "rental_per_m2": 154.02,
+      "escalation_pct": 7,
+      "tenant_type": "national",
+      "monthly_turnover": null,
+      "renewal_status": "Renewing franchise agreement. First discussions suggest rent standstill. Proposed budget: R163/m2 + R37/m2 ops (6% escalation).",
+      "ops_per_m2": 35.35
+    },
+    {
+      "name": "Headlines Barber",
+      "trading_name": "HEADLINES BARBER",
+      "gla_m2": null,
+      "lease_start": null,
+      "lease_end": "2026-09-30",
+      "rental_monthly": null,
+      "rental_per_m2": 458.78,
+      "escalation_pct": 7,
+      "tenant_type": "local",
+      "monthly_turnover": null,
+      "renewal_status": "Proposed budget: R486.31/m2 + R34.74/m2 ops (6% escalation). Mandate pending budget approval.",
+      "ops_per_m2": 32.77
+    },
+    {
+      "name": "Bok Lounge",
+      "trading_name": "BOK LOUNGE AND GRILL",
+      "gla_m2": null,
+      "lease_start": null,
+      "lease_end": "2026-09-30",
+      "rental_monthly": null,
+      "rental_per_m2_inside": 179.58,
+      "rental_per_m2_outside": 100.93,
+      "escalation_pct": 7,
+      "tenant_type": "local",
+      "monthly_turnover": 1160653.00,
+      "renewal_status": "Proposed budget: R190.35/m2 inside + R106.99/m2 outside (6% escalation). Mandate pending budget approval."
+    },
+    {
+      "name": "Woolworths",
+      "trading_name": "WOOLWORTHS",
+      "gla_m2": null,
+      "lease_start": null,
+      "lease_end": null,
+      "rental_monthly": null,
+      "rental_per_m2": null,
+      "escalation_pct": null,
+      "tenant_type": "national",
+      "monthly_turnover": 4561475.00,
+      "renewal_status": null
+    },
+    {
+      "name": "Tops @ Spar",
+      "trading_name": "TOPS @ SPAR",
+      "gla_m2": null,
+      "lease_start": null,
+      "lease_end": null,
+      "rental_monthly": null,
+      "rental_per_m2": null,
+      "escalation_pct": null,
+      "tenant_type": "regional",
+      "monthly_turnover": 2826306.50,
+      "renewal_status": null
+    },
+    {
+      "name": "Spar",
+      "trading_name": "TOPS @ SPAR / SPAR",
+      "gla_m2": null,
+      "lease_start": null,
+      "lease_end": null,
+      "rental_monthly": null,
+      "rental_per_m2": null,
+      "escalation_pct": null,
+      "tenant_type": "anchor",
+      "monthly_turnover": 9166838.43,
+      "renewal_status": "Spar raising issues about parking ratio, ingress/egress, commercial viability. Stiaan may request rent remission."
+    }
+  ],
+  "lease_expiry_detail": [
+    {
+      "tenant": "ABSA",
+      "lease_end": "2025-04-30",
+      "status": "Renewal in progress - accepted R4200/month at 0% escalation"
+    },
+    {
+      "tenant": "Cash Crusaders",
+      "lease_end": "2026-08-31",
+      "status": "Renewal discussions - tenant suggesting rent standstill"
+    },
+    {
+      "tenant": "Headlines Barber",
+      "lease_end": "2026-09-30",
+      "status": "Proposed budget based on 6% escalation - mandate pending"
+    },
+    {
+      "tenant": "Bok Lounge",
+      "lease_end": "2026-09-30",
+      "status": "Proposed budget based on 6% escalation - mandate pending"
+    }
+  ],
+  "income_statement_property": {
+    "_note": "From executive summary page - property level P&L (10 months YTD)",
+    "net_income_ytd_actual": 4157350,
+    "net_income_ytd_budget": 5659983,
+    "net_income_ytd_variance": -1502633,
+    "net_income_monthly_actual": 1377016,
+    "net_income_monthly_budget": 1355197,
+    "net_income_monthly_variance": 21819,
+    "annual_forecast": 6918327,
+    "annual_budget": 8371546,
+    "annual_variance": -1453219,
+    "prior_year_actual_net_income": 16076910
+  },
+  "cashflow_property": {
+    "receipts_ytd": null,
+    "payments_ytd": null,
+    "net_ytd": null,
+    "trust_account_balance": 2637598.81,
+    "november_distribution_approved": 1300000,
+    "quarterly_projection": [],
+    "_note": "Detailed cashflow statement and projection included in management pack sections 14-15 but not extracted from executive summary"
+  },
+  "budget_variance": {
+    "revenue": {
+      "actual": null,
+      "budget": null,
+      "variance": null,
+      "variance_pct": null,
+      "_note": "Line-item revenue breakdown not visible on executive summary - only net income shown"
+    },
+    "opex": {
+      "actual": null,
+      "budget": null,
+      "variance": null,
+      "variance_pct": null
+    },
+    "NOI": {
+      "actual": 4157350,
+      "budget": 5659983,
+      "variance": -1502633,
+      "variance_pct": -26.55
+    }
+  },
+  "capex_maintenance": {
+    "projects": [
+      {
+        "name": "Waterproofing",
+        "status": "Rolled to Nov 2025 / Jan 2026 in forecast",
+        "cost": null,
+        "notes": "Capex noted as rolled"
+      },
+      {
+        "name": "Painting of Centre",
+        "status": "Phase 1 completed 12/11/2025, Phase 2 started 24/11/2025, Phase 3 to start 01/12/2025",
+        "cost": null,
+        "notes": "Project cost approved. Snags and completion inspections scheduled for week of 08/12/2025"
+      },
+      {
+        "name": "Damaged Centre Sign Repair",
+        "status": "Cost approved",
+        "cost": 32062.98,
+        "cost_note": "excl VAT, includes entrance sign wall repair",
+        "notes": "Repairs during painting project to save scaffolding cost. Phase 2 when scaffold erected in front of Spar ~24 Nov 2025"
+      },
+      {
+        "name": "Parking Area Tarring",
+        "status": "In progress",
+        "cost": null,
+        "notes": "Feint parking lines included in capex for painting. 9 hours to completion."
+      },
+      {
+        "name": "Pothole Repair",
+        "status": "Adjusted scope",
+        "cost": 89640,
+        "cost_note": "Adjusted from R247,600 - excluding delivery area",
+        "notes": "Delayed due to Spar non-cooperation. Only 50% tar done. Delivery bay holes to be filled with leftover asphalt."
+      },
+      {
+        "name": "Structural Wooden Trusses",
+        "status": "Quoting",
+        "cost": 350000,
+        "cost_note": "Estimate received, obtaining more quotes",
+        "notes": "SVR advised different contractor. Pending design. To be done in Phase 2 of painting project."
+      },
+      {
+        "name": "Disclaimer Signs (3 locations)",
+        "status": "Approved",
+        "cost": 9387.90,
+        "cost_note": "excl VAT",
+        "notes": "Entrance gate, delivery entrance, pedestrian gate"
+      },
+      {
+        "name": "Concrete Columns / Parking Lights",
+        "status": "In progress",
+        "cost": 8775.00,
+        "cost_note": "excl VAT - lamp post and light on bollard",
+        "notes": "ACS rectifying columns in parking area. New design costing pending from ACS."
+      },
+      {
+        "name": "Woolworths Leaks",
+        "status": "Temporary fix done",
+        "cost": null,
+        "notes": "Expansion joint fix requires capital project. Gutters and flashings sealed in Phase 1."
+      }
+    ],
+    "deferred_maintenance": [
+      {
+        "item": "Borehole plant",
+        "status": "Non-operational",
+        "notes": "Proposal to install water points around Centre for watering and cleaning"
+      },
+      {
+        "item": "Storm water gully delivery area",
+        "status": "On hold - pending Spar agreement on back road repair",
+        "notes": "Expense motivation order to be loaded"
+      }
+    ]
+  },
+  "solar_pv": {
+    "has_solar": true,
+    "system_kwp": 543,
+    "commissioning_date": "2022-07",
+    "monitoring_provider": "Matriarch Asset Managers",
+    "monitoring_contact": "Dineo Leope, dineole@matriarch.africa",
+    "december_2025_summary": {
+      "production_target_kwh": 98831,
+      "system_performance_kwh": 101499,
+      "pct_achieved": 103,
+      "self_consumption_actual_kwh": 101499,
+      "penetration_ratio_pct": 44,
+      "total_power_consumption_mwh": 109.80,
+      "solar_production_mwh": 101.499
+    },
+    "prior_year_2024_performance": {
+      "total_consumption_mwh": 191.34,
+      "solar_production_mwh": 89.793
+    },
+    "monthly_production_kwh": [
+      { "month": "2025-04", "target": 59908, "actual": 56792, "pct_achieved": 95 },
+      { "month": "2025-05", "target": 45518, "actual": 42014, "pct_achieved": 92 },
+      { "month": "2025-06", "target": 38664, "actual": 27979, "pct_achieved": 72 },
+      { "month": "2025-07", "target": 43405, "actual": 24784, "pct_achieved": 57 },
+      { "month": "2025-08", "target": 52647, "actual": 35134, "pct_achieved": 67 },
+      { "month": "2025-09", "target": 66715, "actual": 59325, "pct_achieved": 93 },
+      { "month": "2025-10", "target": 82018, "actual": 70192, "pct_achieved": 92 },
+      { "month": "2025-11", "target": 91234, "actual": 94394, "pct_achieved": 103 },
+      { "month": "2025-12", "target": 98831, "actual": 101499, "pct_achieved": 103 }
+    ],
+    "savings_ytd": {
+      "actual": 959392,
+      "projected": 1045981,
+      "_note": "Sum of actual monthly savings Apr-Dec 2025: 91864+67960+45257+48523+68787+116149+137425+184808+198719 = 959492 (table sum); projected sum = 101126+76834+65266+79130+95979+121625+149523+166324+180174 = 1035981"
+    },
+    "monthly_savings_zar": [
+      { "month": "2025-04", "projected": 101126, "actual": 91864, "pct_achieved": 91 },
+      { "month": "2025-05", "projected": 76834, "actual": 67960, "pct_achieved": 88 },
+      { "month": "2025-06", "projected": 65266, "actual": 45257, "pct_achieved": 69 },
+      { "month": "2025-07", "projected": 79130, "actual": 48523, "pct_achieved": 61 },
+      { "month": "2025-08", "projected": 95979, "actual": 68787, "pct_achieved": 72 },
+      { "month": "2025-09", "projected": 121625, "actual": 116149, "pct_achieved": 95 },
+      { "month": "2025-10", "projected": 149523, "actual": 137425, "pct_achieved": 92 },
+      { "month": "2025-11", "projected": 166324, "actual": 184808, "pct_achieved": 111 },
+      { "month": "2025-12", "projected": 180174, "actual": 198719, "pct_achieved": 110 }
+    ],
+    "cumulative_savings": {
+      "year_1": { "period": "Jul-22 to Jun-23", "target_kwh": 850888, "actual_kwh": 648492, "pct_kwh": 76, "projected_savings": 1231405, "actual_savings": 968994, "pct_savings": 79 },
+      "year_2": { "period": "Jul-23 to Jun-24", "target_kwh": 847484, "actual_kwh": 780643, "pct_kwh": 92, "projected_savings": 1324598, "actual_savings": 1404862, "pct_savings": 106 },
+      "year_3": { "period": "Jul-24 to Jun-25", "target_kwh": 844094, "actual_kwh": 779212, "pct_kwh": 92, "projected_savings": 1424843, "actual_savings": 1260412, "pct_savings": 88 },
+      "year_4_partial": { "period": "Jul-25 to Dec-25", "target_kwh": 434849, "actual_kwh": 392848, "pct_kwh": 90, "projected_savings": 792754, "actual_savings": 754411, "pct_savings": 95 }
+    },
+    "o_and_m_logbook": [
+      { "date": "2021-03-25", "urgency": "Low", "component": "PV System", "engineer": "LeChloe", "status": "Closed", "details": "System commissioned" },
+      { "date": "2023-01-03", "urgency": "High", "component": "Clean and Inspection", "engineer": "Nokuthula", "status": "Closed", "details": "Clean and Inspection due" },
+      { "date": "2024-12-02", "urgency": "Medium", "component": "PV System", "engineer": "Mike", "status": "Closed", "details": "Annual inspection" },
+      { "date": "2025-06-24", "urgency": "High", "component": "Clean and Inspection", "engineer": "Mike", "status": "Closed", "details": "Panels cleaning and Inspection" },
+      { "date": "2025-08-30", "urgency": "High", "component": "PV System", "engineer": "Dineo", "status": "Closed", "details": "INV#1 Replacement" },
+      { "date": "2025-09-30", "urgency": "High", "component": "PV System", "engineer": "Dineo", "status": "Open", "details": "Annual inspection" }
+    ],
+    "solar_guarantee_audit": "Guarantee schedule received from Matriarch with potential claims. Audit in process by Broll. To be finalized by 30 November 2025.",
+    "solar_service_contract_cost_ytd_gl": 54427.47
+  },
+  "security": {
+    "provider": "SJC Tactical Security Services (Pty) Ltd",
+    "provider_details": {
+      "director": "I Du Toit",
+      "registration": "2001/025719/23",
+      "vat": "4340196858",
+      "address": "1 Poort Street, Brackenfell, 7560 / PO Box 831, Bellville, 7530",
+      "phone": "086 17 52 911",
+      "website": "sjcgroup.co.za"
+    },
+    "report_period": "01/12/2025 - 07/12/2025",
+    "patrol_completion_pct": 99.2,
+    "tag_scan_pct": 99.2,
+    "tag_performance": {
+      "total_scanned": 262,
+      "total_missed": 2,
+      "scanned_pct": 99.2,
+      "missed_pct": 0.8
+    },
+    "patrol_performance": {
+      "total_passed": 131,
+      "total_incomplete": 0,
+      "total_failed": 1,
+      "passed_pct": 99.2,
+      "incomplete_pct": 0.0,
+      "failed_pct": 0.8
+    },
+    "site_performance": {
+      "total_rounds": 132,
+      "rounds_complete_pct": 99.2,
+      "failed": 1,
+      "incomplete": 0,
+      "complete": 131,
+      "total_tags": 264,
+      "scanned_tags": 262,
+      "scanned_tags_pct": 99.2
+    },
+    "inspector_visits": [
+      { "date": "2025-12-01", "ob_number": 32, "inspector": "Inspector Chadwick" },
+      { "date": "2025-12-03", "ob_number": 78, "inspector": "Inspector Meintjies" },
+      { "date": "2025-12-06", "ob_number": 211, "inspector": "Inspector Meintjies" },
+      { "date": "2025-12-08", "ob_number": 252, "inspector": "Inspector Meintjies" },
+      { "date": "2025-12-08", "ob_number": 272, "inspector": "Inspector Meintjies" },
+      { "date": "2025-12-09", "ob_number": 315, "inspector": "Inspector Chadwick" }
+    ],
+    "management_visits": [],
+    "incidents": [
+      {
+        "type": "Vehicle driving into column",
+        "date": "2025-10-30",
+        "insurance_claim": 43857,
+        "notes": "Insurance claim received and paid. Reflects in Nov financial period."
+      }
+    ],
+    "contract_security_cost_ytd_gl": 478485.24
+  },
+  "service_providers": {
+    "security": "SJC Security",
+    "cleaning": "ACS Cleaning Solutions",
+    "waste_management": "Council",
+    "car_park_assistance": "SJC Security",
+    "gardening": "ACS Cleaning Solutions"
+  },
+  "operational_notes": {
+    "key_issues": [
+      "Spar performance concerns: requesting traffic impact study, concerned about parking ratio, ingress/egress bottleneck, Stiaan (operator) may request rent remission citing commercial unviability",
+      "SPAR legal representative sent email regarding parking allocation investigation (14 day response)",
+      "Borehole plant non-operational",
+      "Sept adjustment account figures still to be journalised",
+      "Council account opened for new owners; old account not yet obtained",
+      "Budget 2026/2027 to be shared soonest - separate meeting within 2 weeks",
+      "Woolworths expansion joint leak can only be fixed with capital project",
+      "Blockman Processing (The Butcher) arrears of R233K - making daily payments"
+    ],
+    "action_items": [
+      "CvN: Follow up on old council account",
+      "CvN: Share proposed budget for 2026/2027 and schedule budget meeting",
+      "CvN: Update Fourie van Pletzen on Spar background and prepare reply to legal rep",
+      "AB: Finalize adjustment account - month of Nov still to be included once closed (20 Nov)",
+      "AB: Adjustment account meeting scheduled 25 Nov 2025 (12:00-14:00)",
+      "KJ/PM: Complete current capex projects, formal handover by 28 Feb 2026",
+      "KJ: Solar guarantee audit to be finalized by 30 Nov 2025",
+      "PM: Follow up with Henk for Council inspector visit after capital project completion",
+      "PM: New operations manager Phindile Mtipa assigned from 1 Nov 2025"
+    ],
+    "manager_recommendation": "Centre is fully let with 0% vacancy. Key risk is Spar tenant relationship - multiple operational concerns raised. Monitor Blockman Processing arrears closely. Solar system performing well at 103% of December target. Security performance excellent at 99.2% patrol completion."
+  },
+  "tenant_deposits": {
+    "total_held_by_landlord": 1552545.41,
+    "cash_movements_oct_2025": {
+      "halaal_butchery_deposit_appropriated_to_arrears": 141244.93,
+      "blockman_processing_deposit_receipted": 164753.00,
+      "net_effect_to_interest_bearing_account": 23508.07
+    }
+  },
+  "variances": {
+    "net_income_entity_vs_property": {
+      "source_a": "property_management_report",
+      "source_b": "entity_gl_management_accounts",
+      "source_a_value": 4157350,
+      "source_b_value": 9808331.80,
+      "difference": -5650981.80,
+      "explanation": "Property management report shows R4,157,350 net income YTD (10 months). GL EBITDA recurring is R9,808,331.80 (sign-flipped from -R9,808,331.80 GL convention where negative = income). Difference of R5.65M explained by: (1) GL includes items not in property P&L such as solar sales income R5,239,370, sign rental R214,102, fibre income R6,544, other miscellaneous income; (2) GL includes entity-level costs not in property report like accounting fees R100K, taxation fees R60K, consulting R50K, legal fees general R852K, ad-hoc fee R2.96M, asset management fees R155K; (3) different accrual treatment of municipal charges. The GL figure includes the full entity overhead not visible in the property management report."
+    },
+    "revenue_report_vs_gl": {
+      "source_a": "property_management_report",
+      "source_b": "entity_gl_management_accounts",
+      "source_a_value": null,
+      "source_b_value": 205989006.24,
+      "difference": null,
+      "explanation": "GL gross profit of R205,989,006.24 (negative in GL = profit) includes non-recurring items: sale_of_property R188,700,000 and profit_share R2,800,000 totaling R191,500,000. After removing non-recurring items, recurring gross profit would be approximately R14,489,006.24. Property management report does not show a separate gross revenue line - only net income YTD of R4,157,350. The GL recurring revenue (excl property sale and profit share) of R14,981,609.75 is broadly consistent with property rental income for 10 months."
+    },
+    "insured_vs_book": {
+      "source_a": "building_sum_insured",
+      "source_b": "afs_investment_property",
+      "source_a_value": 285000000,
+      "source_b_value": 193463063,
+      "difference": 91536937,
+      "explanation": "Building is insured for R285M (replacement cost basis) vs AFS investment property book value of R193.5M (fair value basis at Feb 2025). Insurance-to-book ratio of 1.47x indicates adequate coverage with standard replacement cost premium over fair value. Additionally, solar PV insured separately for R5.565M."
+    }
+  },
+  "derived_signals": {
+    "vacancy_rate": 0.00,
+    "collections_efficiency": 99.42,
+    "trading_density": 3625,
+    "property_net_income_monthly": 415735.0,
+    "lease_expiry_concentration_12m": 20.15,
+    "insurance_vs_book_ratio": 1.47,
+    "utility_recovery_composite": 87.8,
+    "has_solar_pv": true,
+    "has_active_capex": true,
+    "national_tenant_pct": null,
+    "national_tenant_income_pct": 62,
+    "anchor_count": 3,
+    "weighted_escalation": null,
+    "_calculation_notes": {
+      "property_net_income_monthly": "4,157,350 / 10 months = 415,735",
+      "lease_expiry_concentration_12m": "1,658 m2 / 8,228 m2 total GLA = 20.15% (5 leases expiring in next 12 months)",
+      "insurance_vs_book_ratio": "285,000,000 / 193,463,063 = 1.473",
+      "utility_recovery_composite": "Weighted average of YTD recovery percentages: (147+31+99+81+81)/5 = 87.8% (simple average as individual cost weights not available)",
+      "national_tenant_income_pct": "Anchors 42% + Nationals 20% = 62% of income from national/anchor tenants",
+      "anchor_count": "3 anchors as per tenant mix category (Spar/Tops, Woolworths, and likely Dis-Chem based on GLA size)",
+      "trading_density": "Centre overall annual trading density R3,625/m2 as reported"
+    }
+  }
+}

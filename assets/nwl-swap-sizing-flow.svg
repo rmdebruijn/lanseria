@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 140" width="680" height="140" style="font-family:'Segoe UI',Arial,sans-serif;">
+  <defs>
+    <marker id="arrowSwap" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto">
+      <polygon points="0 0, 9 3.5, 0 7" fill="#ef4444"/>
+    </marker>
+  </defs>
+
+  <!-- Background -->
+  <rect width="680" height="140" fill="#f8fafc"/>
+
+  <!-- Left pill: €5.9M -->
+  <rect x="60" y="13" width="110" height="34" rx="17" fill="#93c5fd"/>
+  <text x="115" y="35" text-anchor="middle" font-size="14" font-weight="700" fill="#1e40af">€5.9M</text>
+
+  <!-- Right pill: €0.9–3.9M residual -->
+  <rect x="510" y="13" width="110" height="34" rx="17" fill="#16a34a"/>
+  <text x="565" y="35" text-anchor="middle" font-size="14" font-weight="700" fill="#ffffff">€0.9–3.9M</text>
+
+  <!-- Arrow line -->
+  <line x1="170" y1="30" x2="509" y2="30" stroke="#ef4444" stroke-width="2" marker-end="url(#arrowSwap)"/>
+
+  <!-- Label above arrow -->
+  <text x="340" y="20" text-anchor="middle" font-size="12" font-weight="600" fill="#334155">Investec Currency Swap (€2–5M)</text>
+
+  <!-- Separator line -->
+  <line x1="60" y1="58" x2="620" y2="58" stroke="#e2e8f0" stroke-width="1"/>
+
+  <!-- Line 1: Minimum swap -->
+  <text x="80" y="82" font-size="11" font-weight="600" fill="#64748b">Minimum swap (€2M):</text>
+  <text x="220" y="82" font-size="11" font-weight="400" fill="#64748b">€5.9M − €2M = €3.9M residual</text>
+
+  <!-- Line 2: Target swap -->
+  <text x="80" y="106" font-size="11" font-weight="600" fill="#16a34a">Target swap (€5M):</text>
+  <text x="220" y="106" font-size="11" font-weight="400" fill="#16a34a">€5.9M − €5M = €0.9M residual</text>
+</svg>

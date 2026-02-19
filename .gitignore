@@ -22,3 +22,12 @@ Thumbs.db
 
 # Secrets (users.yaml has bcrypt-hashed passwords only, safe for repo)
 .streamlit/secrets.toml
+
+# Large binary source documents (PDFs, Excel) — kept locally only
+data/guarantor/source_docs/
+
+# Presentation slide images — kept locally only
+assets/pptx_slides/
+
+# SQLite databases
+*.db

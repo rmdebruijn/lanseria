@@ -1,8 +1,7 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 580" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="12">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1340 620" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="12">
   <defs>
     <style>
       .box { rx: 6; ry: 6; stroke-width: 1.5; }
-      .label { font-size: 11px; fill: #374151; }
       .label-bold { font-size: 11px; fill: #374151; font-weight: 600; }
       .label-sm { font-size: 9.5px; fill: #6B7280; }
       .label-white { font-size: 12px; fill: #FFFFFF; font-weight: 600; }
@@ -14,184 +13,199 @@
     </style>
   </defs>
 
-  <!-- UBO Box -->
-  <rect x="380" y="10" width="340" height="44" class="box" fill="#1F2937" stroke="#111827"/>
-  <text x="550" y="30" text-anchor="middle" class="label-white">Mark van Houten (UBO)</text>
-  <text x="550" y="44" text-anchor="middle" class="label-white-sm">Director of all entities, Ultimate Beneficial Owner</text>
+  <!-- ========== LEVEL 1: UBO ========== -->
+  <rect x="470" y="10" width="340" height="44" class="box" fill="#1F2937" stroke="#111827"/>
+  <text x="640" y="30" text-anchor="middle" class="label-white">Mark van Houten (UBO)</text>
+  <text x="640" y="44" text-anchor="middle" class="label-white-sm">Director of all entities, Ultimate Beneficial Owner</text>
 
-  <!-- Line UBO → Trust -->
-  <line x1="550" y1="54" x2="550" y2="78" class="line-solid"/>
+  <line x1="640" y1="54" x2="640" y2="78" class="line-solid"/>
 
-  <!-- Trust Box -->
-  <rect x="330" y="78" width="440" height="40" class="box" fill="#F3F4F6" stroke="#9CA3AF"/>
-  <text x="550" y="98" text-anchor="middle" class="label-bold">VH Investments Trust (VHIT)</text>
-  <text x="550" y="111" text-anchor="middle" class="label-sm">100% owner of all three siblings</text>
+  <!-- ========== LEVEL 2: Trust ========== -->
+  <rect x="420" y="78" width="440" height="40" class="box" fill="#F3F4F6" stroke="#9CA3AF"/>
+  <text x="640" y="98" text-anchor="middle" class="label-bold">VH Investments Trust (VHIT)</text>
+  <text x="640" y="111" text-anchor="middle" class="label-sm">100% owner of all four siblings</text>
 
-  <!-- Lines Trust → 3 siblings -->
-  <line x1="550" y1="118" x2="550" y2="130" class="line-solid"/>
-  <line x1="180" y1="130" x2="920" y2="130" class="line-solid"/>
-  <line x1="180" y1="130" x2="180" y2="148" class="line-solid"/>
-  <line x1="550" y1="130" x2="550" y2="148" class="line-solid"/>
-  <line x1="920" y1="130" x2="920" y2="148" class="line-solid"/>
+  <!-- L2 → L3: 4 siblings -->
+  <line x1="640" y1="118" x2="640" y2="130" class="line-solid"/>
+  <line x1="150" y1="130" x2="1180" y2="130" class="line-solid"/>
+  <line x1="150" y1="130" x2="150" y2="148" class="line-solid"/>
+  <line x1="490" y1="130" x2="490" y2="148" class="line-solid"/>
+  <line x1="790" y1="130" x2="790" y2="148" class="line-solid"/>
+  <line x1="1180" y1="130" x2="1180" y2="148" class="line-solid"/>
 
-  <!-- VPH Box (NWL Guarantor — blue highlight) -->
-  <rect x="70" y="148" width="220" height="52" class="box" fill="#DBEAFE" stroke="#2563EB" stroke-width="2"/>
-  <text x="180" y="167" text-anchor="middle" class="label-bold" fill="#1E40AF">Veracity Property Holdings</text>
-  <text x="180" y="180" text-anchor="middle" class="label-sm">(VPH) — 100%</text>
-  <rect x="120" y="186" width="120" height="14" rx="3" fill="#2563EB"/>
-  <text x="180" y="196" text-anchor="middle" class="tag" fill="white">NWL GUARANTOR</text>
+  <!-- ========== LEVEL 3: 4 siblings ========== -->
 
-  <!-- VPI Box -->
-  <rect x="430" y="148" width="240" height="52" class="box" fill="#E5E7EB" stroke="#9CA3AF"/>
-  <text x="550" y="167" text-anchor="middle" class="label-bold">Veracity Property Investments</text>
-  <text x="550" y="180" text-anchor="middle" class="label-sm">(VPI) — 100% — Development assets</text>
-  <rect x="500" y="186" width="100" height="14" rx="3" fill="#9CA3AF"/>
-  <text x="550" y="196" text-anchor="middle" class="tag" fill="white">NO AFS</text>
+  <!-- VPH (NWL Guarantor) -->
+  <rect x="40" y="148" width="220" height="52" class="box" fill="#DBEAFE" stroke="#2563EB" stroke-width="2"/>
+  <text x="150" y="167" text-anchor="middle" class="label-bold" fill="#1E40AF">Veracity Property Holdings</text>
+  <text x="150" y="180" text-anchor="middle" class="label-sm">(VPH) — 100%</text>
+  <rect x="90" y="186" width="120" height="14" rx="3" fill="#2563EB"/>
+  <text x="150" y="196" text-anchor="middle" class="tag" fill="white">NWL GUARANTOR</text>
 
-  <!-- VI Box -->
-  <rect x="800" y="148" width="240" height="52" class="box" fill="#E5E7EB" stroke="#9CA3AF"/>
-  <text x="920" y="167" text-anchor="middle" class="label-bold">Veracity Investments</text>
-  <text x="920" y="180" text-anchor="middle" class="label-sm">(VI) — 100% — Divestment properties</text>
-  <rect x="870" y="186" width="100" height="14" rx="3" fill="#9CA3AF"/>
-  <text x="920" y="196" text-anchor="middle" class="tag" fill="white">NO AFS</text>
+  <!-- VPI -->
+  <rect x="367" y="148" width="246" height="52" class="box" fill="#E5E7EB" stroke="#9CA3AF"/>
+  <text x="490" y="167" text-anchor="middle" class="label-bold">Veracity Property Investments</text>
+  <text x="490" y="180" text-anchor="middle" class="label-sm">(VPI) — 100% — Development assets</text>
+  <rect x="440" y="186" width="100" height="14" rx="3" fill="#9CA3AF"/>
+  <text x="490" y="196" text-anchor="middle" class="tag" fill="white">NO AFS</text>
 
-  <!-- Vertical line from VPH down to subsidiary tree -->
-  <line x1="180" y1="200" x2="180" y2="230" class="line-solid"/>
-  <line x1="80" y1="230" x2="1020" y2="230" class="line-solid"/>
+  <!-- VI -->
+  <rect x="667" y="148" width="246" height="52" class="box" fill="#E5E7EB" stroke="#9CA3AF"/>
+  <text x="790" y="167" text-anchor="middle" class="label-bold">Veracity Investments</text>
+  <text x="790" y="180" text-anchor="middle" class="label-sm">(VI) — 100% — Divestment properties</text>
+  <rect x="740" y="186" width="100" height="14" rx="3" fill="#9CA3AF"/>
+  <text x="790" y="196" text-anchor="middle" class="tag" fill="white">NO AFS</text>
 
-  <!-- Verticals down to child boxes -->
-  <line x1="80" y1="230" x2="80" y2="248" class="line-solid"/>
-  <line x1="220" y1="230" x2="220" y2="248" class="line-solid"/>
-  <line x1="360" y1="230" x2="360" y2="248" class="line-solid"/>
-  <line x1="500" y1="230" x2="500" y2="248" class="line-solid"/>
-  <line x1="640" y1="230" x2="640" y2="248" class="line-solid"/>
-  <line x1="780" y1="230" x2="780" y2="248" class="line-solid"/>
-  <line x1="900" y1="230" x2="900" y2="248" class="line-solid"/>
-  <line x1="1020" y1="230" x2="1020" y2="248" class="line-dashed"/>
+  <!-- VH Properties (other group) -->
+  <rect x="1060" y="148" width="240" height="52" class="box" fill="#F3F4F6" stroke="#9CA3AF"/>
+  <text x="1180" y="167" text-anchor="middle" class="label-bold" style="fill:#9CA3AF">VH Properties (Pty) Ltd</text>
+  <text x="1180" y="180" text-anchor="middle" class="label-sm">TWX Guarantor (Phoenix Group)</text>
 
-  <!-- Aquaside (100%) — Growth (purple) -->
-  <rect x="20" y="248" width="120" height="60" class="box" fill="#FFFFFF" stroke="#D1D5DB"/>
-  <text x="80" y="265" text-anchor="middle" class="label-bold">Aquaside</text>
-  <text x="80" y="278" text-anchor="middle" class="label-sm">Trading (100%)</text>
-  <text x="80" y="291" text-anchor="middle" class="label-sm">Residential, JHB+CT</text>
-  <rect x="40" y="295" width="80" height="12" rx="3" fill="#8B5CF6"/>
-  <text x="80" y="304" text-anchor="middle" class="tag-lc" fill="white">GROWTH</text>
+  <!-- ========== VPH → L4 bar (all VPH children) ========== -->
+  <line x1="150" y1="200" x2="150" y2="228" class="line-solid"/>
+  <line x1="150" y1="228" x2="1260" y2="228" class="line-solid"/>
 
-  <!-- BBP (100%) — Cash Generating (green) -->
-  <rect x="160" y="248" width="120" height="60" class="box" fill="#FFFFFF" stroke="#D1D5DB"/>
-  <text x="220" y="265" text-anchor="middle" class="label-bold">BBP Unit 1</text>
-  <text x="220" y="278" text-anchor="middle" class="label-sm">Phase II (100%)</text>
-  <text x="220" y="291" text-anchor="middle" class="label-sm">Commercial, JHB</text>
-  <rect x="156" y="295" width="128" height="12" rx="3" fill="#16A34A"/>
-  <text x="220" y="304" text-anchor="middle" class="tag-lc" fill="white">CASH GENERATING</text>
+  <!-- ========== LEVEL 4: Intermediate Holdings ========== -->
 
-  <!-- Cornerstone (50%) — Dormant (grey) -->
-  <rect x="300" y="248" width="120" height="60" class="box" fill="#FFFFFF" stroke="#D1D5DB"/>
-  <text x="360" y="265" text-anchor="middle" class="label-bold">Cornerstone</text>
-  <text x="360" y="278" text-anchor="middle" class="label-sm">Property (50%)</text>
-  <text x="360" y="291" text-anchor="middle" class="label-sm">HoldCo</text>
-  <rect x="320" y="295" width="80" height="12" rx="3" fill="#9CA3AF"/>
-  <text x="360" y="304" text-anchor="middle" class="tag-lc" fill="white">DORMANT</text>
+  <!-- Cornerstone -->
+  <line x1="150" y1="228" x2="150" y2="248" class="line-solid"/>
+  <rect x="90" y="248" width="120" height="56" class="box" fill="#F9FAFB" stroke="#D1D5DB"/>
+  <text x="150" y="265" text-anchor="middle" class="label-bold">Cornerstone</text>
+  <text x="150" y="278" text-anchor="middle" class="label-sm">Property (50%)</text>
+  <text x="150" y="291" text-anchor="middle" class="label-sm">Intermediate HoldCo</text>
+  <rect x="110" y="293" width="80" height="12" rx="3" fill="#9CA3AF"/>
+  <text x="150" y="302" text-anchor="middle" class="tag-lc" fill="white">HOLDING</text>
 
-  <!-- Erf 86 (100%) — Growth (purple) -->
-  <rect x="440" y="248" width="120" height="60" class="box" fill="#FFFFFF" stroke="#D1D5DB"/>
-  <text x="500" y="265" text-anchor="middle" class="label-bold">Erf 86</text>
-  <text x="500" y="278" text-anchor="middle" class="label-sm">Longmeadow (100%)</text>
-  <text x="500" y="291" text-anchor="middle" class="label-sm">Commercial+PV, GP</text>
-  <rect x="460" y="295" width="80" height="12" rx="3" fill="#8B5CF6"/>
-  <text x="500" y="304" text-anchor="middle" class="tag-lc" fill="white">GROWTH</text>
+  <!-- Sun Property -->
+  <line x1="1100" y1="228" x2="1100" y2="248" class="line-solid"/>
+  <rect x="1040" y="248" width="120" height="56" class="box" fill="#F9FAFB" stroke="#D1D5DB"/>
+  <text x="1100" y="265" text-anchor="middle" class="label-bold">Sun Property</text>
+  <text x="1100" y="278" text-anchor="middle" class="label-sm">Investments (50%)</text>
+  <text x="1100" y="291" text-anchor="middle" class="label-sm">Intermediate HoldCo</text>
+  <rect x="1060" y="293" width="80" height="12" rx="3" fill="#9CA3AF"/>
+  <text x="1100" y="302" text-anchor="middle" class="tag-lc" fill="white">HOLDING</text>
 
-  <!-- Providence (100%) — Growth (purple) -->
-  <rect x="580" y="248" width="120" height="60" class="box" fill="#FFFFFF" stroke="#D1D5DB"/>
-  <text x="640" y="265" text-anchor="middle" class="label-bold">Providence</text>
-  <text x="640" y="278" text-anchor="middle" class="label-sm">Property (100%)</text>
-  <text x="640" y="291" text-anchor="middle" class="label-sm">13 units, Rosebank</text>
-  <rect x="600" y="295" width="80" height="12" rx="3" fill="#8B5CF6"/>
-  <text x="640" y="304" text-anchor="middle" class="tag-lc" fill="white">GROWTH</text>
+  <!-- ========== LEVEL 5: Asset-owning opcos ========== -->
+  <!-- 8 boxes, each 130px wide, spaced at x: 30, 190, 350, 510, 670, 830, 990, 1180 -->
+  <!-- Centres: 95, 255, 415, 575, 735, 895, 1055, 1245 -->
 
-  <!-- Sun Property (50%) — Distressed (red) -->
-  <rect x="720" y="248" width="120" height="60" class="box" fill="#FFFFFF" stroke="#D1D5DB"/>
-  <text x="780" y="265" text-anchor="middle" class="label-bold">Sun Property</text>
-  <text x="780" y="278" text-anchor="middle" class="label-sm">Investments (50%)</text>
-  <text x="780" y="291" text-anchor="middle" class="label-sm">Retail, Sea Point</text>
-  <rect x="740" y="295" width="80" height="12" rx="3" fill="#DC2626"/>
-  <text x="780" y="304" text-anchor="middle" class="tag-lc" fill="white">DISTRESSED</text>
+  <!-- Cornerstone → Ireo -->
+  <line x1="150" y1="304" x2="150" y2="325" class="line-solid"/>
+  <line x1="95" y1="325" x2="150" y2="325" class="line-solid"/>
+  <line x1="95" y1="325" x2="95" y2="358" class="line-solid"/>
 
-  <!-- Uvongo (50%) — Stabilising (amber) -->
-  <rect x="840" y="248" width="120" height="60" class="box" fill="#FFFFFF" stroke="#D1D5DB"/>
-  <text x="900" y="265" text-anchor="middle" class="label-bold">Uvongo Falls</text>
-  <text x="900" y="278" text-anchor="middle" class="label-sm">No 26 (50%)</text>
-  <text x="900" y="291" text-anchor="middle" class="label-sm">Residential, KZN</text>
-  <rect x="860" y="295" width="80" height="12" rx="3" fill="#F59E0B"/>
-  <text x="900" y="304" text-anchor="middle" class="tag-lc" fill="white">STABILISING</text>
+  <!-- Direct subs from L4 bar -->
+  <line x1="255" y1="228" x2="255" y2="358" class="line-solid"/>
+  <line x1="415" y1="228" x2="415" y2="358" class="line-solid"/>
+  <line x1="575" y1="228" x2="575" y2="358" class="line-solid"/>
+  <line x1="735" y1="228" x2="735" y2="358" class="line-solid"/>
+  <line x1="895" y1="228" x2="895" y2="358" class="line-solid"/>
 
-  <!-- Mistraline (33%) — Growth (purple) -->
-  <rect x="960" y="248" width="120" height="60" class="box" fill="#FFFFFF" stroke="#9CA3AF" stroke-dasharray="5,3"/>
-  <text x="1020" y="265" text-anchor="middle" class="label-bold">Mistraline</text>
-  <text x="1020" y="278" text-anchor="middle" class="label-sm">(33% associate)</text>
-  <text x="1020" y="291" text-anchor="middle" class="label-sm">Industrial, JHB</text>
-  <rect x="976" y="295" width="88" height="12" rx="3" fill="#8B5CF6"/>
-  <text x="1020" y="304" text-anchor="middle" class="tag-lc" fill="white">GROWTH</text>
+  <!-- Sun → 6 On Kloof -->
+  <line x1="1100" y1="304" x2="1100" y2="325" class="line-solid"/>
+  <line x1="1055" y1="325" x2="1100" y2="325" class="line-solid"/>
+  <line x1="1055" y1="325" x2="1055" y2="358" class="line-dashed"/>
 
-  <!-- Row 2: Grand-children -->
+  <!-- Mistraline (associate, dashed) -->
+  <line x1="1260" y1="228" x2="1260" y2="358" class="line-dashed"/>
 
-  <!-- Cornerstone → Ireo — Cash Generating (green) -->
-  <line x1="360" y1="308" x2="360" y2="336" class="line-solid"/>
-  <rect x="300" y="336" width="120" height="60" class="box" fill="#FFFFFF" stroke="#D1D5DB"/>
-  <text x="360" y="353" text-anchor="middle" class="label-bold">Ireo Project 10</text>
-  <text x="360" y="366" text-anchor="middle" class="label-sm">(formerly Chepstow)</text>
-  <text x="360" y="379" text-anchor="middle" class="label-sm">100% — Industrial, CT</text>
-  <rect x="296" y="383" width="128" height="12" rx="3" fill="#16A34A"/>
-  <text x="360" y="392" text-anchor="middle" class="tag-lc" fill="white">CASH GENERATING</text>
+  <!-- Ireo Project 10 -->
+  <rect x="30" y="358" width="130" height="60" class="box" fill="#FFFFFF" stroke="#D1D5DB"/>
+  <text x="95" y="375" text-anchor="middle" class="label-bold">Ireo Project 10</text>
+  <text x="95" y="388" text-anchor="middle" class="label-sm">100% (via Cornerstone)</text>
+  <text x="95" y="401" text-anchor="middle" class="label-sm">Industrial, CT</text>
+  <rect x="31" y="405" width="128" height="12" rx="3" fill="#16A34A"/>
+  <text x="95" y="414" text-anchor="middle" class="tag-lc" fill="white">CASH GENERATING</text>
 
-  <!-- Providence → Manappu (associate, no AFS) -->
-  <line x1="640" y1="308" x2="640" y2="336" class="line-dashed"/>
-  <rect x="580" y="336" width="120" height="48" class="box" fill="#E5E7EB" stroke="#9CA3AF" stroke-dasharray="5,3"/>
-  <text x="640" y="353" text-anchor="middle" class="label-bold">Manappu</text>
-  <text x="640" y="366" text-anchor="middle" class="label-sm">(20% associate)</text>
-  <rect x="600" y="372" width="80" height="12" rx="3" fill="#9CA3AF"/>
-  <text x="640" y="381" text-anchor="middle" class="tag" fill="white">NO AFS</text>
+  <!-- BBP Unit 1 -->
+  <rect x="190" y="358" width="130" height="60" class="box" fill="#FFFFFF" stroke="#D1D5DB"/>
+  <text x="255" y="375" text-anchor="middle" class="label-bold">BBP Unit 1</text>
+  <text x="255" y="388" text-anchor="middle" class="label-sm">Phase II (100%)</text>
+  <text x="255" y="401" text-anchor="middle" class="label-sm">Commercial, JHB</text>
+  <rect x="191" y="405" width="128" height="12" rx="3" fill="#16A34A"/>
+  <text x="255" y="414" text-anchor="middle" class="tag-lc" fill="white">CASH GENERATING</text>
 
-  <!-- Sun → 6 On Kloof (associate) — Cash Generating (green) -->
-  <line x1="780" y1="308" x2="780" y2="336" class="line-dashed"/>
-  <rect x="720" y="336" width="120" height="60" class="box" fill="#FFFFFF" stroke="#9CA3AF" stroke-dasharray="5,3"/>
-  <text x="780" y="353" text-anchor="middle" class="label-bold">6 On Kloof</text>
-  <text x="780" y="366" text-anchor="middle" class="label-sm">(25% associate)</text>
-  <text x="780" y="379" text-anchor="middle" class="label-sm">46 units, Sea Point</text>
-  <rect x="716" y="383" width="128" height="12" rx="3" fill="#16A34A"/>
-  <text x="780" y="392" text-anchor="middle" class="tag-lc" fill="white">CASH GENERATING</text>
+  <!-- Erf 86 Longmeadow -->
+  <rect x="350" y="358" width="130" height="60" class="box" fill="#FFFFFF" stroke="#D1D5DB"/>
+  <text x="415" y="375" text-anchor="middle" class="label-bold">Erf 86</text>
+  <text x="415" y="388" text-anchor="middle" class="label-sm">Longmeadow (100%)</text>
+  <text x="415" y="401" text-anchor="middle" class="label-sm">Commercial+PV, GP</text>
+  <rect x="375" y="405" width="80" height="12" rx="3" fill="#F97316"/>
+  <text x="415" y="414" text-anchor="middle" class="tag-lc" fill="white">STALLED</text>
 
-  <!-- Legend -->
-  <rect x="20" y="420" width="1060" height="90" rx="6" fill="#F9FAFB" stroke="#E5E7EB"/>
-  <text x="40" y="440" class="label-bold" font-size="11">Legend:</text>
+  <!-- Providence -->
+  <rect x="510" y="358" width="130" height="60" class="box" fill="#FFFFFF" stroke="#D1D5DB"/>
+  <text x="575" y="375" text-anchor="middle" class="label-bold">Providence</text>
+  <text x="575" y="388" text-anchor="middle" class="label-sm">Property (100%)</text>
+  <text x="575" y="401" text-anchor="middle" class="label-sm">13 units, Rosebank</text>
+  <rect x="535" y="405" width="80" height="12" rx="3" fill="#8B5CF6"/>
+  <text x="575" y="414" text-anchor="middle" class="tag-lc" fill="white">GROWTH</text>
 
-  <line x1="40" y1="455" x2="70" y2="455" class="line-solid"/>
-  <text x="78" y="459" class="label-sm">Subsidiary (>50%)</text>
-  <line x1="220" y1="455" x2="250" y2="455" class="line-dashed"/>
-  <text x="258" y="459" class="label-sm">Associate (20-50%)</text>
-  <rect x="400" y="448" width="16" height="14" rx="3" fill="#DBEAFE" stroke="#2563EB" stroke-width="1.5"/>
-  <text x="422" y="459" class="label-sm">NWL Guarantor</text>
-  <rect x="530" y="448" width="16" height="14" rx="3" fill="#E5E7EB" stroke="#9CA3AF" stroke-width="1.5"/>
-  <text x="552" y="459" class="label-sm">No AFS</text>
+  <!-- Aquaside -->
+  <rect x="670" y="358" width="130" height="60" class="box" fill="#FFFFFF" stroke="#D1D5DB"/>
+  <text x="735" y="375" text-anchor="middle" class="label-bold">Aquaside</text>
+  <text x="735" y="388" text-anchor="middle" class="label-sm">Trading (100%)</text>
+  <text x="735" y="401" text-anchor="middle" class="label-sm">Residential, JHB+CT</text>
+  <rect x="695" y="405" width="80" height="12" rx="3" fill="#DC2626"/>
+  <text x="735" y="414" text-anchor="middle" class="tag-lc" fill="white">DISTRESSED</text>
 
-  <!-- Lifecycle legend -->
-  <text x="40" y="484" class="label-bold" font-size="11">Lifecycle:</text>
-  <rect x="110" y="474" width="88" height="14" rx="3" fill="#16A34A"/>
-  <text x="154" y="485" text-anchor="middle" class="tag" fill="white">CASH GENERATING</text>
-  <rect x="206" y="474" width="60" height="14" rx="3" fill="#8B5CF6"/>
-  <text x="236" y="485" text-anchor="middle" class="tag" fill="white">GROWTH</text>
-  <rect x="274" y="474" width="70" height="14" rx="3" fill="#F59E0B"/>
-  <text x="309" y="485" text-anchor="middle" class="tag" fill="white">STABILISING</text>
-  <rect x="352" y="474" width="70" height="14" rx="3" fill="#0EA5E9"/>
-  <text x="387" y="485" text-anchor="middle" class="tag" fill="white">EARLY-STAGE</text>
-  <rect x="430" y="474" width="60" height="14" rx="3" fill="#F97316"/>
-  <text x="460" y="485" text-anchor="middle" class="tag" fill="white">STALLED</text>
-  <rect x="498" y="474" width="60" height="14" rx="3" fill="#DC2626"/>
-  <text x="528" y="485" text-anchor="middle" class="tag" fill="white">DISTRESSED</text>
-  <rect x="566" y="474" width="70" height="14" rx="3" fill="#06B6D4"/>
-  <text x="601" y="485" text-anchor="middle" class="tag" fill="white">REVENUE ONLY</text>
-  <rect x="644" y="474" width="50" height="14" rx="3" fill="#9CA3AF"/>
-  <text x="669" y="485" text-anchor="middle" class="tag" fill="white">HOLDING</text>
+  <!-- Uvongo Falls -->
+  <rect x="830" y="358" width="130" height="60" class="box" fill="#FFFFFF" stroke="#D1D5DB"/>
+  <text x="895" y="375" text-anchor="middle" class="label-bold">Uvongo Falls</text>
+  <text x="895" y="388" text-anchor="middle" class="label-sm">No 26 (50%)</text>
+  <text x="895" y="401" text-anchor="middle" class="label-sm">Residential, KZN</text>
+  <rect x="855" y="405" width="80" height="12" rx="3" fill="#F59E0B"/>
+  <text x="895" y="414" text-anchor="middle" class="tag-lc" fill="white">STABILISING</text>
 
-  <text x="40" y="503" class="label-sm">Source: Audited AFS FY2023-FY2025, KCE Accountants and Auditors Inc. Lifecycle assessed from AFS + Dec 2025 management accounts.</text>
+  <!-- 6 On Kloof -->
+  <rect x="990" y="358" width="130" height="60" class="box" fill="#FFFFFF" stroke="#9CA3AF" stroke-dasharray="5,3"/>
+  <text x="1055" y="375" text-anchor="middle" class="label-bold">6 On Kloof</text>
+  <text x="1055" y="388" text-anchor="middle" class="label-sm">25% (via Sun Property)</text>
+  <text x="1055" y="401" text-anchor="middle" class="label-sm">46 units, Sea Point</text>
+  <rect x="991" y="405" width="128" height="12" rx="3" fill="#16A34A"/>
+  <text x="1055" y="414" text-anchor="middle" class="tag-lc" fill="white">CASH GENERATING</text>
+
+  <!-- Mistraline -->
+  <rect x="1180" y="358" width="130" height="60" class="box" fill="#FFFFFF" stroke="#9CA3AF" stroke-dasharray="5,3"/>
+  <text x="1245" y="375" text-anchor="middle" class="label-bold">Mistraline</text>
+  <text x="1245" y="388" text-anchor="middle" class="label-sm">(33% associate)</text>
+  <text x="1245" y="401" text-anchor="middle" class="label-sm">Industrial, JHB</text>
+  <rect x="1196" y="405" width="98" height="12" rx="3" fill="#16A34A"/>
+  <text x="1245" y="414" text-anchor="middle" class="tag-lc" fill="white">CASH GENERATING</text>
+
+  <!-- Manappu footnote -->
+  <text x="575" y="436" text-anchor="middle" class="label-sm" style="font-style:italic">+ 20% associate: Manappu Investments (no AFS, not assessed)</text>
+
+  <!-- ========== LEGEND ========== -->
+  <rect x="20" y="456" width="1300" height="80" rx="6" fill="#F9FAFB" stroke="#E5E7EB"/>
+  <text x="40" y="476" class="label-bold" font-size="11">Legend:</text>
+
+  <line x1="40" y1="491" x2="70" y2="491" class="line-solid"/>
+  <text x="78" y="495" class="label-sm">Subsidiary (>50%)</text>
+  <line x1="220" y1="491" x2="250" y2="491" class="line-dashed"/>
+  <text x="258" y="495" class="label-sm">Associate (20-50%)</text>
+  <rect x="400" y="484" width="16" height="14" rx="3" fill="#DBEAFE" stroke="#2563EB" stroke-width="1.5"/>
+  <text x="422" y="495" class="label-sm">NWL Guarantor</text>
+  <rect x="530" y="484" width="16" height="14" rx="3" fill="#F3F4F6" stroke="#9CA3AF" stroke-width="1.5"/>
+  <text x="552" y="495" class="label-sm">Sibling (other group)</text>
+  <rect x="700" y="484" width="16" height="14" rx="3" fill="#E5E7EB" stroke="#9CA3AF" stroke-width="1.5"/>
+  <text x="722" y="495" class="label-sm">No AFS</text>
+  <rect x="810" y="484" width="16" height="14" rx="3" fill="#F9FAFB" stroke="#D1D5DB" stroke-width="1.5"/>
+  <text x="832" y="495" class="label-sm">Intermediate Holding</text>
+
+  <text x="40" y="520" class="label-bold" font-size="11">Lifecycle:</text>
+  <rect x="110" y="510" width="88" height="14" rx="3" fill="#16A34A"/>
+  <text x="154" y="521" text-anchor="middle" class="tag" fill="white">CASH GENERATING</text>
+  <rect x="206" y="510" width="60" height="14" rx="3" fill="#8B5CF6"/>
+  <text x="236" y="521" text-anchor="middle" class="tag" fill="white">GROWTH</text>
+  <rect x="274" y="510" width="70" height="14" rx="3" fill="#F59E0B"/>
+  <text x="309" y="521" text-anchor="middle" class="tag" fill="white">STABILISING</text>
+  <rect x="352" y="510" width="60" height="14" rx="3" fill="#F97316"/>
+  <text x="382" y="521" text-anchor="middle" class="tag" fill="white">STALLED</text>
+  <rect x="420" y="510" width="60" height="14" rx="3" fill="#DC2626"/>
+  <text x="450" y="521" text-anchor="middle" class="tag" fill="white">DISTRESSED</text>
+  <rect x="488" y="510" width="50" height="14" rx="3" fill="#9CA3AF"/>
+  <text x="513" y="521" text-anchor="middle" class="tag" fill="white">HOLDING</text>
+
+  <text x="40" y="530" class="label-sm" dy="12">Source: Audited AFS FY2023-FY2025, KCE Accountants and Auditors Inc. Lifecycle assessed from AFS + Dec 2025 management accounts.</text>
 </svg>

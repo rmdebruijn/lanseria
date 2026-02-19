@@ -15,13 +15,13 @@ SCLCA Senior Facility & Mezzanine — Three-Layer Security Structure
 Senior Lender
 
 ## iic_detail
-€13,612,928 facility @ 4.70%
+€13,597,304 facility @ 4.70%
 
 ## cc_label
 Mezzanine (Quasi-Equity) + DSRA
 
 ## cc_detail
-R45,629,200 (€2,281,460) @ Prime+4%
+R47,082,778 (€2,282,580) @ Prime+4%
 
 ## iic_box
 Senior €13.6M
@@ -48,31 +48,31 @@ LAYER 1
 Financial Claims (Holding Level)
 
 ## layer1_item1
-IC loan receivables (€15,894,388) — pledged to IIC
+IC loan receivables (€15,879,884) — pledged to IIC
 
 ## layer1_item2
 100% equity in subsidiaries (€78,000) — pledged to Creation Capital
 
 ## layer1_total
-Total intercompany book: €15,894,388  |  Equity in subsidiaries: €78,000
+Total intercompany book: €15,879,884  |  Equity in subsidiaries: €78,000
 
 ## nwl_ic_arrow
-IC Loan €10,655,818
+IC Loan €10,632,337
 
 ## lanred_ic_arrow
-IC Loan €3,205,999
+IC Loan €3,199,398
 
 ## twx_ic_arrow
-IC Loan €2,032,571
+IC Loan €2,048,149
 
 ## nwl_name
-NexusNovus Water Lanseria
+New Water Lanseria
 
 ## nwl_desc
 Sewage Treatment & Water Reuse
 
 ## nwl_ic_detail
-IC Loan: €10,655,818 (S: €9,127,177 / M: €1,528,641)
+IC Loan: €10,632,337 (S: €9,104,041 / M: €1,528,296)
 
 ## nwl_l2_label
 LAYER 2
@@ -81,19 +81,19 @@ LAYER 2
 Guarantees & Insurance
 
 ## nwl_l2_item1
-Veracity corporate guarantee (full IC)
+DTIC + GEPF grants & bulk services (R69.8M = €3.24M prepay at M12)*
 
 ## nwl_l2_item2
-Atradius ECA cover (Netherlands)
+Investec cross-currency swap (€2–5M, bank-to-bank)**
 
 ## nwl_l2_item3
-DSRA via FEC — R47,500,000
+Veracity corporate guarantee (residual €0.9–3.9M)
 
 ## nwl_l2_item4
-DTIC Manufacturing Incentive (R25M grant)
+Atradius ECA cover (Netherlands, sized to M36 balance)
 
 ## nwl_l2_item5
-GEPF Bulk Services Fee (R44.8M grant)
+* Sovereign risk  |  ** Bank-to-bank risk
 
 ## nwl_l3_label
 LAYER 3
@@ -126,7 +126,7 @@ LanRED
 Solar Plant + Battery Storage
 
 ## lanred_ic_detail
-IC Loan: €3,205,999 (S: €2,746,050 / M: €459,949)
+IC Loan: €3,199,398 (S: €2,739,516 / M: €459,882)
 
 ## lanred_l2_label
 LAYER 2
@@ -135,7 +135,10 @@ LAYER 2
 Guarantees & Insurance
 
 ## lanred_l2_item1
-Independent underwriting
+Greenfield: independently underwritten (insurance risk) OR Brownfield+: cross-currency swap (bank-to-bank)
+
+## lanred_l2_item2
+Atradius ECA cover† (may be absent/thin depending on Dutch content)
 
 ## lanred_l3_label
 LAYER 3
@@ -162,7 +165,7 @@ Timberworx
 Centre of Excellence
 
 ## twx_ic_detail
-IC Loan: €2,032,571 (S: €1,739,701 / M: €292,870)
+IC Loan: €2,048,149 (S: €1,753,747 / M: €294,402)
 
 ## twx_l2_label
 LAYER 2
@@ -171,7 +174,7 @@ LAYER 2
 Guarantees & Insurance
 
 ## twx_l2_item1
-Phoenix holding company guarantee (full IC)
+VH Properties / Phoenix corporate guarantee (full senior €1,753,747 — coverage 1.56x)
 
 ## twx_l2_item2
 Atradius ECA cover (Netherlands)
@@ -222,13 +225,13 @@ Senior loan to SCLCA secured by all three layers — IC receivables, guarantees 
 Layer 1:
 
 ## summary_l1_detail
-SCLCA pledges IC loan receivables (€15,894,388) to IIC and 100% subsidiary equity (€78,000) to Creation Capital
+SCLCA pledges IC loan receivables (€15,879,884) to IIC and 100% subsidiary equity (€78,000) to Creation Capital
 
 ## summary_l2
 Layer 2:
 
 ## summary_l2_detail
-NWL: Veracity guarantee + Atradius ECA + DSRA (R47.5M) + DTIC (R25M) + GEPF (R44.8M)  |  LanRED: Independent underwriting  |  TWX: Phoenix + Atradius + Finnvera
+NWL: Grants (DTIC R25M + GEPF R44.8M) + Currency Swap (€2–5M, Investec) + Veracity guarantee (residual) + Atradius ECA  |  LanRED: Underwriting or Currency Swap + Atradius ECA†  |  TWX: Phoenix guarantee + Atradius ECA + Finnvera ECA
 
 ## summary_l3
 Layer 3:

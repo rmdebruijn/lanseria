@@ -1,0 +1,1536 @@
+{
+  "metadata": {
+    "entity": {
+      "legal_name": "Jukskei Meander (Pty) Ltd",
+      "entity_key": "JukskeiMeander_2025_structured",
+      "guarantor_group": "phoenix"
+    },
+    "reporting_period": {
+      "start_date": "2025-03-01",
+      "end_date": "2025-12-12",
+      "months": 10
+    },
+    "currency": "ZAR",
+    "property_managers": {
+      "name": "Broll Property Group",
+      "contact": "Carine van den Berg (cvandenberg@broll.com)",
+      "report_date": "2025-12-12"
+    },
+    "verification": {
+      "extracted_by": "claude",
+      "extraction_date": "2026-02-18",
+      "crosscheck_notes": [
+        "PDF is the Broll management pack for Jukskei Meander, period 21 Nov 2025 to 12 Dec 2025 (YTD Mar 2025 - Dec 2025)",
+        "Property managed for Fedbond Nominees (Pty) Ltd as registered owner/nominee",
+        "Income statement covers 10 months (Mar-Dec 2025) of FY ending Feb 2026",
+        "Meeting minutes dated 20 November 2025; previous meeting 23 October 2025",
+        "Operations checklist completed 28/12/2025 by Karel Jooste",
+        "Rent roll period 21 Nov to 12 Dec 2025"
+      ]
+    }
+  },
+  "property_details": {
+    "address": "Corner Rietjen and Platina street, Jukskei Park, 2128",
+    "erf_number": "528, Jukskei Park",
+    "municipal_valuation": 51300000.00,
+    "building_sum_insured": 91375000.00,
+    "gla_breakdown": {
+      "national": { "gla_m2": 1682.0, "pct": 48.82 },
+      "regional": { "gla_m2": 0.0, "pct": 0.0 },
+      "local": { "gla_m2": 1071.0, "pct": 31.09 },
+      "offices": { "gla_m2": 0.0, "pct": 0.0 },
+      "storage_other": { "gla_m2": 692.5, "pct": 20.09 }
+    },
+    "total_gla_m2": 3446.0,
+    "rentable_gla_m2": 2899.0,
+    "mezzanine_m2": 480.0,
+    "outside_seating_m2": 40.0,
+    "atm_m2": 9.0,
+    "rentable_units": 11,
+    "tenant_count": 11,
+    "parking_bays": {
+      "mall_required": 101,
+      "mall_provided": 89,
+      "taxi": 9,
+      "delivery": 3,
+      "parking_allowance": "3 bays / 100m2"
+    },
+    "insurance": {
+      "annual_premium_2025_2026": 137219.31,
+      "monthly_debit_order": 11434.94,
+      "building_sum_insured": 91375000.00,
+      "solar_annual_premium": 29689.32,
+      "solar_monthly_debit_order": 2474.11,
+      "solar_sum_insured": 3625000.00,
+      "solar_policy_reference": "R2474.11"
+    },
+    "monthly_rates": {
+      "council_valuation": 51300000.00,
+      "calculation": "R51,300,000 x R0.012100 = R742,106.30 per annum = R61,842.35 per month = R17.94/m2"
+    },
+    "building_insurance_per_valuation": 69825000.00,
+    "_notes": {
+      "gla_as_per_current_leases": 3446,
+      "gla_actual_total_per_new_measurements": 3446,
+      "national_tenants": "Checkers (1522m2 Shop 11), Checkers Liquor (160m2 Shop 13), Nedbank ATM (9m2)",
+      "local_tenants": "3AT1 Jukskei Park (85m2), Cupids Arrow (85m2), Hao Ke Lai (84m2), Moroccan Cut Barber (85m2), Nibbly Bits Cape (85m2), Queens Pet Shop (325m2), The Meander Pharmacy (358m2), Pantelis Italian Kitchen (99m2 + 49m2 outside), Bob Box (1.5m2), Kusini Water (closed/arrears), Kiosk Rental"
+    }
+  },
+  "financial_summary": {
+    "net_income_ytd": {
+      "actual": 2198102.0,
+      "budget": 1485435.0,
+      "variance": -87331.0,
+      "_note": "Net Income After Expenses YTD Actual = R1,633,874 + Other Income R62,155 = R1,398,102 per IS pg7 subtotals; Executive summary states R2,198,102 actual, R1,485,415 budget"
+    },
+    "net_income_after_expenses_monthly_actual": 496339.0,
+    "net_income_after_expenses_monthly_budget": 549106.0,
+    "net_income_monthly_actual": 324887.0,
+    "net_income_monthly_budget": 226033.0,
+    "annual_forecast": 2337313.0,
+    "annual_budget": 2246133.0,
+    "py_actual": 5527075.0,
+    "monthly_avg": null,
+    "variance_ytd": {
+      "amount": -87331.0,
+      "pct": -5.9
+    },
+    "variance_monthly": {
+      "amount": 98854.0
+    },
+    "variance_annual_forecast_vs_budget": 91180.0,
+    "variance_factors": {
+      "income": {
+        "description": "7 months negative variance on income (R2,574) due to air-con recovery budget, no service date to recover. Variance R11,514.",
+        "amount": -2574.0
+      },
+      "expenses": {
+        "description": "7 months negative variance on expenses (R50,203) due to municipal back charges paid in December as we received new council account from 19 August 2025.",
+        "amount": -50203.0
+      }
+    }
+  },
+  "leasing_summary": {
+    "vacancy_rate_pct": 0.0,
+    "vacancy_gla_m2": 0.0,
+    "vacancy_number_of_shops": 0,
+    "potential_vacancies": [
+      {
+        "tenant": "Queens Pet Shop",
+        "gla_m2": 325,
+        "pct_of_gla": 13.73,
+        "number_of_shops": 1,
+        "status": "Tenant would like to reduce unit size. Landlord did mention a deal to keep tenant in the current size shop. Tenant offered rental of R50,000 gross."
+      },
+      {
+        "tenant": "Pantelis Italian Kitchen",
+        "gla_m2": 99,
+        "pct_of_gla": null,
+        "number_of_shops": 1,
+        "status": "Legal - summons served by Sheriff"
+      }
+    ],
+    "lease_expiry_profile": {
+      "0_12m": {
+        "gla_m2": 927.0,
+        "pct": 26.93,
+        "tenants": [
+          {
+            "store": "SHOP 15",
+            "tenant": "Delicious Wan Jia (Pty) Ltd",
+            "trading_name": "Hao Ke Lai",
+            "lease_start": "2023-01-01",
+            "lease_end": "2025-12-31",
+            "gla_m2": 84,
+            "gross_rental": 32467.66,
+            "rental_per_m2": 386.52,
+            "budget_rental_per_m2": 157.84,
+            "bucket": "0-3 months",
+            "action": "Lease finalized. Fica outstanding to be loaded."
+          },
+          {
+            "store": "SHOP 19",
+            "tenant": "The Queen Petshop (Pty) Ltd",
+            "trading_name": "The Queen Petshop",
+            "lease_start": "2021-05-01",
+            "lease_end": "2026-04-30",
+            "gla_m2": 325,
+            "gross_rental": 72036.10,
+            "rental_per_m2": 221.65,
+            "budget_rental_per_m2": 207.44,
+            "bucket": "4-6 months",
+            "action": "Tenant would like unit reduced. Landlord deal to keep tenant at current size. Tenant offered R50,000 gross."
+          },
+          {
+            "store": "SHOP 01",
+            "tenant": "The Meander Pharmacy (Pty) Ltd",
+            "trading_name": "The Meander Pharmacy",
+            "lease_start": "2021-06-01",
+            "lease_end": "2026-05-31",
+            "options": "04/31 - 05/26",
+            "gla_m2": 358,
+            "gross_rental": 81860.12,
+            "rental_per_m2": 228.66,
+            "budget_rental_per_m2": 85.29,
+            "bucket": "4-6 months",
+            "action": "Renewal offer sent."
+          },
+          {
+            "store": "SHOP 13",
+            "tenant": "Shoprite Checkers (Pty) Ltd",
+            "trading_name": "Checkers Liquor",
+            "lease_start": "2021-08-01",
+            "lease_end": "2026-07-31",
+            "options": "07/46 - 08/26",
+            "gla_m2": 160,
+            "gross_rental": 37849.34,
+            "rental_per_m2": 236.56,
+            "budget_rental_per_m2": 229.99,
+            "bucket": "7-12 months",
+            "action": "Renewal received. Declined CPI escalation and turnover clause that they amended."
+          }
+        ]
+      },
+      "12_24m": {
+        "gla_m2": 1.0,
+        "pct": 0.03,
+        "tenants": [
+          {
+            "store": "EXH1",
+            "tenant": "Bob Group (Pty) Ltd",
+            "trading_name": "Bob Box",
+            "lease_start": "2024-10-01",
+            "lease_end": "2026-09-30",
+            "gla_m2": 1,
+            "gross_rental": 1070.00,
+            "rental_per_m2": 1070.00,
+            "budget_rental_per_m2": 1029.17,
+            "bucket": "7-12 months",
+            "action": "Renewal concluded. Discussion the 2026 regarding renewal."
+          }
+        ]
+      },
+      "24_36m": { "gla_m2": null, "pct": null },
+      "36_plus_m": { "gla_m2": null, "pct": null }
+    },
+    "number_of_leases_expiring_12m": 5,
+    "renewals_concluded": 3,
+    "renewals_concluded_gla_m2": 84,
+    "renewals_concluded_pct_of_gla": 2.44,
+    "avg_rental_per_m2": {
+      "national": {
+        "anchors_supermarket": "R135.20/m2",
+        "national_overall": "R223.30/m2"
+      },
+      "regional": null,
+      "local": "R4494.40/month (ATM)",
+      "offices": null,
+      "_raw_from_executive_summary": {
+        "anchors_supermarket_centre": "R135.20/m2",
+        "atms_value_per_month": "R4494.40/month",
+        "fast_food": "R272.52/m2",
+        "line_shops_50m2_to_200m2": "R303.03/m2",
+        "line_shops_200m2_to_500m2": "R196.26/m2"
+      }
+    },
+    "market_benchmark_per_m2": {
+      "anchors_supermarket": "R125.20/m2",
+      "national": "R127.73/m2",
+      "fast_food": "R201.57/m2",
+      "line_shops_50m2_to_200m2": "R288.97/m2",
+      "line_shops_200m2_to_500m2": "R241.18/m2"
+    }
+  },
+  "turnover_summary": {
+    "total_reported_turnover_monthly": 37593491.00,
+    "trading_density_per_m2": 6387.00,
+    "centre_trading_density_monthly": 6311.50,
+    "rent_to_turnover_pct": null,
+    "anchor_turnovers": {
+      "checkers": {
+        "monthly_turnover": 18436462.00,
+        "avg_monthly_trading_density": 9118.0,
+        "avg_annual_trading_density": 7076.0,
+        "rent_to_turnover_pct": 1.75,
+        "pct_of_lease": 2.08
+      }
+    },
+    "restaurant_turnovers": {
+      "pantelis_italian_kitchen": {
+        "monthly_turnover": 206635.00,
+        "avg_monthly_trading_density": 1396.0,
+        "avg_annual_trading_density": 3627.0,
+        "rent_to_turnover_pct": 0.0,
+        "pct_of_lease": 9.63
+      },
+      "hao_ke_lai": {
+        "monthly_turnover": 93289.00,
+        "avg_monthly_trading_density": 1111.0,
+        "avg_annual_trading_density": 1507.0,
+        "rent_to_turnover_pct": 0.0,
+        "pct_of_lease": 32.64
+      }
+    },
+    "top_3_performing_tenants": [
+      {
+        "tenant": "The Meander Pharmacy",
+        "monthly_turnover": 4188788.00,
+        "avg_monthly_trading_density": 11701.0,
+        "avg_annual_trading_density": 11894.0,
+        "rent_to_turnover_pct": 0.0,
+        "pct_of_lease": 1.96
+      },
+      {
+        "tenant": "Checkers Liquor",
+        "monthly_turnover": 3644780.00,
+        "avg_monthly_trading_density": 22155.0,
+        "avg_annual_trading_density": 13047.0,
+        "rent_to_turnover_pct": 1.75,
+        "pct_of_lease": 1.01
+      },
+      {
+        "tenant": "Checkers",
+        "monthly_turnover": 18436462.00,
+        "avg_monthly_trading_density": 9118.0,
+        "avg_annual_trading_density": 7076.0,
+        "rent_to_turnover_pct": 1.75,
+        "pct_of_lease": 2.08
+      }
+    ],
+    "bottom_3_performing_tenants": [
+      {
+        "tenant": "Hao Ke Lai",
+        "monthly_turnover": 93289.00,
+        "avg_monthly_trading_density": 1111.0,
+        "avg_annual_trading_density": 1507.0,
+        "rent_to_turnover_pct": 0.0,
+        "pct_of_lease": 32.64
+      },
+      {
+        "tenant": "Pantelis Italian Kitchen",
+        "monthly_turnover": 206635.00,
+        "avg_monthly_trading_density": 1396.0,
+        "avg_annual_trading_density": 1021.0,
+        "rent_to_turnover_pct": 0.0,
+        "pct_of_lease": 9.63
+      },
+      {
+        "tenant": "The Queens Pet Shop",
+        "monthly_turnover": 490687.00,
+        "avg_monthly_trading_density": 1508.0,
+        "avg_annual_trading_density": 1181.0,
+        "rent_to_turnover_pct": 0.0,
+        "pct_of_lease": 15.75
+      }
+    ],
+    "tenant_trading_detail": [
+      { "tenant": "Checkers Liquor", "lease_area": 160, "annual_trading_density": 13189.92, "rent_to_turnover_pct": 1.79 },
+      { "tenant": "The Meander Pharmacy", "lease_area": 358, "annual_trading_density": 11670.41, "rent_to_turnover_pct": 1.93 },
+      { "tenant": "Checkers", "lease_area": 2022, "annual_trading_density": 6974.44, "rent_to_turnover_pct": 2.11 },
+      { "tenant": "3AT1 Jukskei Park", "lease_area": 85, "annual_trading_density": 1900.08, "rent_to_turnover_pct": 14.10 },
+      { "tenant": "Nibbly Bits Cape", "lease_area": 85, "annual_trading_density": 1736.52, "rent_to_turnover_pct": 16.58 },
+      { "tenant": "Pantelis Italian Kitchen", "lease_area": 148, "annual_trading_density": 1715.69, "rent_to_turnover_pct": 8.57 },
+      { "tenant": "Moroccan Cut Barber", "lease_area": 85, "annual_trading_density": 1573.33, "rent_to_turnover_pct": 21.58 },
+      { "tenant": "The Queen Petshop", "lease_area": 325, "annual_trading_density": 1377.42, "rent_to_turnover_pct": 15.89 },
+      { "tenant": "Cupids Arrow", "lease_area": 85, "annual_trading_density": 1169.11, "rent_to_turnover_pct": 26.88 },
+      { "tenant": "Hao Ke Lai", "lease_area": 84, "annual_trading_density": 1113.30, "rent_to_turnover_pct": 32.42 }
+    ],
+    "centre_avg_monthly_trading_density_per_m2": 6311.50
+  },
+  "utility_recovery": {
+    "electricity": {
+      "recovery_pct": 141.0,
+      "budgeted_recovery_pct": 142.0,
+      "monthly_recovery_pct": 133.0,
+      "cost": null,
+      "recovered": null,
+      "shortfall": null,
+      "_notes": "Actual budget recovery 133%, Budget based on 144%. Higher recovery due to council underbilling on kVArh. Estimated readings on council account. December 2025: Received new council accounts, back billing done from 19 August 2025."
+    },
+    "rates": {
+      "recovery_pct": 25.0,
+      "budgeted_recovery_pct": 34.0,
+      "monthly_recovery_pct": 17.0,
+      "cost": null,
+      "recovered": null,
+      "shortfall": null,
+      "_notes": "Actual recovery 17%, Budget recovery 34%. Budget based on 6% increase, actual increase 4.5%. December 2025: Received new council accounts, back billing from 19 August 2025."
+    },
+    "refuse": {
+      "recovery_pct": 124.0,
+      "budgeted_recovery_pct": 102.0,
+      "monthly_recovery_pct": 132.0,
+      "cost": null,
+      "recovered": null,
+      "shortfall": null,
+      "_notes": "Actual 132%, Budget 102%."
+    },
+    "sewer": {
+      "recovery_pct": 77.0,
+      "budgeted_recovery_pct": 73.0,
+      "monthly_recovery_pct": 93.0,
+      "cost": null,
+      "recovered": null,
+      "shortfall": null,
+      "_notes": "Actual Recovery 93%, Budget 73%."
+    },
+    "water": {
+      "recovery_pct": 75.0,
+      "budgeted_recovery_pct": 72.0,
+      "monthly_recovery_pct": 91.0,
+      "cost": null,
+      "recovered": null,
+      "shortfall": null,
+      "_notes": "Actual recovery 91%, Budget 72%."
+    }
+  },
+  "arrears_overview": {
+    "total": 526628.53,
+    "total_including_credits": 489672.41,
+    "plus_credits": -37056.20,
+    "net_total": 371211.59,
+    "category_breakdown": {
+      "current": {
+        "pct": 25.73,
+        "amount": 8200.269
+      },
+      "30_days_legal_lod": {
+        "pct": 52.0,
+        "amount": 8213.912
+      },
+      "60_days_ex_tenants": {
+        "pct": 0.0,
+        "amount": 0.0
+      },
+      "deposits": {
+        "pct": 21.15,
+        "amount": 86960.52
+      },
+      "nationals": {
+        "pct": 0.54,
+        "amount": 2213.60
+      },
+      "normal_tenants": {
+        "pct": 0.44,
+        "amount": 1816.58
+      }
+    },
+    "payment_profile_pct": null,
+    "collections_pct": null,
+    "bad_debts_written_off": 0.0,
+    "bad_debts_provision": 0.0,
+    "payment_profile": {
+      "deposits_only": { "tenants": 0, "pct": 0.0 },
+      "full_payments": { "tenants": 6, "pct": 55.0 },
+      "short_payments": { "tenants": 3, "pct": 27.0 },
+      "irregular_payments": { "tenants": 0, "pct": 0.0 },
+      "legal": { "tenants": 1, "pct": 9.0 },
+      "no_payments": { "tenants": 0, "pct": 0.0 },
+      "arrangements_overpaid": { "tenants": 1, "pct": 9.0 },
+      "total_tenants": 11,
+      "total_pct": 100.0
+    },
+    "tenant_mix_by_pct": {
+      "anchors": 43.0,
+      "income_networks": 0.0,
+      "income_atms": 5.0,
+      "income_fast_food": 8.0,
+      "income_50m2_to_300m2": 7.0,
+      "income_line_shops_200m2_to_500m2": 22.0,
+      "_note": "% of income - Anchors 43%, Networks 0%, ATMs 5%, Fast food 8%, 50-300m2 7%, 200-500m2 22%"
+    },
+    "number_of_tenants": {
+      "checkers": "Checkers & Checkers Liquor",
+      "nedbank_atm": 1,
+      "checkers_pantelis": "Checkers & Pantelis",
+      "bat1_bukhwe": "3AT1 & Bukhwe",
+      "checkers_liquor": "Checkers Liquor"
+    }
+  },
+  "arrears_detail": [
+    {
+      "tenant_name": "Shoprite Checkers (Pty) Ltd",
+      "trading_as": "Checkers",
+      "opening_balance": -0.06,
+      "lease_charges": 343519.04,
+      "adjustments": 409053.82,
+      "receipts": -752572.86,
+      "closing_balance": -0.06,
+      "status": "Credits",
+      "action": "Tenant made an over payment.",
+      "deposit_held": null
+    },
+    {
+      "tenant_name": "Shoprite Checkers (Pty) Ltd",
+      "trading_as": "Checkers Liquor",
+      "opening_balance": -37956.14,
+      "lease_charges": 43526.74,
+      "adjustments": 36008.20,
+      "receipts": -79534.94,
+      "closing_balance": -37956.14,
+      "status": "Credits",
+      "action": "Tenant paid Turnover rental. 08.12.2025: Adjustment done to load invoice and will appear on next reporting.",
+      "deposit_held": null
+    },
+    {
+      "tenant_name": "The Meander Pharmacy (Pty) Ltd",
+      "trading_as": "The Meander Pharmacy",
+      "opening_balance": 86486.62,
+      "lease_charges": 94865.07,
+      "adjustments": 7156.32,
+      "receipts": -101547.49,
+      "closing_balance": 86960.52,
+      "status": "Deposits Payable",
+      "action": "Tenant is in the process of obtaining a new BG or addendum for the Deposit.",
+      "deposit_held": null
+    },
+    {
+      "tenant_name": "The Queen Petshop (Pty) Ltd",
+      "trading_as": "The Queen Petshop",
+      "opening_balance": 156771.20,
+      "lease_charges": 82841.51,
+      "adjustments": -149033.33,
+      "receipts": -90579.38,
+      "closing_balance": 0.00,
+      "status": "Deposits Payable",
+      "action": "BG received. Adjustment done to load BG and will appear on next reporting. 09.12.2025: Tenant paid R90,579.38.",
+      "deposit_held": null
+    },
+    {
+      "tenant_name": "Kusini Water (Pty) Ltd",
+      "trading_as": "Kusini Water",
+      "opening_balance": 104161.63,
+      "lease_charges": 0.00,
+      "adjustments": 1105.83,
+      "receipts": 0.00,
+      "closing_balance": 105267.46,
+      "status": "Legal - Ex tenant",
+      "action": "LEGAL: SETTLEMENT AGREEMENT. NOTE: AOD in place to pay R147,458.17 with monthly instalments of R15,000.00 starting Feb 2024. Legal Entity and sureties listed on TransUnion. 10.12.2025: RWS confirmed he is awaiting Court date in order to make settlement an order of court.",
+      "deposit_held": null
+    },
+    {
+      "tenant_name": "Styling Pizzas Enterprises (Pty) Ltd",
+      "trading_as": "Pantelis Italian Kitchen",
+      "opening_balance": 176995.48,
+      "lease_charges": 28141.75,
+      "adjustments": 7772.40,
+      "receipts": 0.00,
+      "closing_balance": 212909.63,
+      "status": "Legal (handed over)",
+      "action": "LEGAL: 19.11.2025: FvP is proceeding with summons on arrears.",
+      "deposit_held": null
+    },
+    {
+      "tenant_name": "Nedbank Limited",
+      "trading_as": "Nedbank ATM",
+      "opening_balance": 2213.60,
+      "lease_charges": 4370.00,
+      "adjustments": 2632.01,
+      "receipts": -7002.01,
+      "closing_balance": 2213.60,
+      "status": "National",
+      "action": "Tenant did not pay July Electricity, tenant is paying lower rental from June 2025, therefore the balance outstanding.",
+      "deposit_held": null
+    },
+    {
+      "tenant_name": "Remote Metering Solutions (Pty) Ltd",
+      "trading_as": "Remote Metering Solutions",
+      "opening_balance": 1000.08,
+      "lease_charges": 0.00,
+      "adjustments": 0.00,
+      "receipts": 0.00,
+      "closing_balance": 1000.08,
+      "status": "Normal",
+      "action": "08.12.2025: RMS was requested to make payment of shortfall of R1000.00 from May 2025. Adjustment done to load invoice and will appear on next reporting.",
+      "deposit_held": null
+    },
+    {
+      "tenant_name": "Bob Group (Pty) Ltd",
+      "trading_as": "Bob Box",
+      "opening_balance": 0.00,
+      "lease_charges": 1150.00,
+      "adjustments": 816.50,
+      "receipts": -1150.00,
+      "closing_balance": 816.58,
+      "status": "Normal",
+      "action": "08.12.2025: Invoice and credit note sent for payment.",
+      "deposit_held": null
+    },
+    {
+      "tenant_name": "TOTAL",
+      "trading_as": null,
+      "opening_balance": 489672.41,
+      "lease_charges": 598414.11,
+      "adjustments": 315511.75,
+      "receipts": -1032386.68,
+      "closing_balance": 371211.59,
+      "status": null,
+      "action": null,
+      "deposit_held": null
+    }
+  ],
+  "tenant_data": [
+    {
+      "name": "Nedbank Ltd",
+      "trading_name": "Nedbank ATM",
+      "premises": "ATM 02",
+      "gla_m2": 9.0,
+      "lease_start": null,
+      "lease_end": null,
+      "rental_monthly": null,
+      "rental_per_m2": null,
+      "escalation_pct": null,
+      "tenant_type": "national",
+      "occupancy_compliant": "N/A",
+      "monthly_turnover": [],
+      "renewal_status": null
+    },
+    {
+      "name": "Bob Group (Pty) Ltd",
+      "trading_name": "Bob Box",
+      "premises": "COMMON AREA",
+      "gla_m2": 1.5,
+      "lease_start": "2024-10-01",
+      "lease_end": "2026-09-30",
+      "rental_monthly": 1070.00,
+      "rental_per_m2": 1070.00,
+      "escalation_pct": null,
+      "tenant_type": "local",
+      "occupancy_compliant": "N/A",
+      "monthly_turnover": [],
+      "renewal_status": "Renewal concluded"
+    },
+    {
+      "name": "Styling Pizzas Enterprises (Pty) Ltd",
+      "trading_name": "Pantelis Italian Kitchen",
+      "premises": "OUTSIDE SEATING SHOP 17",
+      "gla_m2": 49.0,
+      "lease_start": null,
+      "lease_end": null,
+      "rental_monthly": null,
+      "rental_per_m2": null,
+      "escalation_pct": null,
+      "tenant_type": "local",
+      "occupancy_compliant": "New Tenant",
+      "monthly_turnover": [],
+      "renewal_status": null,
+      "_note": "Outside seating area only; main premises at Shop 17 separately listed"
+    },
+    {
+      "name": "The Meander Pharmacy (Pty) Ltd",
+      "trading_name": "The Meander Pharmacy",
+      "premises": "SHOP 01",
+      "gla_m2": 358.0,
+      "lease_start": "2021-06-01",
+      "lease_end": "2026-05-31",
+      "rental_monthly": 81860.12,
+      "rental_per_m2": 228.66,
+      "escalation_pct": null,
+      "tenant_type": "local",
+      "occupancy_compliant": "BPA03675 Approved",
+      "monthly_turnover": [],
+      "renewal_status": "Renewal offer sent"
+    },
+    {
+      "name": "3AT1 Jukskei Park (Pty) Ltd",
+      "trading_name": "3AT1 Jukskei Park",
+      "premises": "SHOP 03",
+      "gla_m2": 85.0,
+      "lease_start": null,
+      "lease_end": null,
+      "rental_monthly": null,
+      "rental_per_m2": null,
+      "escalation_pct": null,
+      "tenant_type": "local",
+      "occupancy_compliant": "Emailed",
+      "monthly_turnover": [],
+      "renewal_status": null
+    },
+    {
+      "name": "Liwonde Trading CC",
+      "trading_name": "Cupids Arrow",
+      "premises": "SHOP 05",
+      "gla_m2": 85.0,
+      "lease_start": null,
+      "lease_end": null,
+      "rental_monthly": null,
+      "rental_per_m2": null,
+      "escalation_pct": null,
+      "tenant_type": "local",
+      "occupancy_compliant": "Emailed",
+      "monthly_turnover": [],
+      "renewal_status": null
+    },
+    {
+      "name": "In2Food Group (Pty) Ltd",
+      "trading_name": "Nibbly Bits",
+      "premises": "SHOP 07",
+      "gla_m2": 85.0,
+      "lease_start": null,
+      "lease_end": null,
+      "rental_monthly": null,
+      "rental_per_m2": null,
+      "escalation_pct": null,
+      "tenant_type": "local",
+      "occupancy_compliant": "New Tenant",
+      "monthly_turnover": [],
+      "renewal_status": null
+    },
+    {
+      "name": "North Africa Style Holdings (Pty) Ltd",
+      "trading_name": "Moroccan Cut Barber",
+      "premises": "SHOP 09",
+      "gla_m2": 85.0,
+      "lease_start": null,
+      "lease_end": null,
+      "rental_monthly": null,
+      "rental_per_m2": null,
+      "escalation_pct": null,
+      "tenant_type": "local",
+      "occupancy_compliant": "Emailed",
+      "monthly_turnover": [],
+      "renewal_status": null
+    },
+    {
+      "name": "Shoprite Checkers (Pty) Ltd",
+      "trading_name": "Checkers",
+      "premises": "SHOP 11",
+      "gla_m2": 1522.0,
+      "lease_start": null,
+      "lease_end": null,
+      "rental_monthly": null,
+      "rental_per_m2": null,
+      "escalation_pct": null,
+      "tenant_type": "national",
+      "occupancy_compliant": null,
+      "monthly_turnover": [],
+      "renewal_status": null
+    },
+    {
+      "name": "Shoprite Checkers (Pty) Ltd",
+      "trading_name": "Checkers Liquor",
+      "premises": "SHOP 13",
+      "gla_m2": 160.0,
+      "lease_start": "2021-08-01",
+      "lease_end": "2026-07-31",
+      "rental_monthly": 37849.34,
+      "rental_per_m2": 236.56,
+      "escalation_pct": null,
+      "tenant_type": "national",
+      "occupancy_compliant": null,
+      "monthly_turnover": [],
+      "renewal_status": "Renewal received - declined CPI escalation and turnover clause"
+    },
+    {
+      "name": "Delicious Wan Jia (Pty) Ltd",
+      "trading_name": "Hao Ke Lai",
+      "premises": "SHOP 15",
+      "gla_m2": 84.0,
+      "lease_start": "2023-01-01",
+      "lease_end": "2025-12-31",
+      "rental_monthly": 32467.66,
+      "rental_per_m2": 386.52,
+      "escalation_pct": null,
+      "tenant_type": "local",
+      "occupancy_compliant": "Emailed",
+      "monthly_turnover": [],
+      "renewal_status": "Lease finalized. Fica outstanding to be loaded."
+    },
+    {
+      "name": "Styling Pizzas Enterprises (Pty) Ltd",
+      "trading_name": "Pantelis Italian Kitchen",
+      "premises": "SHOP 17",
+      "gla_m2": 99.0,
+      "lease_start": null,
+      "lease_end": null,
+      "rental_monthly": null,
+      "rental_per_m2": null,
+      "escalation_pct": null,
+      "tenant_type": "local",
+      "occupancy_compliant": "New Tenant",
+      "monthly_turnover": [],
+      "renewal_status": "Legal - summons served"
+    },
+    {
+      "name": "The Queen Petshop (Pty) Ltd",
+      "trading_name": "The Queen Petshop",
+      "premises": "SHOP 19",
+      "gla_m2": 325.0,
+      "lease_start": "2021-05-01",
+      "lease_end": "2026-04-30",
+      "rental_monthly": 72036.10,
+      "rental_per_m2": 221.65,
+      "escalation_pct": null,
+      "tenant_type": "local",
+      "occupancy_compliant": "Emailed",
+      "monthly_turnover": [],
+      "renewal_status": "Tenant offered R50,000 gross; landlord to keep at current size"
+    },
+    {
+      "name": "Shoprite Checkers (Pty) Ltd",
+      "trading_name": "Checkers",
+      "premises": "MEZZANINE 11",
+      "gla_m2": 500.0,
+      "lease_start": null,
+      "lease_end": null,
+      "rental_monthly": null,
+      "rental_per_m2": null,
+      "escalation_pct": null,
+      "tenant_type": "national",
+      "occupancy_compliant": null,
+      "monthly_turnover": [],
+      "renewal_status": null
+    }
+  ],
+  "lease_expiry_detail": [
+    {
+      "tenant": "Delicious Wan Jia (Pty) Ltd",
+      "trading_name": "Hao Ke Lai",
+      "store": "SHOP 15",
+      "expiry_date": "2025-12-31",
+      "gla_m2": 84,
+      "rental_monthly": 32467.66,
+      "rental_per_m2": 386.52,
+      "budget_rental_per_m2": 157.84,
+      "renewal_status": "Lease finalized. Fica outstanding to be loaded.",
+      "proposed_escalation_pct": null,
+      "counter_escalation_pct": null,
+      "notes": "0-3 months bucket"
+    },
+    {
+      "tenant": "The Queen Petshop (Pty) Ltd",
+      "trading_name": "The Queen Petshop",
+      "store": "SHOP 19",
+      "expiry_date": "2026-04-30",
+      "gla_m2": 325,
+      "rental_monthly": 72036.10,
+      "rental_per_m2": 221.65,
+      "budget_rental_per_m2": 207.44,
+      "renewal_status": "Tenant offered R50,000 gross. Landlord deal to keep at current size.",
+      "proposed_escalation_pct": null,
+      "counter_escalation_pct": null,
+      "notes": "4-6 months bucket. Queens Pet Shop discussed renewal 17 Oct 2025. Size 325m2, Current gross R219/m2, Proposing Gross R153.85/m2 (rates, meter reading)."
+    },
+    {
+      "tenant": "The Meander Pharmacy (Pty) Ltd",
+      "trading_name": "The Meander Pharmacy",
+      "store": "SHOP 01",
+      "expiry_date": "2026-05-31",
+      "gla_m2": 358,
+      "rental_monthly": 81860.12,
+      "rental_per_m2": 228.66,
+      "budget_rental_per_m2": 85.29,
+      "renewal_status": "Renewal offer sent.",
+      "proposed_escalation_pct": null,
+      "counter_escalation_pct": null,
+      "notes": "4-6 months bucket. Options 04/31 - 05/26."
+    },
+    {
+      "tenant": "Shoprite Checkers (Pty) Ltd",
+      "trading_name": "Checkers Liquor",
+      "store": "SHOP 13",
+      "expiry_date": "2026-07-31",
+      "gla_m2": 160,
+      "rental_monthly": 37849.34,
+      "rental_per_m2": 236.56,
+      "budget_rental_per_m2": 229.99,
+      "renewal_status": "Renewal received. Declined CPI escalation and turnover clause that they amended.",
+      "proposed_escalation_pct": null,
+      "counter_escalation_pct": null,
+      "notes": "7-12 months bucket. Options 07/46 - 08/26."
+    },
+    {
+      "tenant": "Bob Group (Pty) Ltd",
+      "trading_name": "Bob Box",
+      "store": "EXH1",
+      "expiry_date": "2026-09-30",
+      "gla_m2": 1,
+      "rental_monthly": 1070.00,
+      "rental_per_m2": 1070.00,
+      "budget_rental_per_m2": 1029.17,
+      "renewal_status": "Renewal concluded. Discussion the 2026 regarding renewal.",
+      "proposed_escalation_pct": null,
+      "counter_escalation_pct": null,
+      "notes": "7-12 months bucket."
+    }
+  ],
+  "income_statement_property": {
+    "period": "YTD Mar 2025 to Dec 2025 (10 months)",
+    "income": {
+      "retail_basic_rental": { "actual": 1778588, "budget": 2371635, "variance": -593047, "variance_pct": -25.0 },
+      "retail_turnover_rental": { "actual": 0, "budget": 41049, "variance": -41049, "variance_pct": -100.0 },
+      "atm_rental": { "actual": 11400, "budget": 15200, "variance": -3800, "variance_pct": -25.0 },
+      "total_retail": { "actual": 1789988, "budget": 2427884, "variance": -637896, "variance_pct": -26.3 },
+      "kiosk_rental": { "actual": 3210, "budget": 4180, "variance": -970, "variance_pct": -23.2 },
+      "parking": { "actual": 7999, "budget": 10666, "variance": -2667, "variance_pct": -25.0 },
+      "air_conditioning": { "actual": 0, "budget": 23028, "variance": -23028, "variance_pct": -100.0 },
+      "legal_fees_recovery": { "actual": 760, "budget": 0, "variance": 760, "variance_pct": 100.0 },
+      "marketing_fund": { "actual": 15849, "budget": 21173, "variance": -5324, "variance_pct": -25.1 },
+      "municipal_electricity": { "actual": 1307054, "budget": 1604447, "variance": -297393, "variance_pct": -18.5 },
+      "municipal_rates": { "actual": 61637, "budget": 85440, "variance": -23803, "variance_pct": -27.9 },
+      "municipal_refuse": { "actual": 50838, "budget": 63736, "variance": -12898, "variance_pct": -20.2 },
+      "municipal_sewerage": { "actual": 49680, "budget": 50920, "variance": -1240, "variance_pct": -2.4 },
+      "municipal_water": { "actual": 65106, "budget": 69672, "variance": -4566, "variance_pct": -6.6 },
+      "total_municipal_charges": { "actual": 1534315, "budget": 1874215, "variance": -339900, "variance_pct": -18.1 },
+      "operating_costs_recovery": { "actual": 92101, "budget": 122570, "variance": -30469, "variance_pct": -24.9 },
+      "meter_readings_recovery": { "actual": 20661, "budget": 27848, "variance": -7187, "variance_pct": -25.8 },
+      "generator_charges": { "actual": 0, "budget": 18061, "variance": -18061, "variance_pct": -100.0 },
+      "interest": { "actual": 5009, "budget": 0, "variance": 5009, "variance_pct": 100.0 },
+      "total_income": { "actual": 3469893, "budget": 4529625, "variance": -1059732, "variance_pct": -23.4 }
+    },
+    "annual_income": {
+      "rfc": 5829130,
+      "budget": 6888862,
+      "variance": -1059732,
+      "variance_pct": -15.4
+    },
+    "expenses": {
+      "solar_service_contract": { "actual": -11713, "budget": 0, "variance": -11713, "variance_pct": -100.0 },
+      "contract_cleaning": { "actual": -47904, "budget": -63872, "variance": 15968, "variance_pct": 25.0 },
+      "consumables": { "actual": -13916, "budget": -13012, "variance": -904, "variance_pct": -6.9 },
+      "hygienic_service": { "actual": -762, "budget": -1016, "variance": 254, "variance_pct": 25.0 },
+      "pest_control": { "actual": -1827, "budget": -2436, "variance": 609, "variance_pct": 25.0 },
+      "insurance_combined": { "actual": -41727, "budget": -46792, "variance": 5065, "variance_pct": 10.8 },
+      "letting_commission": { "actual": 0, "budget": -20475, "variance": 20475, "variance_pct": 100.0 },
+      "managing_agent_fee": { "actual": -103639, "budget": -145859, "variance": 42220, "variance_pct": 28.9 },
+      "advertising": { "actual": -20344, "budget": -21176, "variance": 832, "variance_pct": 3.9 },
+      "electricity": { "actual": -391818, "budget": -1133715, "variance": 741897, "variance_pct": 65.4 },
+      "electricity_solar": { "actual": 0, "budget": -72349, "variance": 72349, "variance_pct": 100.0 },
+      "electricity_accrual": { "actual": -537008, "budget": 0, "variance": -537008, "variance_pct": -100.0 },
+      "total_electricity": { "actual": -928826, "budget": -1206064, "variance": 277238, "variance_pct": 23.0 },
+      "rates": { "actual": -247369, "budget": -250684, "variance": 3315, "variance_pct": 1.3 },
+      "refuse_expense": { "actual": -4188, "budget": -4164, "variance": -24, "variance_pct": -0.6 },
+      "refuse_contract": { "actual": -36807, "budget": -58020, "variance": 21213, "variance_pct": 36.6 },
+      "total_refuse": { "actual": -40995, "budget": -62184, "variance": 21189, "variance_pct": 34.1 },
+      "sewerage": { "actual": -44246, "budget": -69752, "variance": 25506, "variance_pct": 36.6 },
+      "sewer_accrual": { "actual": -20371, "budget": 0, "variance": -20371, "variance_pct": -100.0 },
+      "total_sewerage": { "actual": -64617, "budget": -69752, "variance": 5135, "variance_pct": 7.4 },
+      "water": { "actual": -59492, "budget": -96767, "variance": 37275, "variance_pct": 38.5 },
+      "water_accrual": { "actual": -27360, "budget": 0, "variance": -27360, "variance_pct": -100.0 },
+      "total_water": { "actual": -86852, "budget": -96767, "variance": 9915, "variance_pct": 10.2 },
+      "municipal_charges_other": { "actual": -2510, "budget": 0, "variance": -2510, "variance_pct": -100.0 },
+      "air_conditioning_service": { "actual": 0, "budget": -23831, "variance": 23831, "variance_pct": 100.0 },
+      "doors_windows": { "actual": 0, "budget": -800, "variance": 800, "variance_pct": 100.0 },
+      "electrical_repairs": { "actual": 0, "budget": -10832, "variance": 10832, "variance_pct": 100.0 },
+      "security_equipment": { "actual": -700, "budget": -1463, "variance": 763, "variance_pct": 52.2 },
+      "equipment_other": { "actual": 0, "budget": -5000, "variance": 5000, "variance_pct": 100.0 },
+      "fire_equipment_repair": { "actual": -6201, "budget": -3921, "variance": -2280, "variance_pct": -58.1 },
+      "total_equipment": { "actual": -6901, "budget": -10384, "variance": 3483, "variance_pct": 33.5 },
+      "gardening_contracts": { "actual": -9535, "budget": -12712, "variance": 3177, "variance_pct": 25.0 },
+      "landscaping": { "actual": 0, "budget": -17700, "variance": 17700, "variance_pct": 100.0 },
+      "total_horticulture": { "actual": -9535, "budget": -30412, "variance": 20877, "variance_pct": 68.6 },
+      "locks_and_keys": { "actual": 0, "budget": -1600, "variance": 1600, "variance_pct": 100.0 },
+      "general_repair_maintenance": { "actual": 0, "budget": -4000, "variance": 4000, "variance_pct": 100.0 },
+      "painting": { "actual": 0, "budget": -2400, "variance": 2400, "variance_pct": 100.0 },
+      "plumbing_repairs": { "actual": -27448, "budget": -8000, "variance": -19448, "variance_pct": -243.1 },
+      "roads_and_fences": { "actual": 0, "budget": -22240, "variance": 22240, "variance_pct": 100.0 },
+      "generators": { "actual": 0, "budget": -18061, "variance": 18061, "variance_pct": 100.0 },
+      "transformers": { "actual": 0, "budget": -5533, "variance": 5533, "variance_pct": 100.0 },
+      "waterproofing": { "actual": 0, "budget": -4000, "variance": 4000, "variance_pct": 100.0 },
+      "signage": { "actual": 0, "budget": -2544, "variance": 2544, "variance_pct": 100.0 },
+      "gutter_cleaning": { "actual": 0, "budget": -5000, "variance": 5000, "variance_pct": 100.0 },
+      "contract_security": { "actual": -157441, "budget": -209584, "variance": 52143, "variance_pct": 24.9 },
+      "meter_reading": { "actual": -21694, "budget": -27548, "variance": 5854, "variance_pct": 21.2 },
+      "total_expenses": { "actual": -1836019, "budget": -2386858, "variance": 550839, "variance_pct": 23.1 }
+    },
+    "net_income_after_expenses": { "actual": 1633874, "budget": 2142767, "variance": -508893, "variance_pct": -23.7 },
+    "other_expenses": {
+      "audit_fees_external": { "actual": 0, "budget": 0, "variance": 0 },
+      "bank_charges": { "actual": -261, "budget": 0, "variance": -261, "variance_pct": -100.0 },
+      "repairs_maintenance_capex": { "actual": -237166, "budget": -545000, "variance": 307834, "variance_pct": 56.5 },
+      "asset_management_fee": { "actual": -60500, "budget": -112332, "variance": 51832, "variance_pct": 46.1 },
+      "total_other_expenses": { "actual": -297927, "budget": -657332, "variance": 359405, "variance_pct": 54.7 }
+    },
+    "other_income": {
+      "interest_received_bank": { "actual": 62155, "budget": 0, "variance": 62155, "variance_pct": 100.0 },
+      "total_other_income": { "actual": 62155, "budget": 0, "variance": 62155, "variance_pct": 100.0 }
+    },
+    "gross_rental": { "actual": 1789988, "budget": 2427884, "variance": -637896 },
+    "other_income_total": { "actual": 1679905, "budget": 2101741, "variance": -421836 },
+    "total_income": { "actual": 3469893, "budget": 4529625, "variance": -1059732 },
+    "operating_expenses": { "actual": -1836019, "budget": -2386858, "variance": 550839 },
+    "NOI": { "actual": 1633874, "budget": 2142767, "variance": -508893 },
+    "finance_costs": { "actual": null, "budget": null, "variance": null },
+    "net_income_after_finance": { "actual": null, "budget": null, "variance": null },
+    "distributions": { "actual": null, "budget": null, "variance": null },
+    "capex": { "actual": -237166, "budget": -545000, "variance": 307834 },
+    "net_retained": { "actual": 1398102, "budget": 1485435, "variance": -87333 },
+    "net_income_final": { "actual": 1398102, "budget": 1485435, "variance": -87333, "variance_pct": -5.9 },
+    "annual": {
+      "rfc_net_income": 2337313,
+      "budget_net_income": 2246133,
+      "variance": 91180,
+      "variance_pct": 4.1
+    }
+  },
+  "cashflow_property": {
+    "receipts_ytd": null,
+    "payments_ytd": null,
+    "net_ytd": null,
+    "quarterly_projection": [],
+    "_financials_notes": {
+      "bank_balance_18_nov_2025": 1901753.69,
+      "deposit_held_by_landlord": 443609.40,
+      "landlord_distribution_november_2025": 600000.00,
+      "electricity_accrual_standing": 3990843.07,
+      "electricity_accrual_september_2025": 4261678.57
+    }
+  },
+  "budget_variance": {
+    "revenue": { "actual": 3469893, "budget": 4529625, "variance": -1059732, "variance_pct": -23.4 },
+    "opex": { "actual": -1836019, "budget": -2386858, "variance": 550839, "variance_pct": 23.1 },
+    "NOI": { "actual": 1633874, "budget": 2142767, "variance": -508893, "variance_pct": -23.7 }
+  },
+  "capex_maintenance": {
+    "projects": [
+      {
+        "description": "Abnormal/Capex - 2x 20,000L water tanks, painting, repair paving",
+        "budget": 545000,
+        "actual": 237166,
+        "status": "Active",
+        "category": "capex",
+        "_notes": "R210,000 water tanks, R295,000 painting, R250,000 repair paving. Nov 2025: Accruals raised for R85,016 back up water tanks. Dec 2025: 80% deposit R68,012.80 back up water, R76,075 50% deposit maintenance on paving interlockers. Remainder 50% R76,075."
+      },
+      {
+        "description": "Paving in parking area - Barco Projects",
+        "budget": null,
+        "actual": null,
+        "status": "Approved, starting 12/2025",
+        "category": "maintenance",
+        "_notes": "Barco Projects R184,240.33 excl VAT; IMS Maintenance R202,787.50 excl VAT; Chaos Projects R152,150.00 excl VAT (approved)"
+      },
+      {
+        "description": "Painting of the centre - tiles sourced from Union Tile",
+        "budget": null,
+        "actual": null,
+        "status": "On hold - contractor closure",
+        "category": "maintenance"
+      },
+      {
+        "description": "Back up water tank with filter system",
+        "budget": null,
+        "actual": null,
+        "status": "In progress",
+        "category": "capex",
+        "_notes": "Chaos R98,750; K-Plumbing R85,016 (Costing Approved). 20,000L. Council supply to fill. Only back up for bathrooms."
+      },
+      {
+        "description": "Fire Escape Staircase - rusted platform",
+        "budget": null,
+        "actual": null,
+        "status": "Design being finalized",
+        "category": "maintenance",
+        "_notes": "Trench drain proposed to stop tenant water spill onto platform."
+      },
+      {
+        "description": "Centre Signage repair - cable fault",
+        "budget": null,
+        "actual": null,
+        "status": "Under investigation",
+        "category": "maintenance"
+      },
+      {
+        "description": "Front retaining wall cladding",
+        "budget": null,
+        "actual": null,
+        "status": "Budgeted for 2026/27",
+        "category": "maintenance"
+      }
+    ],
+    "deferred_maintenance": [
+      {
+        "description": "Floor coating - epoxy or tiles, sample section in February",
+        "estimated_cost": null,
+        "priority": "medium"
+      },
+      {
+        "description": "Creepers/Facade tile - wire installation against water damaged wall; abstract tile design investigated",
+        "estimated_cost": null,
+        "priority": "medium"
+      },
+      {
+        "description": "Council lights - cable from upper Platina Road over the bridge, 32 lights",
+        "estimated_cost": null,
+        "priority": "low"
+      }
+    ]
+  },
+  "solar_pv": {
+    "has_solar": true,
+    "system_kwp": null,
+    "commissioning_date": null,
+    "monthly_production": [
+      {
+        "month": "December 2025",
+        "total_power_consumption_mwh": 106.88,
+        "solar_production_mwh": 34.83,
+        "target_kwh": null,
+        "actual_kwh": 34830
+      }
+    ],
+    "prior_year_performance": {
+      "year": 2024,
+      "total_consumption_mwh": 118.41,
+      "solar_production_mwh": 39.74
+    },
+    "savings_ytd": {
+      "actual": null,
+      "projected": null
+    },
+    "cumulative_savings": null,
+    "insurance_sum_insured": 3625000.00,
+    "insurance_annual_premium": 29689.32,
+    "insurance_monthly": 2474.11,
+    "service_contract": {
+      "provider": "Matriarch Solar",
+      "monthly_cost": null,
+      "ppa_status": "PPA not finalized. Budget from August 2025 for PPA."
+    },
+    "o_and_m_logbook": [
+      "All systems and strings are functioning correctly",
+      "Solar policy R2474.11",
+      "Building insurance R11,434.93, budget based on solar moving over to PPA from July 2025"
+    ]
+  },
+  "security": {
+    "provider": "Quatro Security",
+    "monthly_cost": 51812.90,
+    "contract_period": "12 Months",
+    "commencement": "Feb 2025",
+    "expiry": "Jan 2026",
+    "patrol_completion_pct": null,
+    "tag_scan_pct": null,
+    "incidents": [
+      {
+        "date": "2025-12-04",
+        "time": "14:49",
+        "description": "Medical emergency. Security Officer from Checkers collapsed.",
+        "action": "Client informed"
+      }
+    ],
+    "guard_details": {
+      "manpower": [
+        "SEC1690 - Mokgosi M (C/U)",
+        "SEC6784 - Thapeane Makalo P (C/U)",
+        "SEC6191 - Mafuyeka K (B/U)",
+        "SEC8507 - Chauke S (C/U)",
+        "SEC9426 - Dumakude S (C/U)",
+        "SEC9427 - Makondo H (C/U)",
+        "SEC9675 - Mabapa P (C/U)"
+      ],
+      "officer_turnover": "N/A",
+      "disciplinary_issues": "N/A",
+      "recruitment_ongoing": true,
+      "panic_button_status": "Faulty"
+    },
+    "night_visit": {
+      "date": "2025-12-28",
+      "completed_by": "Karel Jooste",
+      "security_guard_name": "Siyanda Dumakude",
+      "uniform": "Yes",
+      "handheld_radios": "2x Radio",
+      "torches": "1x Torch",
+      "batons": "2x Battons",
+      "site_device": "Active",
+      "gates_booms": "Locked and closed",
+      "key_control_issue": "Key control and locks are an issue"
+    },
+    "visits_december": {
+      "inspector": 2,
+      "area_manager": 0,
+      "regional_manager": 0,
+      "total": 2
+    },
+    "contractors_on_site_december": [
+      { "date": "2025-12-01", "time": "10:00", "contractor": "IBR Fire", "reason": "Servicing Fire Panel" },
+      { "date": "2025-12-02", "time": "07:25", "contractor": "Contractor Hi Pardai", "reason": "Fixing tiles" },
+      { "date": "2025-12-04", "time": "12:00", "contractor": "Lokissa", "reason": "DB Box inspection" },
+      { "date": "2025-12-04", "time": "12:34", "contractor": "K Plumbing", "reason": "To check Jojo tank space" }
+    ]
+  },
+  "service_providers": {
+    "security": { "provider": "Quatro Security", "notice": "60 Day notice sent 01/01/2026" },
+    "cleaning": { "provider": "Quatro Cleaning Services", "notice": "60 Day notice sent 01/01/2026" },
+    "waste_management": { "provider": "Waste co.", "notice": "60 Day notice sent 01/01/2026" },
+    "car_park_assistance": { "provider": "Quatro Security", "notice": "60 Day notice sent 01/01/2026" },
+    "gardening": { "provider": "Quatro Horticulture", "status": "Service rendered satisfactory" }
+  },
+  "contracts_schedule": [
+    { "contract": "Cleaning Services", "supplier": "Quatro Cleaning", "start": "Mar 25", "expiry": "Feb 26", "period": "12 Months", "monthly_amount": 15968.00, "broll_order": "1303811", "status": "Completed" },
+    { "contract": "Pest Control Services", "supplier": "Quatro Cleaning", "start": "Mar 25", "expiry": "Feb 26", "period": "12 Months", "monthly_amount": 609.00, "broll_order": "1303815", "status": "Completed" },
+    { "contract": "Hygiene Services", "supplier": "Quatro Cleaning", "start": "Mar 25", "expiry": "Feb 26", "period": "12 Months", "monthly_amount": 254.00, "broll_order": "1303817", "status": "Completed" },
+    { "contract": "Security Services", "supplier": "Quatro Security", "start": "Feb 25", "expiry": "Jan 26", "period": "12 Months", "monthly_amount": 51812.90, "broll_order": "1323286", "status": "Completed" },
+    { "contract": "Meter Reading Services", "supplier": "Remote Metering Solution", "start": "Jun 25", "expiry": "May 26", "period": "12 Months", "monthly_amount": 6887.13, "broll_order": "1329699", "status": "Completed" },
+    { "contract": "Airconditioning Service", "supplier": "HVAC Engineering", "start": "Mar 25", "expiry": "Feb 26", "period": "12 Months", "monthly_amount": 10862.25, "broll_order": null, "status": "Awaiting Approval" },
+    { "contract": "Landscaping Services", "supplier": "Quatro Horticulture", "start": "Mar 25", "expiry": "Oct 25", "period": "1 Month", "monthly_amount": 3178.17, "broll_order": "1339925", "status": "Cession TBC" },
+    { "contract": "Refuse Services", "supplier": "Elcontrol", "start": "Jul 25", "expiry": "Jun 26", "period": "1 Month", "monthly_amount": 11259.39, "broll_order": "1348005", "status": "Cession TBC" },
+    { "contract": "Marketing Services", "supplier": "Emerge", "start": "Mar 25", "expiry": "Feb 26", "period": "12 Months", "monthly_amount": 3726.24, "broll_order": "1313000", "status": "Completed" },
+    { "contract": "Consumable Service", "supplier": "Quatro Cleaning", "start": "Mar 25", "expiry": "Feb 26", "period": "12 Months", "monthly_amount": 3253.00, "broll_order": "1303820", "status": "Completed" }
+  ],
+  "schedule_of_accruals": {
+    "current_assets": {
+      "total": 90016.42,
+      "sundry_debtors": {
+        "total": 59766.42,
+        "rms_prepaid_electricity_nov_2025": 59766.42
+      },
+      "prepayments": {
+        "total": 30250.00,
+        "asset_management_fee_jan_2026": 30250.00
+      }
+    },
+    "current_liabilities": {
+      "total": -899987.00,
+      "current_accruals": {
+        "total": -899987.00,
+        "solar_service_contract": -11712.81,
+        "cleaning_materials": -8312.32,
+        "hygienic_service_contract": -508.00,
+        "fumigation": -1827.00,
+        "insurance_combined": -13909.04,
+        "advertising": -11178.72,
+        "electricity_accrual": -537007.53,
+        "refuse_contract": -21856.18,
+        "sewer_accrual": -20371.36,
+        "water_accrual": -27359.56,
+        "fire_equipment_repair": -4094.97,
+        "gardening_contracts": -3178.17,
+        "plumbing_repairs": -25158.00,
+        "contract_security": -105627.80,
+        "meter_reading": -14807.34,
+        "abnormal_capex": -93078.20
+      }
+    }
+  },
+  "rent_roll": {
+    "period": "21 November 2025 to 12 December 2025",
+    "tenants": [
+      {
+        "tenant": "3AT1 Jukskei Park",
+        "balance_21_nov": 0,
+        "retail_rental": 18222,
+        "other_rental": 417,
+        "operating_costs": 3037,
+        "parking": 0,
+        "electricity": 1525,
+        "rates": 873,
+        "refuse": 591,
+        "water_sewerage": 1498,
+        "other_recoveries": 77,
+        "bad_debts": 0,
+        "lease_fees": 0,
+        "tenant_deposits": 3082,
+        "total_charges": 29323,
+        "vat": 3925,
+        "receipts": -33247,
+        "balance_12_dec": 0
+      },
+      {
+        "tenant": "Bob Box",
+        "balance_21_nov": 0,
+        "retail_rental": 0,
+        "other_rental": 1210,
+        "total_charges": 1710,
+        "vat": 257,
+        "receipts": -1150,
+        "balance_12_dec": 817
+      },
+      {
+        "tenant": "Checkers",
+        "balance_21_nov": 0,
+        "retail_rental": 297117,
+        "operating_costs": 0,
+        "parking": 0,
+        "electricity": 331948,
+        "rates": 1595,
+        "refuse": 6184,
+        "water_sewerage": 17566,
+        "total_charges": 654411,
+        "vat": 98162,
+        "receipts": -752573,
+        "balance_12_dec": 0
+      },
+      {
+        "tenant": "Checkers Liquor",
+        "balance_21_nov": -37956,
+        "retail_rental": 37223,
+        "electricity": 28065,
+        "rates": 126,
+        "refuse": 2591,
+        "water_sewerage": 666,
+        "total_charges": 69161,
+        "vat": 10374,
+        "receipts": -79535,
+        "balance_12_dec": -37956
+      },
+      {
+        "tenant": "Cupids Arrow",
+        "balance_21_nov": 0,
+        "retail_rental": 22738,
+        "other_rental": 535,
+        "operating_costs": 2456,
+        "electricity": 1525,
+        "rates": 752,
+        "refuse": 650,
+        "water_sewerage": 1997,
+        "total_charges": 30652,
+        "vat": 4598,
+        "receipts": -35250,
+        "balance_12_dec": 0
+      },
+      {
+        "tenant": "Hao Ke Lai",
+        "balance_21_nov": 0,
+        "retail_rental": 25726,
+        "other_rental": 572,
+        "operating_costs": 3087,
+        "electricity": 1507,
+        "rates": 1114,
+        "refuse": 2485,
+        "water_sewerage": 2147,
+        "total_charges": 36639,
+        "vat": 5496,
+        "receipts": -42135,
+        "balance_12_dec": 0
+      },
+      {
+        "tenant": "Kusini Water",
+        "balance_21_nov": 104162,
+        "total_charges": 1106,
+        "receipts": 0,
+        "balance_12_dec": 105267
+      },
+      {
+        "tenant": "Moroccan Cut Barber",
+        "balance_21_nov": 0,
+        "retail_rental": 24057,
+        "operating_costs": 3281,
+        "electricity": 1525,
+        "rates": 631,
+        "refuse": 1745,
+        "water_sewerage": 2064,
+        "total_charges": 33302,
+        "vat": 4995,
+        "receipts": -38297,
+        "balance_12_dec": 0
+      },
+      {
+        "tenant": "Nedbank ATM",
+        "balance_21_nov": 2214,
+        "operating_costs": 2289,
+        "other_rental": 3800,
+        "total_charges": 6089,
+        "vat": 913,
+        "receipts": -7002,
+        "balance_12_dec": 2214
+      },
+      {
+        "tenant": "Nibbly Bits Cape",
+        "balance_21_nov": 0,
+        "retail_rental": 20400,
+        "operating_costs": 2560,
+        "electricity": 1525,
+        "rates": 1964,
+        "refuse": 604,
+        "water_sewerage": 1881,
+        "total_charges": 28925,
+        "vat": 4338,
+        "receipts": -33264,
+        "balance_12_dec": 0
+      },
+      {
+        "tenant": "Pantelis Italian Kitchen",
+        "balance_21_nov": 176995,
+        "retail_rental": 18454,
+        "other_rental": 533,
+        "operating_costs": 2847,
+        "electricity": 1777,
+        "rates": 835,
+        "refuse": 4129,
+        "water_sewerage": 1371,
+        "other_recoveries": 1707,
+        "total_charges": 31452,
+        "vat": 4462,
+        "receipts": 0,
+        "balance_12_dec": 212910
+      },
+      {
+        "tenant": "Remote Metering Solutions",
+        "balance_21_nov": 1000,
+        "total_charges": 0,
+        "receipts": 0,
+        "balance_12_dec": 1000
+      },
+      {
+        "tenant": "The Meander Pharmacy",
+        "balance_21_nov": 86487,
+        "retail_rental": 61016,
+        "other_rental": 631,
+        "operating_costs": 13559,
+        "electricity": 6425,
+        "rates": 1320,
+        "refuse": 4491,
+        "water_sewerage": 861,
+        "other_recoveries": 474,
+        "tenant_deposits": -155912,
+        "total_charges": 88776,
+        "vat": 13245,
+        "receipts": -101547,
+        "balance_12_dec": 86961
+      },
+      {
+        "tenant": "The Queen Petshop",
+        "balance_21_nov": 156771,
+        "retail_rental": 68161,
+        "operating_costs": 0,
+        "electricity": 3014,
+        "rates": 1068,
+        "refuse": 4914,
+        "water_sewerage": 861,
+        "tenant_deposits": -77894,
+        "total_charges": 0,
+        "vat": 11703,
+        "receipts": -90579,
+        "balance_12_dec": 0
+      }
+    ],
+    "rent_roll_total": {
+      "balance_21_nov": 489672,
+      "retail_rental": 593614,
+      "other_rental": 5010,
+      "rebates_remission": 2688,
+      "operating_costs": 30816,
+      "parking": 0,
+      "electricity": 362302,
+      "rates": 20546,
+      "refuse": 17131,
+      "water_sewerage": 37830.64,
+      "other_recoveries": 12680,
+      "other_income": -152548,
+      "bad_debts": 0,
+      "lease_fees": 500,
+      "tenant_deposits": 3082,
+      "total_charges": 933651,
+      "vat": 162468,
+      "receipts": -1214580,
+      "balance_12_dec": 371212
+    },
+    "balance_per_income_statement": {
+      "income": -593614,
+      "shortfall": -30816,
+      "other": -422068,
+      "expenses": -20546,
+      "net": -37831,
+      "deposit": -12680,
+      "interest": -4223
+    },
+    "journal_adjustments": 156771,
+    "_notes": [
+      "Other rental accounts include: 6000604 (ATM rental), 6000634 (Kiosk Rental)",
+      "Other recovery accounts include: 6020600 (Legal fees), 6021300 (Marketing Fund), 6023200 (Meter Readings)",
+      "Other income accounts include: 5000200 (Tenant Deposit - Take on balance), 6030400 (Interest)",
+      "Tenant deposits and lease fees are transferred to the balance sheet"
+    ]
+  },
+  "legal_matters": [
+    {
+      "tenant": "Kusini Water",
+      "status": "Not yet allocated",
+      "arrears_from": "June 2022",
+      "amount": 100962.10,
+      "action": "Awaiting Court date to make settlement an Order of Court."
+    }
+  ],
+  "operational_notes": {
+    "key_issues": [
+      "Centre signage cable fault causing breaker trips and sign damage at pharmacy and on the hill",
+      "Council lights inactive - cable feeding from upper Platina Road, 32 lights, Municipal Solutions assisting",
+      "Paving in parking area project starting Dec 2025: Chaos Projects R152,150 excl VAT (approved)",
+      "Painting of centre on hold due to contractor closure - tiles from Union Tile TAI 6S26A-S and 6S24A-S",
+      "Fire escape staircase platform rusted; trench drain being designed",
+      "Creepers planted against water damaged wall; abstract tile design being investigated",
+      "Back up water tank 20,000L being installed - Chaos R98,750; K-Plumbing R85,016 approved",
+      "Electricity accrual standing at R3,990,843.07; current accrual for September 2025 R4,261,678.57",
+      "Council informed Eckard to log a call why meter is not sending kVArh readings (COJ ref CP3294883)",
+      "60-day notices sent to all service providers on 01/01/2026",
+      "Queens Pet Shop renewal negotiations - tenant wants to reduce size, offered R50,000 gross vs current R219/m2",
+      "Pantelis Italian Kitchen arrears R212,909 - summons served by sheriff, has till 2 Dec to settle",
+      "Kusini Water R105,267 arrears - awaiting court date for settlement order",
+      "Key control and locks identified as security issue during night visit",
+      "Panic button is faulty",
+      "Cleanliness in public ablutions not up to standard",
+      "OHS audit not done - no date for last or next audit",
+      "Insurance claim active: slip and fall incident, in progress with legal"
+    ],
+    "action_items": [
+      "CVDB: Send Queens Pet Shop renewal options for approval",
+      "CVDB: Follow up on Kusini Water settlement order",
+      "CVDB/NB: Meeting with Pantelis Kitchen tenant 21 November",
+      "KJ: Centre signage main switch to be disconnected and moved to building",
+      "KJ: Council lights follow-up with Municipal Solutions",
+      "KJ: Paving project commencement in December 2025",
+      "KJ: Painting tender to be sent again for tiles",
+      "KJ: Fire escape staircase trench drain design to be finalized",
+      "KJ: Creepers/facade tile investigation and costing",
+      "KJ: Back up water tank filter selection with contractor",
+      "CVDB: Marketing Q4 approved R5,439",
+      "CVDB: PM site visit 19 November 2025",
+      "Management meeting schedule for 2026 to be sent for approval"
+    ],
+    "manager_recommendation": null
+  },
+  "variances": {
+    "net_income_entity_vs_property": {
+      "source_a": "property_management_report",
+      "source_b": "entity_gl_management_accounts",
+      "source_a_value": 1398102,
+      "source_b_value": 6398919.80,
+      "difference": -5000817.80,
+      "explanation": "PDF net income (YTD actual) is R1,398,102 from the Broll income statement. GL ebitda_recurring (10m YTD) is R-6,398,919.80 (GL sign convention: negative = profit, so absolute = R6,398,919.80). The R5.0M difference is mainly explained by: (1) the GL includes revenues and costs handled at entity level (e.g. property management fees R237,989, direct utility costs in COGS R1,774,376) that do not flow through the Broll property I/S, (2) GL recognizes full entity-level opex (legal fees R335,550, ad-hoc R844,828, finance charges R2,513,706 -- the latter excluded from ebitda_recurring), (3) different recognition timing due to the Broll report running to 12 Dec vs GL monthly cut-offs, and (4) the asset management fee is R60,500 in Broll vs R73,185 in GL. The Broll report is a property-level management view; the GL is the full entity view."
+    },
+    "revenue_report_vs_gl": {
+      "source_a": "property_management_report",
+      "source_b": "entity_gl_management_accounts",
+      "source_a_value": 3469893,
+      "source_b_value": 5381796.00,
+      "difference": -1911903.00,
+      "explanation": "PDF total income (YTD) is R3,469,893 from Broll income statement pg 2. GL gross_profit (10m) is R-5,381,796.00 (absolute R5,381,796). Difference of R1.9M is explained by: (1) GL revenue includes all recovery streams and COS netting (e.g. GL total revenue is R7,156,172 less COGS R1,774,376 = R5,381,796 gross profit), while Broll bundles recoveries and costs differently in their property-level format, (2) GL captures entity-level items (solar sales R2,720,420, municipal electricity prepaid R323,725, other income R41,729) that are not in the Broll property I/S, (3) timing differences in the 10-month cut-off."
+    },
+    "insured_vs_book": {
+      "source_a": "building_sum_insured",
+      "source_b": "afs_investment_property",
+      "source_a_value": 91375000,
+      "source_b_value": 75127871,
+      "difference": 16247129,
+      "explanation": "Building sum insured R91,375,000 from Dec 2025 insurance schedule. AFS investment property R75,127,871 as at Feb 2025 year end (per reviewed AFS). The insured value exceeds book value by R16.2M (21.6% over-insured relative to AFS carrying value). Note: the AFS value was written down from R90M to R75.1M at Feb 2025 year end due to a R14.9M fair value adjustment. The insurance was not adjusted downward to match. Also, the property was sold during the current FY for R72.6M (per GL sale of property account), so the insurance was evidently set before the revaluation and sale."
+    }
+  },
+  "derived_signals": {
+    "vacancy_rate": 0.0,
+    "collections_efficiency": 55.0,
+    "trading_density": 6311.50,
+    "property_net_income_monthly": 139810.20,
+    "lease_expiry_concentration_12m": 26.93,
+    "insurance_vs_book_ratio": 1.216,
+    "utility_recovery_composite": 88.4,
+    "has_solar_pv": true,
+    "has_active_capex": true,
+    "national_tenant_pct": 48.82,
+    "anchor_count": 1,
+    "weighted_escalation": null,
+    "_calculation_notes": {
+      "vacancy_rate": "0 m2 vacant / 3446 m2 total GLA = 0.0%",
+      "collections_efficiency": "6 out of 11 tenants making full payments = 55%; payment profile: 55% full, 27% short, 9% legal, 9% arrangements",
+      "trading_density": "Centre average monthly trading density R6,311.50/m2 (from executive summary R6,299.47 annual average; R6,387 stated in turnover section heading)",
+      "property_net_income_monthly": "YTD net income R1,398,102 / 10 months = R139,810.20 per month",
+      "lease_expiry_concentration_12m": "927 m2 expiring within 12 months / 3446 m2 total GLA = 26.93% (5 leases: Hao Ke Lai 84m2, Queens Pet Shop 325m2, Meander Pharmacy 358m2, Checkers Liquor 160m2 -- noting Bob Box 1m2 is negligible)",
+      "insurance_vs_book_ratio": "R91,375,000 insured / R75,127,871 AFS book value = 1.216 (21.6% over-insured)",
+      "utility_recovery_composite": "Weighted average of recovery percentages: electricity 141%, rates 25%, refuse 124%, sewer 77%, water 75%. Using equal weighting: (141+25+124+77+75)/5 = 88.4%. Rates drag overall recovery substantially below 100%.",
+      "has_solar_pv": "Yes - solar PV system operational, 34.83 MWh produced in December 2025",
+      "has_active_capex": "Yes - R237,166 spent YTD of R545,000 budget for water tanks, painting, paving",
+      "national_tenant_pct": "National tenants (Checkers 1522m2 + Checkers Liquor 160m2 + Nedbank ATM 9m2 - note Checkers Mezzanine 500m2 counted above) = 1682m2 / 3446m2 = 48.82%. Using occupancy certificates: Checkers Shop 11 = 1522m2, Checkers Mezzanine 11 = 500m2, Checkers Liquor Shop 13 = 160m2, Nedbank ATM = 9m2 = total 2191m2 but mezzanine is included in total GLA.",
+      "anchor_count": "1 anchor: Shoprite/Checkers (Shop 11 + Mezzanine 11 = 1522+500=2022m2; plus Shop 13 Checkers Liquor 160m2). Nedbank is an ATM only, not an anchor.",
+      "weighted_escalation": "Cannot compute - individual escalation rates not disclosed in the management pack for most tenants. Queens Pet Shop renewal mentions 7% escalation (budget 6%). Kiosk rental escalated at 7% (budget 6%). Insufficient data for weighted average."
+    }
+  }
+}

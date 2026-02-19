@@ -383,11 +383,212 @@ def analyse_bs_trajectory(mgmt_data: dict) -> dict:
     }
 
 
+def analyse_mgmt_report(mr_data: dict) -> dict:
+    """Analyse a Broll/Retail Africa property management report JSON.
+
+    Input: full *_mgmt_report_structured.json dict
+    Returns dict with quality_score (0-10), quality_flags, and all derived signals.
+    """
+    ds = mr_data.get("derived_signals", {})
+    fs = mr_data.get("financial_summary", {})
+    ls = mr_data.get("leasing_summary", {})
+    ao = mr_data.get("arrears_overview", {})
+    sp = mr_data.get("solar_pv", {})
+    cm = mr_data.get("capex_maintenance", {})
+    isp = mr_data.get("income_statement_property", {})
+    var = mr_data.get("variances", {})
+    pd = mr_data.get("property_details", {})
+
+    # Extract key signals (prefer derived_signals, fallback to source sections)
+    vacancy = ds.get("vacancy_rate") if ds.get("vacancy_rate") is not None else ls.get("vacancy_rate_pct")
+    collections = ds.get("collections_efficiency") if ds.get("collections_efficiency") is not None else ao.get("collections_pct")
+    trading_density = ds.get("trading_density") if ds.get("trading_density") is not None else (mr_data.get("turnover_summary") or {}).get("trading_density_per_m2")
+    national_pct = ds.get("national_tenant_pct")
+    lease_12m = ds.get("lease_expiry_concentration_12m")
+    has_solar = bool(ds.get("has_solar_pv")) if ds.get("has_solar_pv") is not None else bool(sp.get("has_solar"))
+    has_capex = bool(ds.get("has_active_capex"))
+    utility_composite = ds.get("utility_recovery_composite")
+    anchor_count = ds.get("anchor_count", 0)
+    weighted_esc = ds.get("weighted_escalation")
+
+    # Adjusted collections: strip arrears from tenants in eviction/liquidation/absconded
+    # and deposit/BG-related entries that are not genuine non-collection.
+    collections_adjusted = collections
+    eviction_arrears = 0
+    deposit_arrears = 0
+    arrears_detail = mr_data.get("arrears_detail", [])
+    if arrears_detail and collections is not None:
+        arrears_total = _sf(ao.get("total")) or 0
+        for ad in arrears_detail:
+            status = (ad.get("status") or "").lower()
+            action = (ad.get("action") or "").lower()
+            combined = status + " " + action
+            amt = _sf(ad.get("amount")) or 0
+            if any(kw in combined for kw in
+                   ["evict", "liquidat", "abscond", "summons", "cancell"]):
+                eviction_arrears += amt
+            elif any(kw in combined for kw in
+                     ["deposit only", "deposit included", "deposit outstanding",
+                      "bg to be amended", "bg amendment", "amended bg",
+                      "relates to deposit", "bank guarantee"]):
+                deposit_arrears += amt
+        non_genuine = eviction_arrears + deposit_arrears
+        if non_genuine > 0 and arrears_total > 0:
+            # collections_adjusted removes non-genuine arrears from the shortfall
+            # shortfall% = 100 - collections; genuine_shortfall = shortfall * (1 - non_genuine/total)
+            shortfall_pct = 100 - collections
+            genuine_ratio = max(1 - non_genuine / arrears_total, 0)
+            collections_adjusted = min(100 - shortfall_pct * genuine_ratio, 100.0)
+
+    # Property-level net income
+    net_income_ytd = None
+    if isinstance(fs.get("net_income_ytd"), dict):
+        net_income_ytd = _sf(fs["net_income_ytd"].get("actual"))
+    elif isinstance(isp.get("net_income_after_finance"), dict):
+        net_income_ytd = _sf(isp["net_income_after_finance"].get("actual"))
+    property_net_monthly = ds.get("property_net_income_monthly")
+    if property_net_monthly is None and net_income_ytd:
+        rp = mr_data.get("metadata", {}).get("reporting_period", {})
+        months = rp.get("months", 10) or 10
+        property_net_monthly = net_income_ytd / months
+
+    # --- Compute quality sub-scores ---
+    sub_scores = {}
+
+    # Vacancy: 0% = 10, <5% = 8, 5-10% = 5, >10% = 2, >15% = 0
+    if vacancy is not None:
+        if vacancy <= 0:
+            sub_scores["vacancy"] = 10.0
+        elif vacancy < 5:
+            sub_scores["vacancy"] = 8.0
+        elif vacancy <= 10:
+            sub_scores["vacancy"] = 5.0
+        elif vacancy <= 15:
+            sub_scores["vacancy"] = 2.0
+        else:
+            sub_scores["vacancy"] = 0.0
+
+    # Collections: >98% = 10, >95% = 8, >90% = 5, <90% = 2
+    if collections is not None:
+        if collections > 98:
+            sub_scores["collections"] = 10.0
+        elif collections > 95:
+            sub_scores["collections"] = 8.0
+        elif collections > 90:
+            sub_scores["collections"] = 5.0
+        else:
+            sub_scores["collections"] = 2.0
+
+    # Utility recovery: >95% = 10, 80-95% = 6, <80% = 3
+    if utility_composite is not None:
+        if utility_composite > 95:
+            sub_scores["utility_recovery"] = 10.0
+        elif utility_composite >= 80:
+            sub_scores["utility_recovery"] = 6.0
+        else:
+            sub_scores["utility_recovery"] = 3.0
+
+    # National tenant mix: >50% = 10, 30-50% = 7, <30% = 4
+    if national_pct is not None:
+        if national_pct > 50:
+            sub_scores["national_mix"] = 10.0
+        elif national_pct >= 30:
+            sub_scores["national_mix"] = 7.0
+        else:
+            sub_scores["national_mix"] = 4.0
+
+    # Lease expiry concentration: <20% in 12m = 10, 20-30% = 7, >40% = 3
+    if lease_12m is not None:
+        if lease_12m < 20:
+            sub_scores["lease_expiry"] = 10.0
+        elif lease_12m <= 30:
+            sub_scores["lease_expiry"] = 7.0
+        elif lease_12m <= 40:
+            sub_scores["lease_expiry"] = 5.0
+        else:
+            sub_scores["lease_expiry"] = 3.0
+
+    # Composite quality score
+    if sub_scores:
+        quality_score = sum(sub_scores.values()) / len(sub_scores)
+    else:
+        quality_score = 0.0
+
+    # Bonuses
+    if has_solar:
+        quality_score = min(quality_score + 0.5, 10.0)
+    if has_capex:
+        quality_score = min(quality_score + 0.5, 10.0)
+
+    quality_score = round(quality_score, 2)
+
+    # Quality flags
+    quality_flags = []
+    if vacancy is not None and vacancy <= 0:
+        quality_flags.append("fully_let")
+    elif vacancy is not None and vacancy < 5:
+        quality_flags.append("near_full_occupancy")
+    if collections is not None and collections > 95:
+        quality_flags.append("strong_collections")
+    if has_solar:
+        quality_flags.append("solar_asset")
+    if has_capex:
+        quality_flags.append("active_capex")
+    if national_pct is not None and national_pct > 50:
+        quality_flags.append("national_tenant_dominant")
+    if lease_12m is not None and lease_12m < 20:
+        quality_flags.append("low_lease_expiry_concentration")
+    if utility_composite is not None and utility_composite > 95:
+        quality_flags.append("strong_utility_recovery")
+    if weighted_esc is not None and weighted_esc >= 7:
+        quality_flags.append("above_market_escalation")
+    if property_net_monthly is not None and property_net_monthly > 0:
+        quality_flags.append("property_cash_positive")
+    if eviction_arrears > 0 and collections_adjusted is not None and collections_adjusted > 95:
+        quality_flags.append("collections_strong_ex_evictions")
+
+    # Property vs entity income ratio from variances
+    property_vs_entity_income_ratio = None
+    v_ne = var.get("net_income_entity_vs_property", {})
+    prop_val = v_ne.get("source_a_value")
+    entity_val = v_ne.get("source_b_value")
+    if prop_val is not None and entity_val is not None and entity_val != 0:
+        property_vs_entity_income_ratio = round(prop_val / abs(entity_val), 2)
+
+    return {
+        "vacancy_rate": vacancy,
+        "collections_pct": collections,
+        "collections_adjusted_pct": round(collections_adjusted, 2) if collections_adjusted is not None else None,
+        "eviction_arrears": eviction_arrears,
+        "deposit_arrears": deposit_arrears,
+        "trading_density": trading_density,
+        "national_tenant_pct": national_pct,
+        "lease_expiry_12m_pct": lease_12m,
+        "has_solar_pv": has_solar,
+        "has_active_capex": has_capex,
+        "utility_recovery_composite": utility_composite,
+        "anchor_count": anchor_count,
+        "weighted_escalation": weighted_esc,
+        "property_net_income_monthly": property_net_monthly,
+        "net_income_ytd": net_income_ytd,
+        "quality_score": quality_score,
+        "quality_flags": quality_flags,
+        "sub_scores": sub_scores,
+        "property_vs_entity_income_ratio": property_vs_entity_income_ratio,
+        "total_gla_m2": pd.get("total_gla_m2"),
+        "tenant_count": pd.get("tenant_count"),
+        "arrears_total": ao.get("total"),
+        "solar_kwp": sp.get("system_kwp"),
+        "solar_savings_ytd": (sp.get("savings_ytd") or {}).get("actual"),
+    }
+
+
 def classify_lifecycle(
     afs_data: Optional[dict] = None,
     mgmt_data: Optional[dict] = None,
     is_analysis: Optional[dict] = None,
     bs_analysis: Optional[dict] = None,
+    mgmt_report_analysis: Optional[dict] = None,
 ) -> dict:
     """Classify entity lifecycle stage from AFS + management account analysis.
 
@@ -399,11 +600,10 @@ def classify_lifecycle(
     """
     signals = {}
 
-    # ---------- Input availability (4-input architecture; currently 2 live inputs) ----------
+    # ---------- Input availability (4-input architecture) ----------
     has_afs = bool(afs_data)
     has_mgmt_accounts = bool(mgmt_data)
-    # Not yet ingested in structured form in this pipeline.
-    has_mgmt_report = False
+    has_mgmt_report = bool(mgmt_report_analysis)
     has_valuation = False
 
     signals["has_afs"] = has_afs
@@ -528,6 +728,48 @@ def classify_lifecycle(
         # Update neg equity from mgmt if available
         if bs_analysis.get("equity_cy", 0) < 0:
             signals["is_neg_eq"] = True
+
+    # ---------- Management report signals (Broll/property manager) ----------
+    mr_quality_upgrade = False
+    mr_quality_downgrade = False
+    if mgmt_report_analysis:
+        signals["mr_vacancy_rate"] = mgmt_report_analysis.get("vacancy_rate")
+        signals["mr_collections_pct"] = mgmt_report_analysis.get("collections_pct")
+        signals["mr_trading_density"] = mgmt_report_analysis.get("trading_density")
+        signals["mr_property_net_income_monthly"] = mgmt_report_analysis.get("property_net_income_monthly")
+        signals["mr_quality_score"] = mgmt_report_analysis.get("quality_score")
+        signals["mr_quality_flags"] = mgmt_report_analysis.get("quality_flags", [])
+        signals["mr_national_tenant_pct"] = mgmt_report_analysis.get("national_tenant_pct")
+        signals["mr_lease_expiry_12m_pct"] = mgmt_report_analysis.get("lease_expiry_12m_pct")
+        signals["mr_has_solar"] = mgmt_report_analysis.get("has_solar_pv", False)
+        signals["mr_has_active_capex"] = mgmt_report_analysis.get("has_active_capex", False)
+        signals["mr_weighted_escalation"] = mgmt_report_analysis.get("weighted_escalation")
+        signals["mr_property_vs_entity_ratio"] = mgmt_report_analysis.get("property_vs_entity_income_ratio")
+        signals["mr_net_income_ytd"] = mgmt_report_analysis.get("net_income_ytd")
+        signals["mr_collections_adjusted_pct"] = mgmt_report_analysis.get("collections_adjusted_pct")
+        signals["mr_eviction_arrears"] = mgmt_report_analysis.get("eviction_arrears", 0)
+
+        # Quality-based override flags
+        vac = signals.get("mr_vacancy_rate")
+        col = signals.get("mr_collections_pct")
+        col_adj = signals.get("mr_collections_adjusted_pct")
+        prop_cash = (signals.get("mr_property_net_income_monthly") or 0) > 0
+        # Primary upgrade: hard data meets all thresholds
+        mr_quality_upgrade = (vac is not None and vac < 5 and
+                              col is not None and col > 95 and prop_cash)
+        # Secondary upgrade: adjusted collections (ex-evictions) meets thresholds
+        # Requires quality_score >= 8 and col > 85 (not catastrophic before adjustment)
+        if (not mr_quality_upgrade and vac is not None and vac < 5 and prop_cash and
+                col is not None and col > 85 and
+                col_adj is not None and col_adj > 95 and
+                mgmt_report_analysis.get("quality_score", 0) >= 8):
+            mr_quality_upgrade = True
+            signals["mr_upgrade_reason"] = "adjusted_collections_ex_evictions"
+        mr_quality_downgrade = ((vac is not None and vac > 15) or
+                                (col is not None and col < 85))
+
+    signals["mr_quality_upgrade"] = mr_quality_upgrade
+    signals["mr_quality_downgrade"] = mr_quality_downgrade
 
     # ---------- Derived signals ----------
     has_revenue = (signals.get("afs_rev") and signals["afs_rev"] > 0) or (signals.get("mgmt_rev_ann") and signals["mgmt_rev_ann"] > 0)
@@ -672,8 +914,16 @@ def classify_lifecycle(
         stage, detail = "stabilising", "AFS is strong, but management accounts indicate deterioration. Monitor closely."
     elif signals["is_gc"] and not has_ebitda and not rev_improving:
         stage, detail = "distressed", "Going concern, no positive EBITDA, revenue not improving."
+    elif signals["is_neg_eq"] and mr_quality_upgrade and has_ebitda:
+        stage = "cash_generating"
+        detail = ("Negative equity is structural (acquisition debt); property management report confirms "
+                  "strong operational quality: vacancy <5%, collections >95%, property cash positive.")
     elif signals["is_neg_eq"] and not has_ebitda and not rev_improving:
-        if has_revenue and not rev_declining:
+        if mr_quality_upgrade:
+            stage = "stabilising"
+            detail = ("Negative equity, EBITDA not yet positive per entity accounts, but property-level "
+                      "operations are healthy: vacancy <5%, collections >95%, property cash positive.")
+        elif has_revenue and not rev_declining:
             stage, detail = "early_stage", "A > L gap closing. Revenue present but EBITDA not yet positive."
         else:
             stage, detail = "stalled", "Negative equity, no EBITDA, revenue absent or declining."
@@ -686,13 +936,28 @@ def classify_lifecycle(
             stage, detail = "early_stage", "GC flag, revenue present, trajectory improving."
     elif signals["is_neg_eq"] and has_ebitda:
         if covers_fc:
-            stage, detail = "stabilising", "Negative equity (acquisition debt) but EBITDA covers finance costs."
+            if mr_quality_upgrade:
+                stage = "cash_generating"
+                detail = ("Negative equity (acquisition debt) but EBITDA covers finance costs. "
+                          "Management report confirms operational quality.")
+            else:
+                stage, detail = "stabilising", "Negative equity (acquisition debt) but EBITDA covers finance costs."
         elif rev_improving or ebitda_improving:
             stage, detail = "early_stage", "Negative equity, EBITDA positive and improving."
         else:
             stage, detail = "stabilising", "Negative equity but EBITDA positive."
     elif signals["is_neg_eq"] and has_revenue:
-        if rev_improving:
+        if mr_quality_upgrade and rev_improving:
+            stage = "cash_generating"
+            if signals.get("mr_upgrade_reason") == "adjusted_collections_ex_evictions":
+                detail = ("Negative equity is structural (acquisition debt). Property is cash positive with "
+                          "strong occupancy. Collections normalise above 95% once identified "
+                          "eviction/liquidation arrears are removed from the rent roll.")
+            else:
+                detail = ("Negative equity is structural (acquisition debt); property management report "
+                          "confirms strong operational quality: vacancy <5%, collections >95%, "
+                          "property cash positive.")
+        elif rev_improving:
             stage, detail = "early_stage", "Negative equity, revenue present and growing."
         else:
             stage, detail = "stalled", "Negative equity, revenue present but not improving."
@@ -718,14 +983,18 @@ def classify_lifecycle(
         bool(signals.get("mgmt_ebitda_ann")),
         bool(bs_analysis),
         bool(is_analysis and is_analysis.get("active_months", 0) >= 6),
+        bool(mgmt_report_analysis),
     ])
-    confidence = min(data_points / 7, 1.0)
+    confidence = min(data_points / 8, 1.0)
     if primary_on_track and not deteriorating_secondary:
         confidence = max(confidence, 0.85)
     if primary_on_track and deteriorating_secondary:
         confidence = max(confidence, 0.75)
     if mixed_signals:
         confidence = min(confidence, 0.65)
+    # Mgmt report confirmation boosts confidence
+    if mgmt_report_analysis and mr_quality_upgrade:
+        confidence = max(confidence, 0.92)
 
     info = LIFECYCLE_STAGES[stage]
     return {
@@ -744,6 +1013,7 @@ def generate_story(
     lifecycle: dict,
     is_analysis: Optional[dict] = None,
     bs_analysis: Optional[dict] = None,
+    mgmt_report_analysis: Optional[dict] = None,
 ) -> list:
     """Generate narrative story paragraphs for ECA assessment.
 
@@ -903,6 +1173,74 @@ def generate_story(
                 elif de_last > 5:
                     story.append(f"Highly leveraged at {de_last:.1f}x D/E. Equity thin relative to debt stack.")
 
+    # ── Management report signals (Broll/property manager) ──
+    if mgmt_report_analysis:
+        mr = mgmt_report_analysis
+        vac = mr.get("vacancy_rate")
+        col = mr.get("collections_pct")
+        td = mr.get("trading_density")
+        prop_net = mr.get("property_net_income_monthly")
+        solar = mr.get("has_solar_pv")
+        solar_sav = mr.get("solar_savings_ytd")
+        w_esc = mr.get("weighted_escalation")
+        ratio = mr.get("property_vs_entity_income_ratio")
+
+        # Vacancy signal
+        if vac is not None:
+            if vac <= 0:
+                story.append(f"Property is **fully let** (0% vacancy) — strong demand signal.")
+            elif vac < 5:
+                story.append(f"Near-full occupancy at **{vac:.1f}%** vacancy.")
+            elif vac <= 10:
+                story.append(f"Vacancy at **{vac:.1f}%** — slightly elevated, monitor lease renewals.")
+            else:
+                story.append(f"Vacancy is **elevated at {vac:.1f}%** — leasing risk, downside to income.")
+
+        # Collections
+        col_adj = mr.get("collections_adjusted_pct")
+        evic_arr = mr.get("eviction_arrears", 0)
+        if col is not None:
+            if col > 98:
+                story.append(f"Collections efficiency is **excellent** at {col:.1f}%.")
+            elif col > 95:
+                story.append(f"Collections at **{col:.1f}%** — strong.")
+            elif col > 90:
+                if evic_arr > 0 and col_adj is not None and col_adj > 95:
+                    story.append(f"Collections at **{col:.1f}%** headline, but **{col_adj:.1f}%** "
+                                 f"excluding R{evic_arr/1e6:.2f}M in eviction/liquidation arrears. "
+                                 "Once these non-performing tenants exit, collections normalise above 95%.")
+                else:
+                    story.append(f"Collections at **{col:.1f}%** — adequate but monitor arrears.")
+            else:
+                if evic_arr > 0 and col_adj is not None and col_adj > 95:
+                    story.append(f"Collections at **{col:.1f}%** headline, dragged down by "
+                                 f"R{evic_arr/1e6:.2f}M in eviction/liquidation arrears. "
+                                 f"Adjusted collections **{col_adj:.1f}%** — underlying tenant base is sound.")
+                else:
+                    story.append(f"Collections at **{col:.1f}%** — **below target**, arrears pressure.")
+
+        # Property-level net income vs entity-level variance
+        if ratio is not None and abs(ratio - 1.0) > 0.30:
+            mr_ni = mr.get("net_income_ytd", 0)
+            story.append(
+                f"**Reconciliation alert**: property-level net income (R{(mr_ni or 0)/1e6:.1f}M YTD) "
+                f"deviates >30% from entity-level result (ratio: {ratio:.2f}x). "
+                "Intercompany charges, management fees, or consolidation entries may explain the gap."
+            )
+
+        # Solar PV
+        if solar and solar_sav:
+            story.append(f"Solar PV system operational — **R{solar_sav/1e6:.2f}M** savings YTD. ESG-positive asset.")
+        elif solar:
+            story.append("Solar PV system installed — savings data pending.")
+
+        # Above/below market rental
+        if w_esc is not None:
+            if w_esc >= 8:
+                story.append(f"Weighted escalation at **{w_esc:.1f}%** — above typical market range, supports income growth.")
+            elif w_esc >= 6:
+                story.append(f"Weighted escalation at **{w_esc:.1f}%** — in line with market.")
+
     # ── Conclusion ──
     conclusions = {
         "cash_generating": f"**Conclusion**: {entity_name} supports the guarantor portfolio. No material concerns.",
@@ -920,26 +1258,32 @@ def generate_story(
     return story
 
 
-def analyse_entity(entity_name: str, afs_data: Optional[dict], mgmt_data: Optional[dict]) -> dict:
+def analyse_entity(entity_name: str, afs_data: Optional[dict], mgmt_data: Optional[dict],
+                   mgmt_report_data: Optional[dict] = None) -> dict:
     """Full analysis pipeline for a single entity.
 
     Returns:
       - lifecycle: classification result
       - is_analysis: IS monthly analysis (if mgmt data available)
       - bs_analysis: BS trajectory analysis (if mgmt data available)
+      - mr_analysis: management report analysis (if Broll report available)
       - story: list of narrative paragraphs
     """
     is_analysis = analyse_is_monthly(mgmt_data) if mgmt_data and mgmt_data.get("general_ledger_detail") else None
     bs_analysis = analyse_bs_trajectory(mgmt_data) if mgmt_data and mgmt_data.get("statement_of_financial_position") else None
+    mr_analysis = analyse_mgmt_report(mgmt_report_data) if mgmt_report_data else None
 
-    lifecycle = classify_lifecycle(afs_data, mgmt_data, is_analysis, bs_analysis)
-    story = generate_story(entity_name, lifecycle, is_analysis, bs_analysis)
+    lifecycle = classify_lifecycle(afs_data, mgmt_data, is_analysis, bs_analysis,
+                                  mgmt_report_analysis=mr_analysis)
+    story = generate_story(entity_name, lifecycle, is_analysis, bs_analysis,
+                          mgmt_report_analysis=mr_analysis)
 
     return {
         "entity": entity_name,
         "lifecycle": lifecycle,
         "is_analysis": is_analysis,
         "bs_analysis": bs_analysis,
+        "mr_analysis": mr_analysis,
         "story": story,
     }
 

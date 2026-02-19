@@ -46,6 +46,8 @@ credentials:
         mgmt_pages:
         - '*'
         - Partnerships
+        - Subsidies
+        - Inter-Company
         tabs:
         - '*'
         - Pipeline
@@ -90,7 +92,8 @@ credentials:
         can_manage_users: false
         entities:
         - '*'
-        mgmt_pages: []
+        mgmt_pages:
+        - Subsidies
         tabs:
         - '*'
         - Pipeline
@@ -126,6 +129,8 @@ credentials:
         mgmt_pages:
         - '*'
         - Partnerships
+        - Subsidies
+        - Inter-Company
         tabs:
         - '*'
       roles:

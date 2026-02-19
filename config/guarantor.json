@@ -153,6 +153,7 @@
                     "key": "ridgeview",
                     "name": "Ridgeview Centre",
                     "json": "RidgeviewCentre_2025_structured",
+                    "mgmt_report": "RidgeviewCentre_2025_mgmt_report_structured",
                     "ownership": 100,
                     "type": "subsidiary",
                     "asset": "R185M retail centre, Midrand [GC, -ve]"
@@ -161,6 +162,7 @@
                     "key": "brackenfell",
                     "name": "Brackenfell Corner",
                     "json": "BrackenfellCorner_2025_structured",
+                    "mgmt_report": "BrackenfellCorner_2025_mgmt_report_structured",
                     "ownership": 100,
                     "type": "subsidiary",
                     "asset": "R259M retail centre, Brackenfell CT [-ve]"
@@ -169,6 +171,7 @@
                     "key": "chartwell",
                     "name": "Chartwell Corner",
                     "json": "ChartwellCorner_2025_structured",
+                    "mgmt_report": "ChartwellCorner_2025_mgmt_report_structured",
                     "ownership": 100,
                     "type": "subsidiary",
                     "asset": "R104M retail centre, Fourways JHB [GC, -ve]"
@@ -177,6 +180,7 @@
                     "key": "jukskei",
                     "name": "Jukskei Meander",
                     "json": "JukskeiMeander_2025_structured",
+                    "mgmt_report": "JukskeiMeander_2025_mgmt_report_structured",
                     "ownership": 100,
                     "type": "subsidiary",
                     "asset": "R84M retail centre, Midrand JHB"
@@ -185,6 +189,7 @@
                     "key": "olivedale",
                     "name": "Olivedale Corner",
                     "json": "OlivedaleCorner_2025_structured",
+                    "mgmt_report": "OlivedaleCorner_2025_mgmt_report_structured",
                     "ownership": 100,
                     "type": "subsidiary",
                     "asset": "R132M retail centre, Olivedale JHB [-ve]"
@@ -213,6 +218,7 @@
                     "key": "madelief",
                     "name": "Madelief Shopping Centre",
                     "json": "MadeliefShoppingCentre_2025_structured",
+                    "mgmt_report_missing": true,
                     "ownership": 100,
                     "type": "subsidiary",
                     "asset": "R141M retail shopping centre"
