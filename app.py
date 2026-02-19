@@ -9730,43 +9730,6 @@ Ops Reserve → OpCo DSRA → Mezz IC Accel (15.25%) → Sr IC Accel (5.20%) →
                     if _wf_svg.exists():
                         st.image(str(_wf_svg), use_container_width=True)
 
-                    # ── Balance trajectory chart ──
-                    st.divider()
-                    st.subheader("Senior IC Balance Trajectory")
-
-                    _traj_months = [r['Month'] for r in _sec_sr_schedule]
-                    _traj_closing = [r['Closing'] for r in _sec_sr_schedule]
-                    _traj_months = [0] + _traj_months
-                    _traj_closing = [0] + _traj_closing
-
-                    _fig_traj = go.Figure()
-                    _fig_traj.add_trace(go.Scatter(
-                        x=_traj_months, y=_traj_closing,
-                        mode='lines+markers', line=dict(color='#3B82F6', width=3),
-                        name='Senior IC Balance',
-                    ))
-                    _fig_traj.add_vrect(x0=24, x1=36, fillcolor='#10B981', opacity=0.1,
-                                        annotation_text="Swap\nprotection" if st.session_state.get("sclca_nwl_hedge", "Cross-Currency Swap") == "Cross-Currency Swap" else "DSRA\nprotection", annotation_position="top left",
-                                        line_width=0)
-                    _fig_traj.add_vrect(x0=0, x1=18, fillcolor='#F59E0B', opacity=0.08,
-                                        annotation_text="Construction", annotation_position="top left",
-                                        line_width=0)
-                    _fig_traj.add_vline(x=36, line_dash="dash", line_color="#EF4444", line_width=2,
-                                        annotation_text=f"M36: €{_bal_m36:,.0f}", annotation_position="top right")
-                    if _total_prepay > 0:
-                        _fig_traj.add_vline(x=12, line_dash="dot", line_color="#8B5CF6", line_width=1,
-                                            annotation_text="Grants prepay", annotation_position="bottom right")
-                    _fig_traj.update_layout(
-                        height=400, xaxis_title='Month', yaxis_title='EUR',
-                        margin=dict(l=10, r=10, t=40, b=10),
-                        showlegend=False,
-                    )
-                    st.plotly_chart(_fig_traj, use_container_width=True)
-                    st.caption(
-                        "Construction (M0–M18): balance rises with drawdowns + IDC. "
-                        "Grants prepay at M12. DSRA covers M24–M36. IIC exposure begins M36."
-                    )
-
                     # ── Layered Risk Reduction (from MD) ──
                     st.divider()
                     st.subheader("Layered Risk Reduction")
