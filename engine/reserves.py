@@ -94,7 +94,7 @@ class OpcoDSRA:
     Interest accrues at fd_rate on opening balance (DSRA is a EUR FD).
     """
 
-    def __init__(self, fd_rate_annual: float = 0.035):
+    def __init__(self, fd_rate_annual: float):
         self.fd_rate_semi = fd_rate_annual / 2.0
         self.balance = 0.0
         self.target = 0.0
@@ -270,7 +270,7 @@ class ICOverdraft:
     ICOverdraft instance is shared between the two entity waterfalls.
     """
 
-    def __init__(self, ic_rate_annual: float = 0.10):
+    def __init__(self, ic_rate_annual: float):
         self.ic_rate_semi = ic_rate_annual / 2.0
         self.balance = 0.0
 

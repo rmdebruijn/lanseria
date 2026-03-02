@@ -12,7 +12,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from engine.formulas import calc_tax
+from engine.formulas import S12C_ANNUAL_PCTS, calc_tax
 from engine.periods import period_start_month, repayment_start_month, year_index
 
 
@@ -97,8 +97,7 @@ def compute_period_pnl(
         depr_s12c = depr_vector[hi]
     elif hi >= 1:
         # Legacy single-curve: starts hi >= 1, keyed by annual year
-        s12c_pcts = {0: 0.40, 1: 0.20, 2: 0.20, 3: 0.20}
-        depr_s12c = s12c_base * s12c_pcts.get(yi, 0.0) / 2
+        depr_s12c = s12c_base * S12C_ANNUAL_PCTS.get(yi, 0.0) / 2
     else:
         depr_s12c = 0.0
 
@@ -142,6 +141,7 @@ def build_semi_annual_pnl(
     straight_line_base: float = 0.0,
     straight_line_life: int = 20,
     depr_vector: list[float] | None = None,
+    fd_income_vector: list[float] | None = None,
 ) -> list[dict]:
     """Build 20-period semi-annual P&L with loss carry-forward.
 
@@ -157,7 +157,7 @@ def build_semi_annual_pnl(
             calculation.  Straight-line portion is computed independently.
 
     Returns list of 20 dicts with keys:
-        month, rev, opex, ebitda, depr, ebit, ie, pbt, tax, pat, tax_loss_pool
+        month, rev, opex, ebitda, depr, ebit, ie, fd_income, pbt, tax, pat, tax_loss_pool
     """
     s12c_base = depreciable_base - straight_line_base
     sl_annual = straight_line_base / straight_line_life if straight_line_life > 0 else 0.0
@@ -186,8 +186,7 @@ def build_semi_annual_pnl(
             depr_s12c = depr_vector[si]
         elif si >= 1:
             # Legacy single-curve: starts si >= 1, keyed by annual year
-            s12c_pcts = {0: 0.40, 1: 0.20, 2: 0.20, 3: 0.20}
-            depr_s12c = s12c_base * s12c_pcts.get(yi, 0.0) / 2
+            depr_s12c = s12c_base * S12C_ANNUAL_PCTS.get(yi, 0.0) / 2
         else:
             depr_s12c = 0.0
 
@@ -211,8 +210,10 @@ def build_semi_annual_pnl(
                     ie += r["Interest"]
                     break
 
+        fd_income = fd_income_vector[si] if fd_income_vector is not None and si < len(fd_income_vector) else 0.0
+
         ebit = ebitda - depr
-        pbt = ebit - ie
+        pbt = ebit - ie + fd_income
 
         # Tax with loss carry-forward
         tax, tax_loss_pool = calc_tax(pbt, tax_rate, tax_loss_pool)
@@ -221,7 +222,7 @@ def build_semi_annual_pnl(
         rows.append({
             "month": half_month, "rev": rev, "opex": opex,
             "ebitda": ebitda, "depr": depr, "ebit": ebit,
-            "ie": ie, "pbt": pbt, "tax": tax, "pat": pat,
+            "ie": ie, "fd_income": fd_income, "pbt": pbt, "tax": tax, "pat": pat,
             "tax_loss_pool": tax_loss_pool,
         })
 

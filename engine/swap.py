@@ -136,7 +136,7 @@ def build_nwl_swap_schedule(
     swap_amount_eur: float,
     fx_rate: float,
     cfg: ModelConfig,
-    last_sr_month: int = 102,
+    last_sr_month: int | None = None,
 ) -> dict:
     """EUR->ZAR cross-currency swap schedule (NWL).
 
@@ -148,6 +148,10 @@ def build_nwl_swap_schedule(
     zar_rate = swap_cfg.get("zar_rate", 0.0969)
     start_month = swap_cfg.get("zar_leg_start_month", 36)
     eur_rate = cfg.sr_facility_rate  # 4.70%
+    zar_repayments = swap_cfg.get("zar_leg_repayments", 12)
+    # Derive last_sr_month from config if not supplied by caller
+    if last_sr_month is None:
+        last_sr_month = start_month + (zar_repayments - 1) * 6
     tenor = max(1, (last_sr_month - start_month) // 6 + 1)
     eur_notional = EUR(swap_amount_eur)
     zar_initial = eur_notional.to_zar(fx_rate)

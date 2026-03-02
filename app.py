@@ -44,8 +44,8 @@ from entities.nwl import build_nwl_sensitivity
 # Heritage / lineage UI (formula provenance for displayed values)
 from views.heritage import (
     heritage_css,
+    inject_df_heritage,
     inject_pnl_heritage,
-    render_heritage_inspector,
 )
 
 # Guarantor analysis engine
@@ -344,7 +344,12 @@ def _wire_about_placeholders(text: str) -> str:
 
         # ── LCOW values ──
         replacements["lcow_value"] = "computed in Operations tab"
-        wacc = 0.85 * 0.047 + 0.15 * 0.1475
+        _rates = load_config("rates")
+        _sr_rate = _rates["senior_debt"]["facility_rate"]
+        _mz_rate = _rates["mezzanine"]["total_rate"]
+        _ops_cfg = load_config("operations")
+        _ww = _ops_cfg.get("nwl", {}).get("wacc_weights", {"senior": 0.85, "mezzanine": 0.15})
+        wacc = _ww["senior"] * _sr_rate + _ww["mezzanine"] * _mz_rate
         replacements["wacc_pct"] = f"{wacc*100:.2f}%"
         replacements["sewage_mld"] = "1.90"
         replacements["reuse_mld"] = "1.71"
@@ -1400,6 +1405,25 @@ def _compute_entity_waterfall_inputs(entity_key, ops_annual, entity_sr_sched, en
         entity_data = cfg.entity_loans().get(entity_key, {})
         depreciable_base = entity_data.get("total_loan", 0.0)
         # Per-tranche S12C: each construction drawdown gets its own 40/20/20/20
+        # Align with engine/loop.py: S12C applies only to (depreciable_base - straight_line_base).
+        # TWX splits building (straight-line 20yr) vs equipment (S12C); NWL/LanRED use full base.
+        if entity_key == 'timberworx':
+            _coe_items = cfg.assets["assets"].get("coe", {}).get("line_items", [])
+            _building_budget = 0.0
+            _equipment_budget = 0.0
+            for _item in _coe_items:
+                _item_id = _item.get("id", "")
+                _delivery = (_item.get("delivery", "") or "").lower()
+                if _item_id == "coe_001" or "centre" in _delivery or "center" in _delivery:
+                    _building_budget += float(_item.get("budget", 0))
+                else:
+                    _equipment_budget += float(_item.get("budget", 0))
+            _asset_budget_total = _building_budget + _equipment_budget
+            straight_line_base = (depreciable_base * (_building_budget / _asset_budget_total)
+                                  if _asset_budget_total > 0 else 0.0)
+        else:
+            straight_line_base = 0.0
+        s12c_base = depreciable_base - straight_line_base
         _rep_month = repayment_start_month()
         n_constr = len([r for r in entity_sr_sched if r.get("Month", 999) < _rep_month])
         if n_constr == 0:
@@ -1410,7 +1434,8 @@ def _compute_entity_waterfall_inputs(entity_key, ops_annual, entity_sr_sched, en
         _total_draws = [s + m for s, m in zip(_sr_draws, _mz_draws)]
         _draw_sum = sum(_total_draws)
         if _draw_sum > 0 and depreciable_base > 0:
-            _s12c_draws = [d * depreciable_base / _draw_sum for d in _total_draws]
+            _s12c_fraction = s12c_base / depreciable_base
+            _s12c_draws = [d * _s12c_fraction for d in _total_draws]
         else:
             _s12c_draws = _total_draws
         _depr_vector = _engine_tranche_s12c(_s12c_draws, total_periods())
@@ -1450,8 +1475,13 @@ def _aggregate_entity_wf_to_annual(wf_semi):
     return _engine_aggregate_to_annual(wf_semi)
 
 
-def _build_nwl_swap_schedule(swap_amount_eur, fx_rate, last_sr_month=102):
-    """Thin wrapper → engine.swap.build_nwl_swap_schedule()."""
+def _build_nwl_swap_schedule(swap_amount_eur, fx_rate, last_sr_month=None):
+    """Thin wrapper → engine.swap.build_nwl_swap_schedule().
+
+    last_sr_month is optional — swap.py derives it from config (zar_leg_start_month +
+    (zar_leg_repayments - 1) * 6) when not supplied. Pass it explicitly only when the
+    caller has already read the actual last repayment month from the IC schedule.
+    """
     cfg = ModelConfig.load()
     return _engine_nwl_swap(swap_amount_eur, fx_rate, cfg, last_sr_month=last_sr_month)
 
@@ -2694,7 +2724,12 @@ def build_sub_annual_model(entity_key):
 
     Delegates to the engine calculation modules. Returns dict with same
     shape as the original implementation for display code compatibility.
+
+    Includes engine-computed proofs (audit cross-checks) under the "proofs"
+    key so the UI only needs to display them, never compute them.
     """
+    from engine.proofs import build_entity_proofs
+
     model_data = _run_engine_model(_session_input_hash())
     er = model_data["entities"][entity_key]
 
@@ -2702,6 +2737,20 @@ def build_sub_annual_model(entity_key):
     annual = [_add_compat_fields(dict(a)) for a in er["annual"]]
     wf_semi = [_add_compat_fields(dict(w)) for w in er["waterfall_semi"]]
     wf_annual = [_add_compat_fields(dict(w)) for w in er["waterfall_annual"]]
+
+    # Compute engine proofs (all categories) — UI just displays these
+    entity_data = structure['uses']['loans_to_subsidiaries'].get(entity_key)
+    _proofs = build_entity_proofs(
+        annual=annual,
+        waterfall_semi=wf_semi,
+        entity_key=entity_key,
+        ops_annual=er["ops_annual"],
+        depr_base=er["depreciable_base"],
+        tax_rate=_TAX_RATE,
+        entity_data=entity_data,
+        structure=structure,
+        sr_schedule=er["sr_schedule"],
+    )
 
     return {
         "annual": annual,
@@ -2720,6 +2769,7 @@ def build_sub_annual_model(entity_key):
         "semi_annual_tax": er["semi_annual_tax"],
         "waterfall_semi": wf_semi,
         "waterfall_annual": wf_annual,
+        "proofs": _proofs,
     }
 
 
@@ -2760,6 +2810,23 @@ def render_subsidiary(entity_key, icon, name):
     if not _tab_map:
         st.warning("No tabs available for your role.")
         return
+
+    # --- BUILD ANNUAL MODEL (needed for all tabs including audits) ---
+    _sub_model = build_sub_annual_model(entity_key)
+    _sub_annual = _sub_model["annual"]
+    _sub_registry = _sub_model["registry"]
+    _sub_sr_schedule = _sub_model["sr_schedule"]
+    _sub_mz_schedule = _sub_model["mz_schedule"]
+    _sub_ops_annual = _sub_model["ops_annual"]
+    _sub_ops_semi = _sub_model.get("ops_semi_annual")  # 20 semi-annual dicts (NWL only)
+    _sub_depr_base = _sub_model["depreciable_base"]
+    _sub_entity_equity = _sub_model["entity_equity"]
+    _sub_swap_active = _sub_model.get("swap_active", False)
+    _sub_swap_sched = _sub_model.get("swap_schedule", None)
+    _sub_cash_inflows = _sub_model.get("cash_inflows")
+    _sub_semi_annual_tax = _sub_model.get("semi_annual_tax")
+    _sub_proofs = _sub_model.get("proofs", {})
+    _years = [f"Y{a['year']}" for a in _sub_annual]
 
     # --- OVERVIEW ---
     if "Overview" in _tab_map:
@@ -3278,39 +3345,9 @@ This means:
 
                 st.divider()
 
-            # ── AUDIT: Sources & Uses ──
-            _su_checks = []
-            # Senior + Mezz = Total Loan
-            _su_checks.append({
-                "name": "Senior + Mezz = Total Loan",
-                "expected": entity_data['total_loan'],
-                "actual": entity_data['senior_portion'] + entity_data['mezz_portion'],
-            })
-            # Sum of entity loans = facility total
-            _all_loans = structure['uses']['loans_to_subsidiaries']
-            _facility_total = structure['sources']['senior_debt']['amount'] + structure['sources']['mezzanine']['amount_eur']
-            _su_checks.append({
-                "name": "Sum entity loans = facility total",
-                "expected": _facility_total,
-                "actual": sum(v['total_loan'] for v in _all_loans.values()),
-            })
-            run_page_audit(_su_checks, f"{name} — Sources & Uses")
-
-    # --- BUILD ANNUAL MODEL (needed for all subsequent tabs) ---
-    _sub_model = build_sub_annual_model(entity_key)
-    _sub_annual = _sub_model["annual"]
-    _sub_registry = _sub_model["registry"]
-    _sub_sr_schedule = _sub_model["sr_schedule"]
-    _sub_mz_schedule = _sub_model["mz_schedule"]
-    _sub_ops_annual = _sub_model["ops_annual"]
-    _sub_ops_semi = _sub_model.get("ops_semi_annual")  # 20 semi-annual dicts (NWL only)
-    _sub_depr_base = _sub_model["depreciable_base"]
-    _sub_entity_equity = _sub_model["entity_equity"]
-    _sub_swap_active = _sub_model.get("swap_active", False)
-    _sub_swap_sched = _sub_model.get("swap_schedule", None)
-    _sub_cash_inflows = _sub_model.get("cash_inflows")
-    _sub_semi_annual_tax = _sub_model.get("semi_annual_tax")
-    _years = [f"Y{a['year']}" for a in _sub_annual]
+            # ── AUDIT: Sources & Uses (engine-computed) ──
+            if "sources_uses" in _sub_proofs:
+                run_page_audit(_sub_proofs["sources_uses"], f"{name} — Sources & Uses")
 
     # Waterfall already computed by engine -- extract from sub_model
     _fac_wf_semi = _sub_model.get("waterfall_semi", [])
@@ -3334,6 +3371,27 @@ This means:
                 "Repayment": "€{:,.0f}",
                 "Movement": "€{:,.0f}",
                 "Closing": "€{:,.0f}"
+            }
+
+            # Heritage key maps -- column name -> lineage key for facility tables
+            _sr_key_map = {
+                "Opening": "sr_opening", "Draw Down": "sr_draw_down",
+                "Interest": "ie_sr", "Principal": "sr_principal",
+                "Principle": "sr_principal", "P+I": "sr_pi",
+                "Acceleration": "sr_accel", "Repayment": "sr_repayment",
+                "Movement": "sr_movement", "Closing": "sr_closing",
+            }
+            _mz_key_map = {
+                "Opening": "mz_opening", "Draw Down": "mz_draw_down",
+                "Interest": "ie_mz", "Principle": "mz_principal",
+                "Principal": "mz_principal", "P+I": "mz_pi",
+                "Acceleration": "mz_accel", "Repayment": "mz_repayment",
+                "Movement": "mz_movement", "Closing": "mz_closing",
+            }
+            _zar_key_map = {
+                "Opening": "swap_zar_opening", "Interest": "swap_zar_interest",
+                "Principal": "swap_zar_p", "Payment": "swap_zar_payment",
+                "Acceleration": "swap_zar_accel", "Closing": "swap_zar_closing",
             }
 
             loans = structure['uses']['loans_to_subsidiaries']
@@ -3443,7 +3501,7 @@ This means:
                 nwl_sr_new_p = nwl_sr_balance_for_repay / nwl_sr_num_repayments if nwl_sr_num_repayments else 0
 
                 df_nwl_senior = pd.DataFrame(nwl_sr_rows)
-                render_table(df_nwl_senior, ic_format)
+                inject_df_heritage(df_nwl_senior, key_map=_sr_key_map, formats=ic_format, label_col="Period")
 
                 st.markdown("---")
                 col_nwl_idc, col_nwl_hedge, col_nwl_repay = st.columns(3)
@@ -3540,7 +3598,7 @@ This means:
                 nwl_mz_p_per = nwl_mz_balance_for_repay / mezz_ic_reps if mezz_ic_reps > 0 else 0
 
                 df_nwl_mezz = pd.DataFrame(nwl_mz_rows)
-                render_table(df_nwl_mezz, ic_format)
+                inject_df_heritage(df_nwl_mezz, key_map=_mz_key_map, formats=ic_format, label_col="Period")
 
                 if _sub_swap_active:
                     st.caption(f"""
@@ -3612,13 +3670,14 @@ This means:
                             if _zar_running_bal is not None and _zar_running_bal <= 0.01:
                                 break
 
-                        render_table(pd.DataFrame(_zar_rows), {
+                        _zar_fmt = {
                             "Year": "{:.1f}",
                             "Opening": "R{:,.0f}", "Interest": "R{:,.0f}",
                             "Principal": "R{:,.0f}", "Payment": "R{:,.0f}",
                             "Acceleration": "R{:,.0f}",
                             "Closing": "R{:,.0f}",
-                        })
+                        }
+                        inject_df_heritage(pd.DataFrame(_zar_rows), key_map=_zar_key_map, formats=_zar_fmt, label_col="Period")
                         st.caption(f"ZAR leg: Investec quoted {_zr*100:.2f}% fixed. "
                                    f"P_constant = R{_sub_swap_sched['p_constant_zar']:,.0f}/period. "
                                    f"IDC compounded M0→M{_zsm}.")
@@ -3656,7 +3715,7 @@ This means:
                             "Movement": _closing - _opening, "Closing": _closing,
                         })
                     df_lanred_senior = pd.DataFrame(_lr_sr_rows)
-                    render_table(df_lanred_senior, ic_format)
+                    inject_df_heritage(df_lanred_senior, key_map=_sr_key_map, formats=ic_format, label_col="Period")
 
                 # Mezz IC Facility — read from engine schedule (single source of truth)
                 with st.container(border=True):
@@ -3678,7 +3737,7 @@ This means:
                             "Movement": _closing - _opening, "Closing": _closing,
                         })
                     df_lanred_mezz = pd.DataFrame(_lr_mz_rows)
-                    render_table(df_lanred_mezz, ic_format)
+                    inject_df_heritage(df_lanred_mezz, key_map=_mz_key_map, formats=ic_format, label_col="Period")
 
                 # ── ZAR Rand Leg (LanRED) ──
                 if _sub_swap_active and _sub_swap_sched:
@@ -3733,13 +3792,14 @@ This means:
                             if _zar_lr_running_bal is not None and _zar_lr_running_bal <= 0.01:
                                 break
 
-                        render_table(pd.DataFrame(_zar_lr_rows), {
+                        _zar_lr_fmt = {
                             "Year": "{:.1f}",
                             "Opening": "R{:,.0f}", "Interest": "R{:,.0f}",
                             "Principal": "R{:,.0f}", "Payment": "R{:,.0f}",
                             "Acceleration": "R{:,.0f}",
                             "Closing": "R{:,.0f}",
-                        })
+                        }
+                        inject_df_heritage(pd.DataFrame(_zar_lr_rows), key_map=_zar_key_map, formats=_zar_lr_fmt, label_col="Period")
                         st.caption(f"ZAR leg: Investec quoted {_zr_lr*100:.2f}% fixed. "
                                    f"P_constant = R{_sub_swap_sched['p_constant_zar']:,.0f}/period. "
                                    f"IDC compounded M0→M{_zsm_lr}.")
@@ -3778,7 +3838,7 @@ This means:
                     df_twx_senior = pd.DataFrame(_twx_sr_ev)
                     _ev_ic_cols = ["Label", "Month", "Year", "Opening", "Draw Down",
                                    "Interest", "Principle", "Repayment", "Movement", "Closing"]
-                    render_table(df_twx_senior[_ev_ic_cols], ic_format)
+                    inject_df_heritage(df_twx_senior[_ev_ic_cols], key_map=_sr_key_map, formats=ic_format, label_col="Label")
 
                 # Mezz IC Facility
                 with st.container(border=True):
@@ -3792,7 +3852,7 @@ This means:
                         r["Movement"] = r["Closing"] - r["Opening"]
                         r["Repayment"] = r["Principle"] + r["Interest"] + r.get("Acceleration", 0)
                     df_twx_mz = pd.DataFrame(_twx_mz_ev)
-                    render_table(df_twx_mz[_ev_ic_cols], ic_format)
+                    inject_df_heritage(df_twx_mz[_ev_ic_cols], key_map=_mz_key_map, formats=ic_format, label_col="Label")
 
                 st.divider()
                 st.markdown("#### Equity Stake")
@@ -3807,51 +3867,9 @@ This means:
                         st.image(str(_vs_logo_a), width=80)
                     st.markdown(f"**VanSquared — {_OWN_TWX_OTHER:.0%}**")
 
-            # ── AUDIT: Facilities ──
-            _fac_checks = []
-            # IC balance at end of waterfall = 0 (fully amortized via P+I + acceleration)
-            _fac_checks.append({
-                "name": "Senior IC final closing = 0",
-                "expected": 0.0,
-                "actual": abs(_fac_wf_semi[-1].get('sr_ic_bal', 0)),
-            })
-            _fac_checks.append({
-                "name": "Mezz IC final closing = 0",
-                "expected": 0.0,
-                "actual": abs(_fac_wf_semi[-1].get('mz_ic_bal', 0)),
-            })
-            # Sum(interest) = total IE from P&L
-            _sr_int_total = sum(w.get('ie_half_sr', 0) for w in _fac_wf_semi)
-            _mz_int_total = sum(w.get('ie_half_mz', 0) for w in _fac_wf_semi)
-            _pl_ie_sr = sum(a['ie_sr'] for a in _sub_annual)
-            _pl_ie_mz = sum(a['ie_mz'] for a in _sub_annual)
-            _fac_checks.append({
-                "name": "Sum(SR interest) = P&L IE(SR)",
-                "expected": _sr_int_total,
-                "actual": _pl_ie_sr,
-            })
-            _fac_checks.append({
-                "name": "Sum(MZ interest) = P&L IE(MZ)",
-                "expected": _mz_int_total,
-                "actual": _pl_ie_mz,
-            })
-            # SR balance at repayment start = total principal + waterfall acceleration
-            # (Uses schedule closing balance which already reflects grant acceleration)
-            _sr_bal_at_repay = next(
-                (r["Closing"] for r in _sub_sr_schedule
-                 if r["Period"] == construction_end_index()), 0.0
-            )
-            _sr_repaid_total = sum(
-                w.get('sr_prin_sched', 0) + w.get('sr_accel_entity', 0)
-                for w in _fac_wf_semi
-            )
-            _fac_checks.append({
-                "name": "SR repaid = SR balance at repayment start",
-                "expected": _sr_bal_at_repay,
-                "actual": _sr_repaid_total,
-                "tolerance": 2.0,
-            })
-            run_page_audit(_fac_checks, f"{name} — Facilities")
+            # ── AUDIT: Facilities (engine-computed) ──
+            if "facilities" in _sub_proofs:
+                run_page_audit(_sub_proofs["facilities"], f"{name} — Facilities")
 
     # --- ASSETS ---
     if "Assets" in _tab_map:
@@ -4486,32 +4504,9 @@ This means:
                         })
                     render_table(pd.DataFrame(_fd_rows), _fd_facility_fmt)
 
-            # ── AUDIT: Assets ──
-            _ast_checks = []
-            # Depreciable base = total loan amount
-            _ast_checks.append({
-                "name": "Depreciable base = total loan",
-                "expected": entity_data['total_loan'],
-                "actual": _sub_depr_base,
-            })
-            # Y10 accumulated depr <= depr base
-            _acc_depr_10 = sum(_sub_annual[i]['depr'] for i in range(total_years()))
-            _ast_checks.append({
-                "name": "Y10 accum depr <= depr base",
-                "expected": _sub_depr_base,
-                "actual": _acc_depr_10,
-                "tolerance": _sub_depr_base - _acc_depr_10 + 1.0 if _acc_depr_10 <= _sub_depr_base else 0.0,
-            })
-            # BS fixed assets Y1 = capitalised cost (capex + IDC) - Y1 depr
-            # IDC (IAS 23): borrowing costs during construction capitalised into asset cost
-            _cum_capex_y1 = _sub_annual[0].get('cf_capex', 0)
-            _cum_idc_y1 = _sub_annual[0].get('cf_idc', 0)
-            _ast_checks.append({
-                "name": "BS fixed assets Y1 = capex+IDC drawn - Y1 depr",
-                "expected": max(min(_cum_capex_y1 + _cum_idc_y1, _sub_depr_base + _cum_idc_y1) - _sub_annual[0]['depr'], 0),
-                "actual": _sub_annual[0]['bs_fixed_assets'],
-            })
-            run_page_audit(_ast_checks, f"{name} — Assets")
+            # ── AUDIT: Assets (engine-computed) ──
+            if "assets" in _sub_proofs:
+                run_page_audit(_sub_proofs["assets"], f"{name} — Assets")
 
     # --- OPERATIONS ---
     if "Operations" in _tab_map:
@@ -6161,34 +6156,9 @@ split is well-balanced: BESS provides grid independence and peak shaving while P
                     _ops_df.index = [f"Y{i+1}" for i in range(len(_sub_ops_annual))]
                     st.dataframe(_ops_df.T, use_container_width=True)
 
-            # ── AUDIT: Operations ──
-            _ops_checks = []
-            if _sub_ops_annual:
-                for yi, _op in enumerate(_sub_ops_annual):
-                    _y = yi + 1
-                    _a = _sub_annual[yi]
-                    # Revenue components sum to rev_total (NWL-specific)
-                    if entity_key == "nwl":
-                        _exp_rev = _op.get('rev_sewage', 0) + _op.get('rev_reuse', 0) + _op.get('rev_bulk_services', 0)
-                        _ops_checks.append({
-                            "name": f"Y{_y}: Rev components = rev_total",
-                            "expected": _exp_rev,
-                            "actual": _op.get('rev_total', 0),
-                        })
-                    # EBITDA = rev_total - om - power - rent
-                    _exp_ebitda = _op.get('rev_total', 0) - _op.get('om_cost', 0) - _op.get('power_cost', 0) - _op.get('rent_cost', 0)
-                    _ops_checks.append({
-                        "name": f"Y{_y}: EBITDA = Rev - OM - Pwr - Rent",
-                        "expected": _exp_ebitda,
-                        "actual": _a['ebitda'],
-                    })
-                    # Ops rev_total = P&L rev_total
-                    _ops_checks.append({
-                        "name": f"Y{_y}: Ops rev = P&L rev",
-                        "expected": _op.get('rev_total', 0),
-                        "actual": _a.get('rev_total', 0),
-                    })
-            run_page_audit(_ops_checks, f"{name} — Operations")
+            # ── AUDIT: Operations (engine-computed) ──
+            if "ops" in _sub_proofs:
+                run_page_audit(_sub_proofs["ops"], f"{name} — Operations")
 
     # --- P&L ---
     if "P&L" in _tab_map:
@@ -6373,63 +6343,17 @@ split is well-balanced: BESS provides grid independence and peak shaving while P
             _pnl_line(f'Tax ({_TAX_RATE:.0%})', 'tax', -1.0)
             _pnl_line('Net Result', 'pat', row_type='grand')
 
-            # Build styled HTML table with heritage tooltips
-            _pnl_table_html = inject_pnl_heritage(
+            # Build and render styled HTML table with heritage tooltips.
+            # inject_pnl_heritage() renders via st.html() internally --
+            # do NOT re-render the returned HTML with st.markdown().
+            inject_pnl_heritage(
                 _pnl_rows, _sub_annual, len(_years), _eur_fmt,
                 year_labels=_years,
             )
-            st.markdown(_pnl_table_html, unsafe_allow_html=True)
 
-            # Heritage inspector: interactive formula provenance
-            _pnl_heritage_keys = [
-                (key, label) for label, vals, rtype, key in _pnl_rows
-                if key and rtype not in ('section', 'spacer')
-            ]
-            render_heritage_inspector(
-                _pnl_heritage_keys, _sub_annual,
-                label=f"{name} P&L",
-                year_labels=_years,
-            )
-
-            # ── AUDIT: P&L ──
-            _pl_checks = []
-            for _a in _sub_annual:
-                _y = _a['year']
-                _pl_checks.append({
-                    "name": f"Y{_y}: Rev - OpEx = EBITDA",
-                    "expected": _a.get('rev_total', 0.0) - _a.get('om_cost', 0.0) - _a.get('power_cost', 0.0) - _a.get('rent_cost', 0.0),
-                    "actual": _a['ebitda'],
-                })
-                _pl_checks.append({
-                    "name": f"Y{_y}: EBITDA - Depr - IE + II = PBT",
-                    "expected": _a['ebitda'] - _a['depr'] - _a['ie'] + _a.get('ii_dsra', 0.0),
-                    "actual": _a['pbt'],
-                })
-                # Tax uses semi-annual loss carry-forward (engine calc_tax),
-                # so naive max(PBT*rate,0) doesn't hold. Verify bounds instead:
-                # (a) tax >= 0  (b) tax <= max(PBT,0) * tax_rate
-                _tax_ceiling = max(_a['pbt'], 0.0) * _TAX_RATE
-                _pl_checks.append({
-                    "name": f"Y{_y}: Tax >= 0",
-                    "expected": max(_a['tax'], 0.0),
-                    "actual": _a['tax'],
-                })
-                _pl_checks.append({
-                    "name": f"Y{_y}: Tax <= max(PBT,0)*{_TAX_RATE:.0%}",
-                    "expected": min(_a['tax'], _tax_ceiling),
-                    "actual": _a['tax'],
-                })
-                _pl_checks.append({
-                    "name": f"Y{_y}: PBT - Tax = PAT",
-                    "expected": _a['pbt'] - _a['tax'],
-                    "actual": _a['pat'],
-                })
-            _pl_checks.append({
-                "name": "10yr total PAT = sum",
-                "expected": sum(_a['pat'] for _a in _sub_annual),
-                "actual": sum(_a['pat'] for _a in _sub_annual),
-            })
-            run_page_audit(_pl_checks, f"{name} — P&L")
+            # ── AUDIT: P&L (engine-computed) ──
+            if "pnl" in _sub_proofs:
+                run_page_audit(_sub_proofs["pnl"], f"{name} — P&L")
 
     # --- CASH FLOW ---
     if "Cash Flow" in _tab_map:
@@ -6634,16 +6558,16 @@ split is well-balanced: BESS provides grid independence and peak shaving while P
             def _cf_line(label, key, sign=1.0, row_type='line', point_in_time=False):
                 vals = [sign * a.get(key, 0.0) for a in _sub_annual]
                 total = vals[-1] if point_in_time else sum(vals)
-                _cf_rows.append((label, vals + [total], row_type))
+                _cf_rows.append((label, vals + [total], row_type, key))
 
             def _cf_computed(label, vals_list, row_type='line'):
-                _cf_rows.append((label, vals_list + [sum(vals_list)], row_type))
+                _cf_rows.append((label, vals_list + [sum(vals_list)], row_type, ''))
 
             def _cf_section(label):
-                _cf_rows.append((label, [None] * _ncols_cf, 'section'))
+                _cf_rows.append((label, [None] * _ncols_cf, 'section', ''))
 
             def _cf_spacer():
-                _cf_rows.append(('', [None] * _ncols_cf, 'spacer'))
+                _cf_rows.append(('', [None] * _ncols_cf, 'spacer', ''))
 
             # --- OPERATING CASH FLOW ---
             _cf_section('OPERATING CASH FLOW')
@@ -6702,6 +6626,7 @@ split is well-balanced: BESS provides grid independence and peak shaving while P
             # cf_net = final cash flow after all waterfall allocations (reserves, acceleration, entity FD)
             _cf_section('NET CASH FLOW')
             _cf_line('Free CF (Ops − DS − Swap)', 'cf_after_debt_service', row_type='total') if _sub_swap_active else _cf_line('Free CF (Ops − DS)', 'cf_after_debt_service', row_type='total')
+            _cf_line('Dividends paid', 'cf_dividend', -1.0)
             _cf_line('Period Cash Flow', 'cf_net', row_type='total')
             _cf_spacer()
 
@@ -6752,86 +6677,17 @@ split is well-balanced: BESS provides grid independence and peak shaving while P
                     dscr_display.append('n/a')
             avg_dscr_str = f"{avg_dscr:.2f}x" if dscr_valid else 'n/a'
             _dscr_label = 'DSCR (Ops CF / (DS + Swap))' if _sub_swap_active else 'DSCR (Ops CF / Debt Service)'
-            _cf_rows.append((_dscr_label, dscr_display + [avg_dscr_str], 'line'))
+            _cf_rows.append((_dscr_label, dscr_display + [avg_dscr_str], 'line', ''))
 
-            # Build styled HTML table
-            _fmt = _eur_fmt
-            _h = ['<div style="overflow-x:auto;width:100%;">',
-                  '<table style="border-collapse:collapse;width:100%;font-size:13px;white-space:nowrap;">',
-                  '<thead><tr>']
-            _h.append('<th style="text-align:left;padding:6px 10px;border-bottom:2px solid #333;font-weight:700;">Item</th>')
-            for c in _cf_cols:
-                _h.append(f'<th style="text-align:right;padding:6px 8px;border-bottom:2px solid #333;font-weight:700;">{c}</th>')
-            _h.append('</tr></thead><tbody>')
+            # Build and render styled HTML table with heritage tooltips.
+            inject_pnl_heritage(
+                _cf_rows, _sub_annual, len(_years), _eur_fmt,
+                year_labels=_years,
+            )
 
-            for label, vals, rtype in _cf_rows:
-                if rtype == 'spacer':
-                    _h.append(f'<tr><td colspan="{_ncols_cf + 1}" style="height:10px;border:none;"></td></tr>')
-                    continue
-                if rtype == 'section':
-                    _h.append(f'<tr><td colspan="{_ncols_cf + 1}" style="padding:8px 10px 4px;font-weight:700;'
-                              f'font-size:11px;color:#6B7280;letter-spacing:0.08em;border-bottom:1px solid #E5E7EB;">{label}</td></tr>')
-                    continue
-                if rtype == 'grand':
-                    td_style = 'font-weight:700;background:#1E3A5F;color:#fff;border-top:2px solid #333;border-bottom:2px solid #333;'
-                elif rtype == 'total':
-                    td_style = 'font-weight:600;background:#F1F5F9;border-top:1px solid #CBD5E1;border-bottom:1px solid #CBD5E1;'
-                elif rtype == 'sub':
-                    td_style = 'font-style:italic;color:#475569;border-bottom:1px dashed #E2E8F0;'
-                else:
-                    td_style = 'border-bottom:1px solid #F1F5F9;'
-                _h.append('<tr>')
-                _h.append(f'<td style="text-align:left;padding:4px 10px;{td_style}">{label}</td>')
-                for v in vals:
-                    if isinstance(v, str):
-                        cell = v
-                    elif v is not None:
-                        cell = _fmt.format(v)
-                    else:
-                        cell = ''
-                    _h.append(f'<td style="text-align:right;padding:4px 8px;{td_style}">{cell}</td>')
-                _h.append('</tr>')
-
-            _h.append('</tbody></table></div>')
-            st.markdown(''.join(_h), unsafe_allow_html=True)
-
-            # ── AUDIT: Cash Flow ──
-            _cf_checks = []
-            for _a in _sub_annual:
-                _y = _a['year']
-                # DSRA identity: Opening + Deposit + Interest = Closing
-                _cf_checks.append({
-                    "name": f"Y{_y}: DSRA Open+Dep+Int = Close",
-                    "expected": _a['dsra_opening'] + _a['dsra_deposit'] + _a['dsra_interest'],
-                    "actual": _a['dsra_bal'],
-                })
-                # CF Ops = EBITDA + DSRA Interest - Tax
-                _cf_checks.append({
-                    "name": f"Y{_y}: CF Ops = EBITDA + II - Tax",
-                    "expected": _a['ebitda'] + _a.get('ii_dsra', 0.0) - _a['cf_tax'],
-                    "actual": _a['cf_ops'],
-                })
-                # Comprehensive CF Net — must match engine/loop.py build_annual() cf_net
-                # cf_net = equity + draw - capex + grants - grant_accel + ops - ie - pr - dividend
-                # Note: cf_swap_zar is NOT part of engine cf_net (swap DS flows through waterfall)
-                _exp_net = (_a['cf_equity']
-                            + _a['cf_draw'] - _a['cf_capex']
-                            + _a['cf_grants'] - _a.get('cf_grant_accel', _a.get('cf_prepay', 0))
-                            + _a['cf_ops']
-                            - _a['cf_ie'] - _a['cf_pr']
-                            - _a.get('cf_dividend', 0))
-                _cf_checks.append({
-                    "name": f"Y{_y}: CF Net = components",
-                    "expected": _exp_net,
-                    "actual": _a['cf_net'],
-                })
-            # Sum(CF Net) = DSRA Y10 balance
-            _cf_checks.append({
-                "name": "Sum(CF Net) = FD Y10 bal",
-                "expected": sum(_a['cf_net'] for _a in _sub_annual),
-                "actual": _sub_annual[-1]['dsra_bal'],
-            })
-            run_page_audit(_cf_checks, f"{name} — Cash Flow")
+            # ── AUDIT: Cash Flow (engine-computed) ──
+            if "cf" in _sub_proofs:
+                run_page_audit(_sub_proofs["cf"], f"{name} — Cash Flow")
 
     # --- DEBT SCULPTING ---
     if "Debt Sculpting" in _tab_map:
@@ -7300,80 +7156,9 @@ After contractual IC debt service (Senior + Mezz), **{name}** allocates surplus 
                                 for hi in range(_wf_hi_start, total_periods())]
                         st.dataframe(pd.DataFrame(_ds_bal_rows, index=_wf_cols).T, use_container_width=True)
 
-                    # ── Waterfall Audit (semi-annual) ──
-                    _wf_checks = []
-                    for _aud_hi in range(total_periods()):
-                        _aud_h = _aud_hi + 1
-                        _aw = _ent_wf_semi[_aud_hi]
-                        _a_sr_pi = _aw['sr_pi']
-                        _a_mz_pi = _aw['mz_pi']
-                        _a_surplus = _aw['surplus']
-
-                        # Check 1: Surplus >= 0 (read from waterfall output — source of truth)
-                        # Surplus = max(cash_available - ds_cash, 0) computed by the
-                        # engine including special/normal pool split, grants, and
-                        # proportional tax.  Do NOT recompute from EBITDA - Tax - DS
-                        # (that ignores special pool, grant inflows, and C2 routing).
-                        _wf_checks.append({
-                            "name": f"H{_aud_h}: Surplus >= 0",
-                            "expected": 0.0,
-                            "actual": min(_a_surplus, 0),
-                        })
-
-                        # Check 2: Free surplus (unallocated remainder) >= 0 — no leaks
-                        # The full allocation pool includes surplus, DSRA release, AND
-                        # special pool acceleration (grant-funded sr_accel_entity), so
-                        # comparing surplus + DSRA release to allocations misses the
-                        # special pool component.  Instead, verify that the cascade
-                        # ended with no negative remainder.
-                        _a_free = _aw.get('free_surplus', 0)
-                        _wf_checks.append({
-                            "name": f"H{_aud_h}: Free surplus (remainder) >= 0",
-                            "expected": 0.0,
-                            "actual": min(_a_free, 0),
-                        })
-
-                        # Check 3: No P+I when previous half balance was already zero
-                        if _aud_hi > 0:
-                            _prev_mz_bal = _ent_wf_semi[_aud_hi - 1].get('mz_ic_bal', 999)
-                            if _prev_mz_bal <= 0.01:
-                                _wf_checks.append({
-                                    "name": f"H{_aud_h}: Mezz IC prev bal=0 → Mz P+I should be 0",
-                                    "expected": 0.0,
-                                    "actual": _a_mz_pi,
-                                })
-                            _prev_sr_bal = _ent_wf_semi[_aud_hi - 1].get('sr_ic_bal', 999)
-                            if _prev_sr_bal <= 0.01:
-                                _wf_checks.append({
-                                    "name": f"H{_aud_h}: Sr IC prev bal=0 → Sr P+I should be 0",
-                                    "expected": 0.0,
-                                    "actual": _a_sr_pi,
-                                })
-
-                        # Check 4: No Entity FD while debt outstanding
-                        _a_efd = _aw.get('entity_fd_fill', 0)
-                        if _a_efd > 0:
-                            _any_debt = (_aw.get('mz_ic_bal', 0) > 0.01 or _aw.get('sr_ic_bal', 0) > 0.01
-                                         or _aw.get('zar_leg_bal', 0) > 0.01)
-                            _wf_checks.append({
-                                "name": f"H{_aud_h}: Entity FD only when ALL debt = 0",
-                                "expected": 0.0,
-                                "actual": 1.0 if _any_debt else 0.0,
-                            })
-
-                        # Check 5: Closing balance = Opening - Principal - Accel
-                        if _aud_hi > 0:
-                            _prev_mz = _ent_wf_semi[_aud_hi - 1].get('mz_ic_bal', 0)
-                            _exp_mz = max(_prev_mz - _aw.get('mz_prin_sched', 0) - _aw.get('mz_accel_entity', 0) + _aw.get('mezz_draw', 0), 0)
-                            if _prev_mz > 0.01 or _aw.get('mezz_draw', 0) > 0:
-                                _wf_checks.append({
-                                    "name": f"H{_aud_h}: Mezz bal = prev - sched - accel + draw",
-                                    "expected": _exp_mz,
-                                    "actual": _aw.get('mz_ic_bal', 0),
-                                    "tolerance": 10.0,
-                                })
-
-                    run_page_audit(_wf_checks, f"{entity_key.upper()} — Waterfall Cascade")
+                    # ── Waterfall Audit (engine-computed) ──
+                    if "waterfall" in _sub_proofs:
+                        run_page_audit(_sub_proofs["waterfall"], f"{entity_key.upper()} — Waterfall Cascade")
 
                     # Stacked bar chart — Surplus allocation (semi-annual, P1..P20)
                     _chart_x = _wf_display_periods
@@ -7871,20 +7656,20 @@ Ops Reserve → OpCo DSRA → Mezz IC Accel ({_CC_IRR_TARGET:.0%} eff.) → Sr I
 
             st.divider()
 
-            # --- Styled BS table (no Total column — BS is point-in-time) ---
-            _bs_cols = _years
+            # --- Styled BS table (point-in-time; Total = Y10 balance) ---
+            _bs_cols = _years + ['Total']
             _ncols_bs = len(_bs_cols)
             _bs_rows = []
 
             def _bs_line(label, key, sign=1.0, row_type='line'):
                 vals = [sign * a.get(key, 0.0) for a in _sub_annual]
-                _bs_rows.append((label, vals, row_type))
+                _bs_rows.append((label, vals + [vals[-1]], row_type, key))
 
             def _bs_section(label):
-                _bs_rows.append((label, [None] * _ncols_bs, 'section'))
+                _bs_rows.append((label, [None] * _ncols_bs, 'section', ''))
 
             def _bs_spacer():
-                _bs_rows.append(('', [None] * _ncols_bs, 'spacer'))
+                _bs_rows.append(('', [None] * _ncols_bs, 'spacer', ''))
 
             # --- BS is a LISTENER: reads pre-computed values from annual model ---
             _bs_section('OPERATING ASSETS')
@@ -7940,55 +7725,20 @@ Ops Reserve → OpCo DSRA → Mezz IC Accel ({_CC_IRR_TARGET:.0%} eff.) → Sr I
             _bs_section('CHECK')
             check_vals = [a['bs_assets'] - (a['bs_debt'] + a['bs_equity']) for a in _sub_annual]
             check_display = [f"{'OK' if abs(v) < 0.01 else _eur_fmt.format(v)}" for v in check_vals]
-            _bs_rows.append(('Assets = Debt + Equity', check_display, 'grand'))
+            _bs_rows.append(('Assets = Debt + Equity', check_display + [check_display[-1]], 'grand', ''))
             # Independent RE verification: bs_retained vs cumulative PAT from P&L
             gap_vals = [a.get('bs_gap', 0.0) for a in _sub_annual]
             gap_display = [f"{'OK' if abs(v) < 1.0 else _eur_fmt.format(v)}" for v in gap_vals]
-            _bs_rows.append(('RE = PAT + Grants', gap_display, 'line'))
+            _bs_rows.append(('RE = PAT + Grants', gap_display + [gap_display[-1]], 'line', 'bs_gap'))
             # Show warning if any gap > €1
             if any(abs(v) >= 1.0 for v in gap_vals):
                 st.warning(f"BS Gap detected: RE \u2260 Cumulative PAT + Grants. Max gap: \u20ac{max(abs(v) for v in gap_vals):,.0f}")
 
-            # Build styled HTML table
-            _fmt = _eur_fmt
-            _h = ['<div style="overflow-x:auto;width:100%;">',
-                  '<table style="border-collapse:collapse;width:100%;font-size:13px;white-space:nowrap;">',
-                  '<thead><tr>']
-            _h.append('<th style="text-align:left;padding:6px 10px;border-bottom:2px solid #333;font-weight:700;">Item</th>')
-            for c in _bs_cols:
-                _h.append(f'<th style="text-align:right;padding:6px 8px;border-bottom:2px solid #333;font-weight:700;">{c}</th>')
-            _h.append('</tr></thead><tbody>')
-
-            for label, vals, rtype in _bs_rows:
-                if rtype == 'spacer':
-                    _h.append(f'<tr><td colspan="{_ncols_bs + 1}" style="height:10px;border:none;"></td></tr>')
-                    continue
-                if rtype == 'section':
-                    _h.append(f'<tr><td colspan="{_ncols_bs + 1}" style="padding:8px 10px 4px;font-weight:700;'
-                              f'font-size:11px;color:#6B7280;letter-spacing:0.08em;border-bottom:1px solid #E5E7EB;">{label}</td></tr>')
-                    continue
-                if rtype == 'grand':
-                    td_style = 'font-weight:700;background:#1E3A5F;color:#fff;border-top:2px solid #333;border-bottom:2px solid #333;'
-                elif rtype == 'total':
-                    td_style = 'font-weight:600;background:#F1F5F9;border-top:1px solid #CBD5E1;border-bottom:1px solid #CBD5E1;'
-                elif rtype == 'sub':
-                    td_style = 'font-style:italic;color:#475569;border-bottom:1px dashed #E2E8F0;'
-                else:
-                    td_style = 'border-bottom:1px solid #F1F5F9;'
-                _h.append('<tr>')
-                _h.append(f'<td style="text-align:left;padding:4px 10px;{td_style}">{label}</td>')
-                for v in vals:
-                    if isinstance(v, str):
-                        cell = v
-                    elif v is not None:
-                        cell = _fmt.format(v)
-                    else:
-                        cell = ''
-                    _h.append(f'<td style="text-align:right;padding:4px 8px;{td_style}">{cell}</td>')
-                _h.append('</tr>')
-
-            _h.append('</tbody></table></div>')
-            st.markdown(''.join(_h), unsafe_allow_html=True)
+            # Build and render styled HTML table with heritage tooltips.
+            inject_pnl_heritage(
+                _bs_rows, _sub_annual, len(_years), _eur_fmt,
+                year_labels=_years,
+            )
 
             # BS chart — Asset breakdown (stacked) vs Debt + Equity
             fig_bs = go.Figure()
@@ -8072,39 +7822,9 @@ Ops Reserve → OpCo DSRA → Mezz IC Accel ({_CC_IRR_TARGET:.0%} eff.) → Sr I
                 f"**DSRA FD:** Surplus cash deposited at FD rate ({DSRA_RATE*100:.0f}% p.a. from config) — Opening + Deposit + Interest = Closing"
             )
 
-            # ── AUDIT: Balance Sheet ──
-            _bs_checks = []
-            for _a in _sub_annual:
-                _y = _a['year']
-                # A = D + E
-                _bs_checks.append({
-                    "name": f"Y{_y}: Assets = Debt + Equity",
-                    "expected": _a['bs_debt'] + _a['bs_equity'],
-                    "actual": _a['bs_assets'],
-                })
-                # RE = Cumulative PAT + Grants
-                _bs_checks.append({
-                    "name": f"Y{_y}: RE = CumPAT + Grants",
-                    "expected": _a['bs_retained_check'],
-                    "actual": _a['bs_retained'],
-                })
-                # BS Reserves = DSRA FD closing (all cash allocated to reserve buckets)
-                _bs_checks.append({
-                    "name": f"Y{_y}: BS Reserves = DSRA FD",
-                    "expected": _a['dsra_bal'],
-                    "actual": _a['bs_dsra'],
-                })
-                # BS fixed assets = min(cum_capex + cum_idc, depr_base + cum_idc) - accumulated depr
-                # IDC (IAS 23): capitalised borrowing costs included in asset cost
-                _acc_depr = sum(_sub_annual[i]['depr'] for i in range(_y))
-                _cum_capex_chk = sum(_sub_annual[i].get('cf_capex', 0) for i in range(_y))
-                _cum_idc_chk = sum(_sub_annual[i].get('cf_idc', 0) for i in range(_y))
-                _bs_checks.append({
-                    "name": f"Y{_y}: Fixed Assets = Base+IDC - AccDepr",
-                    "expected": max(min(_cum_capex_chk + _cum_idc_chk, _sub_depr_base + _cum_idc_chk) - _acc_depr, 0),
-                    "actual": _a['bs_fixed_assets'],
-                })
-            run_page_audit(_bs_checks, f"{name} — Balance Sheet")
+            # ── AUDIT: Balance Sheet (engine-computed) ──
+            if "bs" in _sub_proofs:
+                run_page_audit(_sub_proofs["bs"], f"{name} — Balance Sheet")
 
     # --- GRAPHS ---
     if "Graphs" in _tab_map:
@@ -8131,8 +7851,9 @@ Ops Reserve → OpCo DSRA → Mezz IC Accel ({_CC_IRR_TARGET:.0%} eff.) → Sr I
                 _total_capex = entity_data['total_loan']
                 _asset_life = 20
 
-                # WACC for NPV discounting: 85% × 4.70% + 15% × 14.75% = 6.21%
-                _wacc = 0.85 * 0.047 + 0.15 * 0.1475
+                # WACC for NPV discounting — weights from operations config, rates from module constants
+                _nwl_ww = operations_config.get("nwl", {}).get("wacc_weights", {"senior": 0.85, "mezzanine": 0.15})
+                _wacc = _nwl_ww["senior"] * _SR_FACILITY_RATE + _nwl_ww["mezzanine"] * _MZ_FACILITY_RATE
 
                 # Capital Recovery Factor (CRF) for proper capex annualization
                 _crf = _wacc * (1 + _wacc)**_asset_life / ((1 + _wacc)**_asset_life - 1)
@@ -8442,7 +8163,8 @@ Ops Reserve → OpCo DSRA → Mezz IC Accel ({_CC_IRR_TARGET:.0%} eff.) → Sr I
 
                 _lr_total_capex = entity_data['total_loan']
                 _lr_asset_life = 25  # solar asset life
-                _lr_wacc = 0.85 * 0.047 + 0.15 * 0.1475
+                _lr_ww = operations_config.get("lanred", {}).get("wacc_weights", {"senior": 0.85, "mezzanine": 0.15})
+                _lr_wacc = _lr_ww["senior"] * _SR_FACILITY_RATE + _lr_ww["mezzanine"] * _MZ_FACILITY_RATE
 
                 # CRF for capex annualization
                 _lr_crf = _lr_wacc * (1 + _lr_wacc)**_lr_asset_life / ((1 + _lr_wacc)**_lr_asset_life - 1)
@@ -13290,7 +13012,7 @@ if entity == "Catalytic Assets":
     nwl_swap_amount = 0.0
     _nwl_swap_eur_m24 = 0.0
     _nwl_swap_eur_m30 = 0.0
-    _nwl_last_sr_month = 102
+    _nwl_last_sr_month = None  # None -> swap.py derives from config (zar_leg_start_month + (zar_leg_repayments-1)*6)
     if nwl_swap_enabled:
         # Compute M24/M30 Senior IC P+I for EUR leg breakdown display
         for r in _entity_ic['nwl']['sr']:
@@ -13305,7 +13027,7 @@ if entity == "Catalytic Assets":
         _nwl_last_sr_month = max(
             (r['Month'] for r in _entity_ic['nwl']['sr']
              if r['Month'] >= repayment_start_month() and (abs(r.get('Principle', 0)) > 0 or abs(r.get('Repayment', 0)) > 0)),
-            default=102
+            default=None,  # None -> swap.py derives from config
         )
     _swap_sched = (
         _build_nwl_swap_schedule(nwl_swap_amount, FX_RATE, last_sr_month=_nwl_last_sr_month)
@@ -13339,11 +13061,11 @@ if entity == "Catalytic Assets":
     _orch_dtic_eur = financing.get('prepayments', {}).get('dtic_grant', {}).get('amount_eur', 0)
     _orch_iic_ta_eur = financing.get('prepayments', {}).get('invest_int_ta', {}).get('amount_eur', 0)
     _orch_nwl_ci = [{} for _ in range(total_periods())]
-    _orch_nwl_ci[1] = {'dtic_grant': _orch_dtic_eur, 'iic_grant': _orch_iic_ta_eur}  # M12
+    _orch_nwl_ci[2] = {'dtic_grant': _orch_dtic_eur, 'iic_grant': _orch_iic_ta_eur}  # M12 = index 2 (C3)
     if nwl_swap_enabled:
-        _orch_nwl_ci[3] = {'eur_leg_repayment': pre_revenue_hedge}  # M24
+        _orch_nwl_ci[4] = {'eur_leg_repayment': pre_revenue_hedge}  # M24 = index 4 (R1)
     else:
-        _orch_nwl_ci[3] = {'mezz_draw': pre_revenue_hedge}  # M24
+        _orch_nwl_ci[4] = {'mezz_draw': pre_revenue_hedge}  # M24 = index 4 (R1)
 
     _nwl_sweep_pct = st.session_state.get("nwl_cash_sweep_pct", 100) / 100.0
     _nwl_wf = _compute_entity_waterfall_inputs(
@@ -13606,6 +13328,34 @@ if entity == "Catalytic Assets":
                 _a_accel['bs_l'] = (_a_accel['bs_sr']
                                     + _a_accel['bs_mz']
                                     + _a_accel['bs_dsra_liab'])
+
+    # --- SCLCA PROOFS (engine-computed, display-only in tabs below) ---
+    from engine.proofs import (
+        build_sclca_sources_uses_proofs,
+        build_sclca_facility_proofs,
+        build_sclca_asset_proofs,
+        build_sclca_pnl_proofs,
+        build_sclca_cf_proofs,
+        build_cwf_proofs,
+        build_sclca_bs_proofs,
+        build_ic_recon_proofs,
+    )
+    _sclca_proofs = {}
+    _sclca_proofs["sources_uses"] = build_sclca_sources_uses_proofs(structure)
+    _sclca_proofs["facilities"] = build_sclca_facility_proofs(
+        annual_model, _audit_nwl_ann, _audit_lanred_ann, _audit_twx_ann)
+    _sclca_proofs["assets"] = build_sclca_asset_proofs(
+        annual_model, _audit_nwl_ann, _audit_lanred_ann, _audit_twx_ann)
+    _sclca_proofs["pnl"] = build_sclca_pnl_proofs(
+        annual_model, _audit_nwl_ann, _audit_lanred_ann, _audit_twx_ann)
+    _sclca_proofs["cf"] = build_sclca_cf_proofs(
+        annual_model, _audit_nwl_ann, _audit_lanred_ann, _audit_twx_ann, DSRA_RATE)
+    _sclca_proofs["cwf"] = build_cwf_proofs(_waterfall, 'nwl')
+    _sclca_proofs["bs"] = build_sclca_bs_proofs(
+        annual_model, _audit_nwl_ann, _audit_lanred_ann, _audit_twx_ann, EQUITY_TOTAL)
+    _sclca_proofs["ic_recon"] = build_ic_recon_proofs(
+        annual_model, _audit_nwl_ann, _audit_lanred_ann, _audit_twx_ann,
+        _state_str("lanred_scenario", "Brownfield+"))
 
     # --- OVERVIEW TAB ---
     if "Overview" in _tab_map:
@@ -14086,27 +13836,9 @@ if entity == "Catalytic Assets":
                 - Co-shareholder: VanSquared ({_OWN_TWX_OTHER:.0%})
                 """)
 
-            # ── AUDIT: SCLCA Sources & Uses ──
-            _sclca_su_checks = []
-            _all_loans = structure['uses']['loans_to_subsidiaries']
-            _sr_total = structure['sources']['senior_debt']['amount']
-            _mz_total = structure['sources']['mezzanine']['amount_eur']
-            _sclca_su_checks.append({
-                "name": "Sum entity Senior = Facility Senior",
-                "expected": _sr_total,
-                "actual": sum(v['senior_portion'] for v in _all_loans.values()),
-            })
-            _sclca_su_checks.append({
-                "name": "Sum entity Mezz = Facility Mezz",
-                "expected": _mz_total,
-                "actual": sum(v['mezz_portion'] for v in _all_loans.values()),
-            })
-            _sclca_su_checks.append({
-                "name": "Sum entity Total = Facility Total",
-                "expected": _sr_total + _mz_total,
-                "actual": sum(v['total_loan'] for v in _all_loans.values()),
-            })
-            run_page_audit(_sclca_su_checks, "SCLCA — Sources & Uses")
+            # ── AUDIT: SCLCA Sources & Uses (engine-computed) ──
+            if "sources_uses" in _sclca_proofs:
+                run_page_audit(_sclca_proofs["sources_uses"], "SCLCA — Sources & Uses")
 
     # --- FACILITIES TAB ---
     if "Facilities" in _tab_map:
@@ -14188,7 +13920,7 @@ if entity == "Catalytic Assets":
                 _sr_display_cols = [c for c in ["Label", "Month", "Year", "Opening", "Draw Down",
                                     "IDC", "Interest", "Principle", "Acceleration", "Movement", "Closing"]
                                     if c in df_senior.columns]
-                render_table(df_senior[_sr_display_cols], {
+                _sr_fac_fmt = {
                     "Year": "{:.1f}",
                     "Opening": "€{:,.0f}",
                     "Draw Down": "€{:,.0f}",
@@ -14198,7 +13930,8 @@ if entity == "Catalytic Assets":
                     "Acceleration": "€{:,.0f}",
                     "Movement": "€{:,.0f}",
                     "Closing": "€{:,.0f}"
-                })
+                }
+                inject_df_heritage(df_senior[_sr_display_cols], key_map=_sr_key_map, formats=_sr_fac_fmt, label_col="Label")
 
                 # Notes section
                 st.markdown("---")
@@ -14331,7 +14064,7 @@ if entity == "Catalytic Assets":
                 _mz_display_cols = [c for c in ["Label", "Month", "Year", "Opening", "Draw Down",
                                     "IDC", "Interest", "Principle", "Acceleration", "Movement", "Closing"]
                                     if c in df_mezz.columns]
-                render_table(df_mezz[_mz_display_cols], {
+                _mz_fac_fmt = {
                     "Year": "{:.1f}",
                     "Opening": "€{:,.0f}",
                     "Draw Down": "€{:,.0f}",
@@ -14341,7 +14074,8 @@ if entity == "Catalytic Assets":
                     "Acceleration": "€{:,.0f}",
                     "Movement": "€{:,.0f}",
                     "Closing": "€{:,.0f}"
-                })
+                }
+                inject_df_heritage(df_mezz[_mz_display_cols], key_map=_mz_key_map, formats=_mz_fac_fmt, label_col="Label")
 
                 # Mezz helper tables and notes
                 st.markdown("---")
@@ -14411,68 +14145,9 @@ if entity == "Catalytic Assets":
 
             st.divider()
 
-            # ── AUDIT: SCLCA Facilities (cross-ref vs engine entity IC debt) ──
-            # SCLCA facilities are the bank-side liability. IC loans pass through:
-            # entity pays IC principal -> SCLCA receives -> SCLCA pays facility.
-            # Engine entity data provides independent proof of repayment.
-            _sclca_fac_checks = []
-            # Maturity: engine entity IC debt Y10 = 0 (independent proof facilities are repaid)
-            _sub_sr_y10 = _audit_nwl_ann[-1]['bs_sr'] + _audit_lanred_ann[-1]['bs_sr'] + _audit_twx_ann[-1]['bs_sr']
-            _sclca_fac_checks.append({
-                "name": "Y10: Entity Sr IC debt = 0 (engine)",
-                "expected": 0.0,
-                "actual": _sub_sr_y10,
-            })
-            _sub_mz_y10 = _audit_nwl_ann[-1]['bs_mz'] + _audit_lanred_ann[-1]['bs_mz'] + _audit_twx_ann[-1]['bs_mz']
-            _sclca_fac_checks.append({
-                "name": "Y10: Entity Mz IC debt = 0 (engine)",
-                "expected": 0.0,
-                "actual": _sub_mz_y10,
-            })
-            # Principal pass-through: each year, SCLCA principal received from
-            # IC loans (from entities via engine) = SCLCA principal paid to facility
-            for _fyi in range(total_years()):
-                _fy = _fyi + 1
-                _fsa = annual_model[_fyi]
-                _sub_pr = (
-                    _audit_nwl_ann[_fyi]['cf_pr']
-                    + _audit_lanred_ann[_fyi]['cf_pr']
-                    + _audit_twx_ann[_fyi]['cf_pr']
-                )
-                _sclca_fac_checks.append({
-                    "name": f"Y{_fy}: IC principal in (engine) = facility repay in",
-                    "expected": _fsa['cf_repay_in'],
-                    "actual": _sub_pr,
-                })
-            # Interest pass-through Sr/Mz split: SCLCA II Sr/Mz vs sum(entity IE Sr/Mz)
-            # Gate: Y1-Y2 are construction — SCLCA ii_sr/ii_mz is ACCRUED interest
-            # (includes IDC capitalised into loan balance), while engine entity
-            # ie_sr/ie_mz is CASH interest only (zero during construction).
-            # From Y3 onward (repayment phase), accrued = cash and they match.
-            for _fyi in range(2, total_years()):
-                _fy = _fyi + 1
-                _fsa = annual_model[_fyi]
-                _sub_ie_sr = (
-                    _audit_nwl_ann[_fyi]['ie_sr']
-                    + _audit_lanred_ann[_fyi]['ie_sr']
-                    + _audit_twx_ann[_fyi]['ie_sr']
-                )
-                _sclca_fac_checks.append({
-                    "name": f"Y{_fy}: SCLCA II Sr = sum(entity IE Sr)",
-                    "expected": _fsa['ii_sr'],
-                    "actual": _sub_ie_sr,
-                })
-                _sub_ie_mz = (
-                    _audit_nwl_ann[_fyi]['ie_mz']
-                    + _audit_lanred_ann[_fyi]['ie_mz']
-                    + _audit_twx_ann[_fyi]['ie_mz']
-                )
-                _sclca_fac_checks.append({
-                    "name": f"Y{_fy}: SCLCA II Mz = sum(entity IE Mz)",
-                    "expected": _fsa['ii_mz'],
-                    "actual": _sub_ie_mz,
-                })
-            run_page_audit(_sclca_fac_checks, "SCLCA — Facilities")
+            # ── AUDIT: SCLCA Facilities (engine-computed) ──
+            if "facilities" in _sclca_proofs:
+                run_page_audit(_sclca_proofs["facilities"], "SCLCA — Facilities")
 
     # --- ASSETS TAB ---
     if "Assets" in _tab_map:
@@ -14502,6 +14177,22 @@ if entity == "Catalytic Assets":
                 "Acceleration": "€{:,.0f}",
                 "Movement": "€{:,.0f}",
                 "Closing": "€{:,.0f}"
+            }
+
+            # Heritage key maps -- column name -> lineage key (SCLCA facility tables)
+            _sr_key_map = {
+                "Opening": "sr_opening", "Draw Down": "sr_draw_down",
+                "IDC": "sr_idc", "Interest": "ie_sr",
+                "Principle": "sr_principal", "Principal": "sr_principal",
+                "Acceleration": "sr_accel",
+                "Movement": "sr_movement", "Closing": "sr_closing",
+            }
+            _mz_key_map = {
+                "Opening": "mz_opening", "Draw Down": "mz_draw_down",
+                "IDC": "mz_idc", "Interest": "ie_mz",
+                "Principle": "mz_principal", "Principal": "mz_principal",
+                "Acceleration": "mz_accel",
+                "Movement": "mz_movement", "Closing": "mz_closing",
             }
 
             # Totals for pro-rata calculations
@@ -14578,7 +14269,7 @@ if entity == "Catalytic Assets":
                     _nwl_sr_cols = [c for c in ["Label", "Month", "Year", "Opening", "Draw Down",
                                     "IDC", "Interest", "Principle", "Acceleration", "Movement", "Closing"]
                                     if c in df_nwl_senior.columns]
-                    render_table(df_nwl_senior[_nwl_sr_cols], ic_format)
+                    inject_df_heritage(df_nwl_senior[_nwl_sr_cols], key_map=_sr_key_map, formats=ic_format, label_col="Label")
 
                     # Helper tables for NWL Senior IC
                     st.markdown("---")
@@ -14636,7 +14327,7 @@ if entity == "Catalytic Assets":
                 _nwl_mz_cols = [c for c in ["Label", "Month", "Year", "Opening", "Draw Down",
                                 "IDC", "Interest", "Principle", "Acceleration", "Movement", "Closing"]
                                 if c in df_nwl_mezz.columns]
-                render_table(df_nwl_mezz[_nwl_mz_cols], ic_format)
+                inject_df_heritage(df_nwl_mezz[_nwl_mz_cols], key_map=_mz_key_map, formats=ic_format, label_col="Label")
 
                 st.caption(f"Vanilla P_constant = €{nwl_mz_p_per:,.0f} | DSRA/acceleration allocated by waterfall")
 
@@ -14679,7 +14370,7 @@ if entity == "Catalytic Assets":
                 _ic_display_cols = [c for c in ["Label", "Month", "Year", "Opening", "Draw Down",
                                     "IDC", "Interest", "Principle", "Acceleration", "Movement", "Closing"]
                                     if c in df_lanred_senior.columns]
-                render_table(df_lanred_senior[_ic_display_cols], ic_format)
+                inject_df_heritage(df_lanred_senior[_ic_display_cols], key_map=_sr_key_map, formats=ic_format, label_col="Label")
 
                 # --- LanRED Mezz IC (from engine) ---
                 st.markdown(f"**Mezz IC** — {mezz_ic_rate*100:.2f}% | {mezz_ic_reps} semi-annual")
@@ -14687,7 +14378,7 @@ if entity == "Catalytic Assets":
                 for r in _lr_mz:
                     r["Label"] = period_lookup(r["Period"])["label"]
                 df_lanred_mezz = pd.DataFrame(_lr_mz)
-                render_table(df_lanred_mezz[_ic_display_cols], ic_format)
+                inject_df_heritage(df_lanred_mezz[_ic_display_cols], key_map=_mz_key_map, formats=ic_format, label_col="Label")
 
                 st.divider()
                 st.markdown("#### Equity Stake")
@@ -14719,7 +14410,7 @@ if entity == "Catalytic Assets":
                 for r in _twx_sr:
                     r["Label"] = period_lookup(r["Period"])["label"]
                 df_twx_senior = pd.DataFrame(_twx_sr)
-                render_table(df_twx_senior[_ic_display_cols], ic_format)
+                inject_df_heritage(df_twx_senior[_ic_display_cols], key_map=_sr_key_map, formats=ic_format, label_col="Label")
 
                 # --- Timberworx Mezz IC (from engine) ---
                 st.markdown(f"**Mezz IC** — {mezz_ic_rate*100:.2f}% | {mezz_ic_reps} semi-annual")
@@ -14727,7 +14418,7 @@ if entity == "Catalytic Assets":
                 for r in _twx_mz:
                     r["Label"] = period_lookup(r["Period"])["label"]
                 df_twx_mezz = pd.DataFrame(_twx_mz)
-                render_table(df_twx_mezz[_ic_display_cols], ic_format)
+                inject_df_heritage(df_twx_mezz[_ic_display_cols], key_map=_mz_key_map, formats=ic_format, label_col="Label")
 
                 st.divider()
                 st.markdown("#### Equity Stake")
@@ -14841,49 +14532,9 @@ if entity == "Catalytic Assets":
                     "Interest": "€{:,.0f}", "Closing": "€{:,.0f}"
                 })
 
-            # ── AUDIT: SCLCA Assets (cross-ref vs engine entity IC debt) ──
-            # Engine entity = source of truth (FacilityState with DSRA injection).
-            # SCLCA inline IC uses vanilla build_schedule (no DSRA params), so
-            # balances diverge where DSRA affects NWL Senior. Engine entity sum
-            # is expected (truth), SCLCA inline is actual (informational).
-            # Auto-tolerance covers DSRA divergence; delta is visible in audit.
-            _sclca_ast_checks = []
-            for _ayi in range(total_years()):
-                _ay = _ayi + 1
-                _ana = _audit_nwl_ann[_ayi]
-                _ala = _audit_lanred_ann[_ayi]
-                _ata = _audit_twx_ann[_ayi]
-                _asa = annual_model[_ayi]
-                # Engine entity Sr IC total vs SCLCA inline IC Sr receivable
-                _sub_bs_sr = _ana['bs_sr'] + _ala['bs_sr'] + _ata['bs_sr']
-                _sr_delta = abs(_sub_bs_sr - _asa['bs_isr'])
-                _sclca_ast_checks.append({
-                    "name": f"Y{_ay}: IC Sr bal: engine entity vs SCLCA (DSRA divergence)",
-                    "expected": _sub_bs_sr,
-                    "actual": _asa['bs_isr'],
-                    "tolerance": max(_sr_delta + 1.0, 1.0),
-                })
-                # Engine entity Mz IC total vs SCLCA inline IC Mz receivable
-                _sub_bs_mz = _ana['bs_mz'] + _ala['bs_mz'] + _ata['bs_mz']
-                _mz_delta = abs(_sub_bs_mz - _asa['bs_imz'])
-                _sclca_ast_checks.append({
-                    "name": f"Y{_ay}: IC Mz bal: engine entity vs SCLCA (DSRA divergence)",
-                    "expected": _sub_bs_mz,
-                    "actual": _asa['bs_imz'],
-                    "tolerance": max(_mz_delta + 1.0, 1.0),
-                })
-            # Y10: all IC loans fully repaid (from engine, not inline)
-            _sub_ic_y10 = (
-                _audit_nwl_ann[-1]['bs_sr'] + _audit_nwl_ann[-1]['bs_mz']
-                + _audit_lanred_ann[-1]['bs_sr'] + _audit_lanred_ann[-1]['bs_mz']
-                + _audit_twx_ann[-1]['bs_sr'] + _audit_twx_ann[-1]['bs_mz']
-            )
-            _sclca_ast_checks.append({
-                "name": "Y10: All IC loans repaid (engine)",
-                "expected": 0.0,
-                "actual": _sub_ic_y10,
-            })
-            run_page_audit(_sclca_ast_checks, "SCLCA — Assets")
+            # ── AUDIT: SCLCA Assets (engine-computed) ──
+            if "assets" in _sclca_proofs:
+                run_page_audit(_sclca_proofs["assets"], "SCLCA — Assets")
 
     # --- OPERATIONS TAB ---
     if "Operations" in _tab_map:
@@ -15025,17 +14676,17 @@ if entity == "Catalytic Assets":
             # Build transposed P&L (rows = line items, columns = years)
             _pnl_cols = [f"Y{a['year']}" for a in annual_model] + ['Total']
             _ncols = len(_pnl_cols)
-            _pnl_rows = []  # list of (label, values, row_type)
+            _pnl_rows = []  # list of (label, values, row_type, key)
 
             def _pnl_line(label, key, sign=1.0, row_type='line'):
                 vals = [sign * a.get(key, 0.0) for a in annual_model]
-                _pnl_rows.append((label, vals + [sum(vals)], row_type))
+                _pnl_rows.append((label, vals + [sum(vals)], row_type, key))
 
             def _pnl_section(label):
-                _pnl_rows.append((label, [None] * _ncols, 'section'))
+                _pnl_rows.append((label, [None] * _ncols, 'section', ''))
 
             def _pnl_spacer():
-                _pnl_rows.append(('', [None] * _ncols, 'spacer'))
+                _pnl_rows.append(('', [None] * _ncols, 'spacer', ''))
 
             # REVENUE
             _pnl_section('REVENUE')
@@ -15053,46 +14704,12 @@ if entity == "Catalytic Assets":
             _pnl_section('BOTTOM LINE')
             _pnl_line('Net Income', 'ni', row_type='grand')
 
-            # Build styled HTML table
-            _fmt = _eur_fmt
-            _h = ['<div style="overflow-x:auto;width:100%;">',
-                  '<table style="border-collapse:collapse;width:100%;font-size:13px;white-space:nowrap;">',
-                  '<thead><tr>']
-            _h.append('<th style="text-align:left;padding:6px 10px;border-bottom:2px solid #333;font-weight:700;">Item</th>')
-            for c in _pnl_cols:
-                _h.append(f'<th style="text-align:right;padding:6px 8px;border-bottom:2px solid #333;font-weight:700;">{c}</th>')
-            _h.append('</tr></thead><tbody>')
-
-            for label, vals, rtype in _pnl_rows:
-                if rtype == 'spacer':
-                    _h.append(f'<tr><td colspan="{_ncols + 1}" style="height:10px;border:none;"></td></tr>')
-                    continue
-                if rtype == 'section':
-                    _h.append(f'<tr><td colspan="{_ncols + 1}" style="padding:8px 10px 4px;font-weight:700;'
-                              f'font-size:11px;color:#6B7280;letter-spacing:0.08em;border-bottom:1px solid #E5E7EB;">{label}</td></tr>')
-                    continue
-                # Style per row type
-                if rtype == 'grand':
-                    td_style = 'font-weight:700;background:#1E3A5F;color:#fff;border-top:2px solid #333;border-bottom:2px solid #333;'
-                    lbl_style = td_style
-                elif rtype == 'total':
-                    td_style = 'font-weight:600;background:#F1F5F9;border-top:1px solid #CBD5E1;border-bottom:1px solid #CBD5E1;'
-                    lbl_style = td_style
-                elif rtype == 'sub':
-                    td_style = 'font-style:italic;color:#475569;border-bottom:1px dashed #E2E8F0;'
-                    lbl_style = td_style
-                else:
-                    td_style = 'border-bottom:1px solid #F1F5F9;'
-                    lbl_style = td_style
-                _h.append('<tr>')
-                _h.append(f'<td style="text-align:left;padding:4px 10px;{lbl_style}">{label}</td>')
-                for v in vals:
-                    cell = _fmt.format(v) if v is not None and not isinstance(v, str) else ''
-                    _h.append(f'<td style="text-align:right;padding:4px 8px;{td_style}">{cell}</td>')
-                _h.append('</tr>')
-
-            _h.append('</tbody></table></div>')
-            st.markdown(''.join(_h), unsafe_allow_html=True)
+            # Build and render styled HTML table with heritage tooltips.
+            _sclca_pnl_year_labels = [f"Y{a['year']}" for a in annual_model]
+            inject_pnl_heritage(
+                _pnl_rows, annual_model, len(annual_model), _eur_fmt,
+                year_labels=_sclca_pnl_year_labels,
+            )
 
             st.divider()
 
@@ -15174,50 +14791,9 @@ if entity == "Catalytic Assets":
             )
             st.plotly_chart(fig_pnl, use_container_width=True)
 
-            # ── AUDIT: SCLCA P&L (cross-ref vs engine entity interest expense) ──
-            _sclca_pl_checks = []
-            # Gate: Y1-Y2 are construction — SCLCA ii_ic is ACCRUED interest
-            # (includes IDC capitalised into loan balance), while engine entity
-            # ie_sr/ie_mz is CASH interest only (zero during construction).
-            # From Y3 onward (repayment phase), accrued = cash and they match.
-            for _pyi in range(total_years()):
-                _py = _pyi + 1
-                _pna = _audit_nwl_ann[_pyi]
-                _pla = _audit_lanred_ann[_pyi]
-                _pta = _audit_twx_ann[_pyi]
-                _psa = annual_model[_pyi]
-                # SCLCA interest income (IC only) = sum(entity IC interest expense)
-                # Only valid from Y3 onward (Y1-Y2 IDC is capitalised, not cash)
-                if _pyi >= 2:
-                    _sub_ie_total = _pna['ie_sr'] + _pna['ie_mz'] + _pla['ie_sr'] + _pla['ie_mz'] + _pta['ie_sr'] + _pta['ie_mz']
-                    _sclca_pl_checks.append({
-                        "name": f"Y{_py}: SCLCA II(IC) = sum(entity IE)",
-                        "expected": _psa['ii_ic'],
-                        "actual": _sub_ie_total,
-                    })
-                # SCLCA facility IE = sum(entity IC Sr IE) / (1 + margin/rate)
-                # Simpler: SCLCA NI(IC) = SCLCA II(IC) - SCLCA IE = 0.5% margin
-                # Cross-ref: NI should equal the IC spread component
-                _sclca_pl_checks.append({
-                    "name": f"Y{_py}: NI(IC) = II(IC) - IE (margin check)",
-                    "expected": _psa['ii_ic'] - _psa['ie'],
-                    "actual": _psa['ni'] - _psa['ii_dsra'],
-                })
-            # 10yr total (Y3-Y10 only): SCLCA total II(IC) = sum of entity IE
-            # Y1-Y2 excluded: IDC is accrued in SCLCA but zero cash in engine
-            _sclca_ii_ic_repay = sum(annual_model[i]['ii_ic'] for i in range(2, total_years()))
-            _sub_ie_repay = sum(
-                _audit_nwl_ann[i]['ie_sr'] + _audit_nwl_ann[i]['ie_mz']
-                + _audit_lanred_ann[i]['ie_sr'] + _audit_lanred_ann[i]['ie_mz']
-                + _audit_twx_ann[i]['ie_sr'] + _audit_twx_ann[i]['ie_mz']
-                for i in range(2, total_years())
-            )
-            _sclca_pl_checks.append({
-                "name": "Y3-Y10: SCLCA II(IC) = sum(entity IE)",
-                "expected": _sclca_ii_ic_repay,
-                "actual": _sub_ie_repay,
-            })
-            run_page_audit(_sclca_pl_checks, "SCLCA — P&L")
+            # ── AUDIT: SCLCA P&L (engine-computed) ──
+            if "pnl" in _sclca_proofs:
+                run_page_audit(_sclca_proofs["pnl"], "SCLCA — P&L")
 
             # Waterfall allocation expander (v3.1 — 6-step)
             with st.expander("Waterfall Allocation"):
@@ -15262,22 +14838,22 @@ if entity == "Catalytic Assets":
             # Build transposed Cash Flow (rows = line items, columns = years)
             _cf_cols = [f"Y{a['year']}" for a in annual_model] + ['Total']
             _ncols_cf = len(_cf_cols)
-            _cf_rows = []  # list of (label, values, row_type)
+            _cf_rows = []  # list of (label, values, row_type, key)
 
             def _cf_line(label, key, sign=1.0, row_type='line', point_in_time=False):
                 vals = [sign * a.get(key, 0.0) for a in annual_model]
                 total = vals[-1] if point_in_time else sum(vals)
-                _cf_rows.append((label, vals + [total], row_type))
+                _cf_rows.append((label, vals + [total], row_type, key))
 
             def _cf_computed_line(label, values_list, row_type='line'):
                 # For computed values that don't have a single key
-                _cf_rows.append((label, values_list, row_type))
+                _cf_rows.append((label, values_list, row_type, ''))
 
             def _cf_section(label):
-                _cf_rows.append((label, [None] * _ncols_cf, 'section'))
+                _cf_rows.append((label, [None] * _ncols_cf, 'section', ''))
 
             def _cf_spacer():
-                _cf_rows.append(('', [None] * _ncols_cf, 'spacer'))
+                _cf_rows.append(('', [None] * _ncols_cf, 'spacer', ''))
 
             # PRINCIPAL - DRAWDOWNS
             _cf_section('PRINCIPAL - DRAWDOWNS')
@@ -15338,7 +14914,7 @@ if entity == "Catalytic Assets":
             _cf_spacer()
             _cf_section('NET CASH FLOW')
             _cf_line('Net Cash Flow (Operations)', 'cf_net', row_type='total')
-            _cf_computed_line('→ to Fixed Deposit',
+            _cf_computed_line('\u2192 to Fixed Deposit',
                 [-a['cf_net'] for a in annual_model] +
                 [-sum(a['cf_net'] for a in annual_model)],
                 'sub')
@@ -15351,46 +14927,12 @@ if entity == "Catalytic Assets":
             _cf_line('Interest Earned (9%)', 'dsra_interest')
             _cf_line('Closing Balance', 'dsra_bal', row_type='grand', point_in_time=True)
 
-            # Build styled HTML table
-            _fmt = _eur_fmt
-            _h_cf = ['<div style="overflow-x:auto;width:100%;">',
-                     '<table style="border-collapse:collapse;width:100%;font-size:13px;white-space:nowrap;">',
-                     '<thead><tr>']
-            _h_cf.append('<th style="text-align:left;padding:6px 10px;border-bottom:2px solid #333;font-weight:700;">Item</th>')
-            for c in _cf_cols:
-                _h_cf.append(f'<th style="text-align:right;padding:6px 8px;border-bottom:2px solid #333;font-weight:700;">{c}</th>')
-            _h_cf.append('</tr></thead><tbody>')
-
-            for label, vals, rtype in _cf_rows:
-                if rtype == 'spacer':
-                    _h_cf.append(f'<tr><td colspan="{_ncols_cf + 1}" style="height:10px;border:none;"></td></tr>')
-                    continue
-                if rtype == 'section':
-                    _h_cf.append(f'<tr><td colspan="{_ncols_cf + 1}" style="padding:8px 10px 4px;font-weight:700;'
-                                 f'font-size:11px;color:#6B7280;letter-spacing:0.08em;border-bottom:1px solid #E5E7EB;">{label}</td></tr>')
-                    continue
-                # Style per row type
-                if rtype == 'grand':
-                    td_style = 'font-weight:700;background:#1E3A5F;color:#fff;border-top:2px solid #333;border-bottom:2px solid #333;'
-                    lbl_style = td_style
-                elif rtype == 'total':
-                    td_style = 'font-weight:600;background:#F1F5F9;border-top:1px solid #CBD5E1;border-bottom:1px solid #CBD5E1;'
-                    lbl_style = td_style
-                elif rtype == 'sub':
-                    td_style = 'font-style:italic;color:#475569;border-bottom:1px dashed #E2E8F0;'
-                    lbl_style = td_style
-                else:
-                    td_style = 'border-bottom:1px solid #F1F5F9;'
-                    lbl_style = td_style
-                _h_cf.append('<tr>')
-                _h_cf.append(f'<td style="text-align:left;padding:4px 10px;{lbl_style}">{label}</td>')
-                for v in vals:
-                    cell = _fmt.format(v) if v is not None and not isinstance(v, str) else ''
-                    _h_cf.append(f'<td style="text-align:right;padding:4px 8px;{td_style}">{cell}</td>')
-                _h_cf.append('</tr>')
-
-            _h_cf.append('</tbody></table></div>')
-            st.markdown(''.join(_h_cf), unsafe_allow_html=True)
+            # Build and render styled HTML table with heritage tooltips.
+            _sclca_cf_year_labels = [f"Y{a['year']}" for a in annual_model]
+            inject_pnl_heritage(
+                _cf_rows, annual_model, len(annual_model), _eur_fmt,
+                year_labels=_sclca_cf_year_labels,
+            )
 
             st.divider()
 
@@ -15443,50 +14985,9 @@ if entity == "Catalytic Assets":
             st.plotly_chart(fig_cf, use_container_width=True)
             st.caption(f"*Principal is a pure pass-through (IC received = facility paid). Only the {INTERCOMPANY_MARGIN:.1%} interest margin is retained by SCLCA.*")
 
-            # ── AUDIT: SCLCA Cash Flow (cross-ref vs engine entity CF) ──
-            _sclca_cf_checks = []
-            for _cyi in range(total_years()):
-                _cy = _cyi + 1
-                _cna = _audit_nwl_ann[_cyi]
-                _cla = _audit_lanred_ann[_cyi]
-                _cta = _audit_twx_ann[_cyi]
-                _csa = annual_model[_cyi]
-                # IC principal received by SCLCA = sum(entity principal paid) from engine
-                _sub_cf_pr = _cna['cf_pr'] + _cla['cf_pr'] + _cta['cf_pr']
-                _sclca_cf_checks.append({
-                    "name": f"Y{_cy}: Repay in = sum(entity CF principal)",
-                    "expected": _csa['cf_repay_in'],
-                    "actual": _sub_cf_pr,
-                })
-                # IC cash interest received = sum(entity cash interest paid)
-                _sub_cf_ie = _cna['cf_ie'] + _cla['cf_ie'] + _cta['cf_ie']
-                _sclca_cf_checks.append({
-                    "name": f"Y{_cy}: IC interest in = sum(entity CF interest)",
-                    "expected": _csa['cf_ii'] - _csa['ii_dsra'],
-                    "actual": _sub_cf_ie,
-                })
-            # 10yr total: net cash = sum of margins (IC interest in - facility interest out)
-            _sclca_net_cash_10yr = sum(a['cf_net'] for a in annual_model)
-            _sclca_margin_10yr = sum(
-                (a['cf_ii'] - a['ii_dsra']) - a['cf_ie'] for a in annual_model
-            )
-            _sclca_cf_checks.append({
-                "name": "10yr: Net cash = sum(IC margins)",
-                "expected": _sclca_margin_10yr,
-                "actual": _sclca_net_cash_10yr,
-            })
-            # FD Y10: cross-check with independent accumulation from engine margins
-            _fd_independent = 0.0
-            for _cyi2 in range(total_years()):
-                _fd_interest = _fd_independent * DSRA_RATE
-                _fd_deposit = (annual_model[_cyi2]['cf_ii'] - annual_model[_cyi2]['ii_dsra']) - annual_model[_cyi2]['cf_ie']
-                _fd_independent += _fd_deposit + _fd_interest
-            _sclca_cf_checks.append({
-                "name": "FD Y10 = independent margin accumulation",
-                "expected": _fd_independent,
-                "actual": annual_model[-1]['dsra_bal'],
-            })
-            run_page_audit(_sclca_cf_checks, "SCLCA — Cash Flow")
+            # ── AUDIT: SCLCA Cash Flow (engine-computed) ──
+            if "cf" in _sclca_proofs:
+                run_page_audit(_sclca_proofs["cf"], "SCLCA — Cash Flow")
 
             # Waterfall cascade breakdown expander (v3.1 — 6-step)
             with st.expander("Waterfall Cascade Breakdown"):
@@ -15947,80 +15448,9 @@ Ops Reserve -> OpCo DSRA ->
                         for yi in range(total_years())]
                 st.dataframe(pd.DataFrame(_cwf_bal_rows, index=_wf_years).T, use_container_width=True)
 
-            # ── NWL Waterfall Audit ──
-            _cwf_checks = []
-            for _aud_yi in range(total_years()):
-                _aud_y = _aud_yi + 1
-                _aw = _waterfall[_aud_yi]
-                _a_sr_pi = _aw.get(f'{_wf_ek}_sr_pi', 0)
-                _a_mz_pi = _aw.get(f'{_wf_ek}_mz_pi', 0)
-                _a_surplus = _aw.get(f'{_wf_ek}_entity_surplus', 0)
-
-                # Check 1: Surplus >= 0 (read from waterfall output — source of truth)
-                # Surplus = max(cash_available - ds_cash, 0) computed by the
-                # engine including special/normal pool split, grants, and
-                # proportional tax.  Do NOT recompute from EBITDA - Tax - DS
-                # (that ignores special pool, grant inflows, and C2 routing).
-                _cwf_checks.append({
-                    "name": f"Y{_aud_y}: Surplus >= 0",
-                    "expected": 0.0,
-                    "actual": min(_a_surplus, 0),
-                })
-
-                # Check 2: Free surplus (unallocated remainder) >= 0 — no leaks
-                # The full allocation pool includes surplus, DSRA release, AND
-                # special pool acceleration (grant-funded sr_accel_entity), so
-                # comparing surplus + DSRA release to allocations misses the
-                # special pool component.  Instead, verify that the cascade
-                # ended with no negative remainder.
-                _a_free = _aw.get(f'{_wf_ek}_free_surplus', 0)
-                _cwf_checks.append({
-                    "name": f"Y{_aud_y}: Free surplus (remainder) >= 0",
-                    "expected": 0.0,
-                    "actual": min(_a_free, 0),
-                })
-
-                if _aud_yi > 0:
-                    _prev_mz_bal = _waterfall[_aud_yi - 1].get(f'{_wf_ek}_mz_ic_bal', 999)
-                    if _prev_mz_bal <= 0.01:
-                        _cwf_checks.append({
-                            "name": f"Y{_aud_y}: Mezz IC prev bal=0 → Mz P+I should be 0",
-                            "expected": 0.0,
-                            "actual": _a_mz_pi,
-                        })
-                    _prev_sr_bal = _waterfall[_aud_yi - 1].get(f'{_wf_ek}_sr_ic_bal', 999)
-                    if _prev_sr_bal <= 0.01:
-                        _cwf_checks.append({
-                            "name": f"Y{_aud_y}: Sr IC prev bal=0 → Sr P+I should be 0",
-                            "expected": 0.0,
-                            "actual": _a_sr_pi,
-                        })
-
-                _a_efd = _aw.get(f'{_wf_ek}_entity_fd_fill', 0)
-                if _a_efd > 0:
-                    _any_debt = (_aw.get(f'{_wf_ek}_mz_ic_bal', 0) > 0.01
-                                 or _aw.get(f'{_wf_ek}_sr_ic_bal', 0) > 0.01
-                                 or _aw.get(f'{_wf_ek}_zar_leg_bal', 0) > 0.01)
-                    _cwf_checks.append({
-                        "name": f"Y{_aud_y}: Entity FD only when ALL debt = 0",
-                        "expected": 0.0,
-                        "actual": 1.0 if _any_debt else 0.0,
-                    })
-
-                if _aud_yi > 0:
-                    _prev_mz = _waterfall[_aud_yi - 1].get(f'{_wf_ek}_mz_ic_bal', 0)
-                    _exp_mz = max(_prev_mz - _aw.get(f'{_wf_ek}_mz_prin_sched', 0)
-                                  - _aw.get(f'{_wf_ek}_mz_accel_entity', 0)
-                                  + _aw.get(f'{_wf_ek}_mezz_draw', 0), 0)
-                    if _prev_mz > 0.01 or _aw.get(f'{_wf_ek}_mezz_draw', 0) > 0:
-                        _cwf_checks.append({
-                            "name": f"Y{_aud_y}: Mezz bal = prev - sched - accel + draw",
-                            "expected": _exp_mz,
-                            "actual": _aw.get(f'{_wf_ek}_mz_ic_bal', 0),
-                            "tolerance": 10.0,
-                        })
-
-            run_page_audit(_cwf_checks, "NWL — Waterfall Cascade")
+            # ── NWL Waterfall Audit (engine-computed) ──
+            if "cwf" in _sclca_proofs:
+                run_page_audit(_sclca_proofs["cwf"], "NWL — Waterfall Cascade")
 
             # ── Pipe Servicing — IC Loan Balance Trajectories ──
             with st.expander("Pipe Servicing — IC Loan Balances", expanded=False):
@@ -16218,23 +15648,24 @@ Ops Reserve -> OpCo DSRA ->
 
             st.divider()
 
-            # Build transposed Balance Sheet (rows = line items, columns = years)
-            _bs_cols = [f"Y{a['year']}" for a in annual_model]
+            # Build transposed Balance Sheet (rows = line items, columns = years; Total = Y10 balance)
+            _bs_year_labels = [f"Y{a['year']}" for a in annual_model]
+            _bs_cols = _bs_year_labels + ['Total']
             _ncols_bs = len(_bs_cols)
-            _bs_rows = []  # list of (label, values, row_type)
+            _bs_rows = []  # list of (label, values, row_type, key)
 
             def _bs_line(label, key, sign=1.0, row_type='line'):
                 vals = [sign * a.get(key, 0.0) for a in annual_model]
-                _bs_rows.append((label, vals, row_type))
+                _bs_rows.append((label, vals + [vals[-1]], row_type, key))
 
             def _bs_computed_line(label, values_list, row_type='line'):
-                _bs_rows.append((label, values_list, row_type))
+                _bs_rows.append((label, values_list + [values_list[-1]], row_type, ''))
 
             def _bs_section(label):
-                _bs_rows.append((label, [None] * _ncols_bs, 'section'))
+                _bs_rows.append((label, [None] * _ncols_bs, 'section', ''))
 
             def _bs_spacer():
-                _bs_rows.append(('', [None] * _ncols_bs, 'spacer'))
+                _bs_rows.append(('', [None] * _ncols_bs, 'spacer', ''))
 
             # Compute entity percentages
             nwl_sr_pct = structure['uses']['loans_to_subsidiaries']['nwl']['senior_portion'] / sum(l['senior_portion'] for l in structure['uses']['loans_to_subsidiaries'].values())
@@ -16303,46 +15734,11 @@ Ops Reserve -> OpCo DSRA ->
             if any(abs(v) >= 1.0 for v in _sclca_gaps):
                 st.warning(f"SCLCA BS Gap: RE ≠ Cumulative NI. Max gap: €{max(abs(v) for v in _sclca_gaps):,.0f}")
 
-            # Build styled HTML table
-            _fmt = _eur_fmt
-            _h_bs = ['<div style="overflow-x:auto;width:100%;">',
-                     '<table style="border-collapse:collapse;width:100%;font-size:13px;white-space:nowrap;">',
-                     '<thead><tr>']
-            _h_bs.append('<th style="text-align:left;padding:6px 10px;border-bottom:2px solid #333;font-weight:700;">Item</th>')
-            for c in _bs_cols:
-                _h_bs.append(f'<th style="text-align:right;padding:6px 8px;border-bottom:2px solid #333;font-weight:700;">{c}</th>')
-            _h_bs.append('</tr></thead><tbody>')
-
-            for label, vals, rtype in _bs_rows:
-                if rtype == 'spacer':
-                    _h_bs.append(f'<tr><td colspan="{_ncols_bs + 1}" style="height:10px;border:none;"></td></tr>')
-                    continue
-                if rtype == 'section':
-                    _h_bs.append(f'<tr><td colspan="{_ncols_bs + 1}" style="padding:8px 10px 4px;font-weight:700;'
-                                 f'font-size:11px;color:#6B7280;letter-spacing:0.08em;border-bottom:1px solid #E5E7EB;">{label}</td></tr>')
-                    continue
-                # Style per row type
-                if rtype == 'grand':
-                    td_style = 'font-weight:700;background:#1E3A5F;color:#fff;border-top:2px solid #333;border-bottom:2px solid #333;'
-                    lbl_style = td_style
-                elif rtype == 'total':
-                    td_style = 'font-weight:600;background:#F1F5F9;border-top:1px solid #CBD5E1;border-bottom:1px solid #CBD5E1;'
-                    lbl_style = td_style
-                elif rtype == 'sub':
-                    td_style = 'font-style:italic;color:#475569;border-bottom:1px dashed #E2E8F0;'
-                    lbl_style = td_style
-                else:
-                    td_style = 'border-bottom:1px solid #F1F5F9;'
-                    lbl_style = td_style
-                _h_bs.append('<tr>')
-                _h_bs.append(f'<td style="text-align:left;padding:4px 10px;{lbl_style}">{label}</td>')
-                for v in vals:
-                    cell = _fmt.format(v) if v is not None and not isinstance(v, str) else ''
-                    _h_bs.append(f'<td style="text-align:right;padding:4px 8px;{td_style}">{cell}</td>')
-                _h_bs.append('</tr>')
-
-            _h_bs.append('</tbody></table></div>')
-            st.markdown(''.join(_h_bs), unsafe_allow_html=True)
+            # Build and render styled HTML table with heritage tooltips.
+            inject_pnl_heritage(
+                _bs_rows, annual_model, len(annual_model), _eur_fmt,
+                year_labels=_bs_year_labels,
+            )
 
             # --- Balance Sheet Chart: A = D + E ---
             _bs_fin = [a['bs_financial'] for a in annual_model]
@@ -16396,48 +15792,9 @@ Ops Reserve -> OpCo DSRA ->
             )
             st.plotly_chart(fig_bs, use_container_width=True)
 
-            # ── AUDIT: SCLCA Balance Sheet (cross-ref vs engine entity data) ──
-            # Engine entity = source of truth (FacilityState with DSRA).
-            # SCLCA inline IC uses vanilla build_schedule (no DSRA params),
-            # so IC balances diverge where DSRA affects NWL Senior.
-            # Auto-tolerance covers DSRA divergence; delta is visible in audit.
-            _sclca_bs_checks = []
-            for _byi in range(total_years()):
-                _by = _byi + 1
-                _bna = _audit_nwl_ann[_byi]
-                _bla = _audit_lanred_ann[_byi]
-                _bta = _audit_twx_ann[_byi]
-                _bsa = annual_model[_byi]
-                # Engine entity IC debt total vs SCLCA inline IC assets
-                _sub_ic_total = (
-                    _bna['bs_sr'] + _bna['bs_mz']
-                    + _bla['bs_sr'] + _bla['bs_mz']
-                    + _bta['bs_sr'] + _bta['bs_mz']
-                )
-                _ic_delta = abs(_sub_ic_total - _bsa['bs_ic'])
-                _sclca_bs_checks.append({
-                    "name": f"Y{_by}: IC assets: engine entity vs SCLCA (DSRA divergence)",
-                    "expected": _sub_ic_total,
-                    "actual": _bsa['bs_ic'],
-                    "tolerance": max(_ic_delta + 1.0, 1.0),
-                })
-                # Independent A = IC loans(engine) + FD + Equity in subs + Accrued IR
-                _bs_a_independent = _sub_ic_total + _bsa['bs_dsra'] + EQUITY_TOTAL + _bsa.get('bs_accrued_ir', 0)
-                _bs_a_delta = abs(_bs_a_independent - _bsa['bs_a'])
-                _sclca_bs_checks.append({
-                    "name": f"Y{_by}: A = IC(engine) + FD + Equity + Accrued (DSRA divergence)",
-                    "expected": _bs_a_independent,
-                    "actual": _bsa['bs_a'],
-                    "tolerance": max(_bs_a_delta + 1.0, 1.0),
-                })
-                # True BS gap: A - L - E (should be zero — internal consistency)
-                _bs_gap = _bsa['bs_a'] - _bsa['bs_l'] - _bsa['bs_e']
-                _sclca_bs_checks.append({
-                    "name": f"Y{_by}: A - L - E = 0",
-                    "expected": 0.0,
-                    "actual": _bs_gap,
-                })
-            run_page_audit(_sclca_bs_checks, "SCLCA — Balance Sheet")
+            # ── AUDIT: SCLCA Balance Sheet (engine-computed) ──
+            if "bs" in _sclca_proofs:
+                run_page_audit(_sclca_proofs["bs"], "SCLCA — Balance Sheet")
 
             # Waterfall BS adjustments expander
             with st.expander("Waterfall Balance Sheet Adjustments"):
@@ -16457,85 +15814,9 @@ Ops Reserve -> OpCo DSRA ->
             st.subheader("Inter-Company Reconciliation")
             st.caption("SCLCA income/receivables vs sum of subsidiary expenses/liabilities")
 
-            # Build all 3 subsidiary models (engine-backed, cached)
-            _model_data = _run_engine_model(_session_input_hash())
-            _nwl_model = _model_data["entities"]["nwl"]
-            _lanred_model = _model_data["entities"]["lanred"]
-            _twx_model = _model_data["entities"]["timberworx"]
-            # Add compat fields for old display field names
-            _nwl_ann = [_add_compat_fields(dict(a)) for a in _nwl_model["annual"]]
-            _lanred_ann = [_add_compat_fields(dict(a)) for a in _lanred_model["annual"]]
-            _twx_ann = [_add_compat_fields(dict(a)) for a in _twx_model["annual"]]
-
-            _ic_checks = []
-            for yi in range(total_years()):
-                _y = yi + 1
-                _na = _nwl_ann[yi]
-                _la = _lanred_ann[yi]
-                _ta = _twx_ann[yi]
-                _sa = annual_model[yi]
-
-                # IC Senior interest: SCLCA income = sum(sub IE senior)
-                # Gate: Y1-Y2 are construction — SCLCA ii_sr/ii_mz is ACCRUED
-                # interest (includes IDC capitalised into loan balance), while
-                # engine entity ie_sr/ie_mz is CASH interest only (zero during
-                # construction). From Y3 onward, accrued = cash and they match.
-                if yi >= 2:
-                    _sub_ie_sr = _na['ie_sr'] + _la['ie_sr'] + _ta['ie_sr']
-                    _ic_checks.append({
-                        "name": f"Y{_y}: IC Sr Interest: SCLCA = Subs",
-                        "expected": _sa['ii_sr'],
-                        "actual": _sub_ie_sr,
-                    })
-                    # IC Mezz interest
-                    _sub_ie_mz = _na['ie_mz'] + _la['ie_mz'] + _ta['ie_mz']
-                    _ic_checks.append({
-                        "name": f"Y{_y}: IC Mz Interest: SCLCA = Subs",
-                        "expected": _sa['ii_mz'],
-                        "actual": _sub_ie_mz,
-                    })
-                # IC Senior receivable = sum(sub BS senior debt)
-                # Engine entity = source of truth (includes DSRA effects);
-                # SCLCA inline IC uses vanilla amortization (no DSRA params).
-                # Use engine entity sum as expected, SCLCA inline as actual.
-                _sub_bs_sr = _na['bs_sr'] + _la['bs_sr'] + _ta['bs_sr']
-                _ic_checks.append({
-                    "name": f"Y{_y}: IC Sr Bal: engine entity vs SCLCA",
-                    "expected": _sub_bs_sr,
-                    "actual": _sa['bs_isr'],
-                    "tolerance": max(abs(_sub_bs_sr - _sa['bs_isr']) + 1.0, 1.0),
-                })
-                # IC Mezz receivable = sum(sub BS mezz debt)
-                _sub_bs_mz = _na['bs_mz'] + _la['bs_mz'] + _ta['bs_mz']
-                _ic_checks.append({
-                    "name": f"Y{_y}: IC Mz Bal: engine entity vs SCLCA",
-                    "expected": _sub_bs_mz,
-                    "actual": _sa['bs_imz'],
-                    "tolerance": max(abs(_sub_bs_mz - _sa['bs_imz']) + 1.0, 1.0),
-                })
-                # IC principal received = sum(sub principal paid)
-                _sub_pr = _na['cf_pr'] + _la['cf_pr'] + _ta['cf_pr']
-                _ic_checks.append({
-                    "name": f"Y{_y}: IC Principal: SCLCA = Subs",
-                    "expected": _sa['cf_repay_in'],
-                    "actual": _sub_pr,
-                })
-
-            # NWL power_cost = LanRED rev (only in Greenfield — NWL PPA exists)
-            _lanred_scenario = _state_str("lanred_scenario", "Brownfield+")
-            for yi in range(total_years()):
-                _y = yi + 1
-                # Power IC: only when LanRED Greenfield (NWL PPA exists)
-                if _lanred_scenario != "Brownfield+":
-                    _nwl_pwr = _nwl_ann[yi].get('power_cost', 0)
-                    _lr_rev = _lanred_ann[yi].get('rev_ic_nwl', 0)
-                    if _nwl_pwr > 0 or _lr_rev > 0:
-                        _ic_checks.append({
-                            "name": f"Y{_y}: NWL power = LanRED IC rev",
-                            "expected": _nwl_pwr,
-                            "actual": _lr_rev,
-                        })
-            run_page_audit(_ic_checks, "SCLCA — IC Reconciliation")
+            # ── AUDIT: IC Reconciliation (engine-computed) ──
+            if "ic_recon" in _sclca_proofs:
+                run_page_audit(_sclca_proofs["ic_recon"], "SCLCA — IC Reconciliation")
 
     # --- GRAPHS TAB ---
     if "Graphs" in _tab_map:
@@ -18104,6 +17385,7 @@ elif entity == "CP & CS":
                 ("CP", "COO appointed — shortlist complete, candidate contracted; if JV nominee, independence conditions met and investor consent obtained",    "Urgent — before close"),
                 ("CP", "CFO appointed by investor — profile agreed, employment contract with NWL executed",                                                     "Urgent — before close"),
                 ("CP", "Specialist contracts consultant engaged — retainer in place, available for contract close review across all NWL-held and Colubris agreements", "Before close"),
+                ("CP", "Operational consultant hired — candidates per Simon's suggestions reviewed, shortlisted, and engaged to strengthen project delivery capacity pending COO appointment", "Before close"),
                 ("CP", "Board composition confirmed — Independent Non-Executive Chair appointed, investor representative confirmed, reserved matters agreed in SHA", "Before close"),
                 ("CP", "CEO role formally refocused — board resolution confirming revised mandate; COO takes operational authority",                             "Before close"),
                 ("CS", "COO 100-day plan delivered to board — construction programme baseline, contractor milestone tracker, first payment gate schedule, risk register", "Within 30 days of close"),
@@ -18175,6 +17457,7 @@ elif entity == "CP & CS":
                 ("CP", "Selectra role clarified and direct contract executed: WSP OE interface defined; performance bond; bedding-down KPIs and BG; O&M transition aligned",                 "Pending"),
                 ("CP", "WSP OE scope confirmed to include FAT overseas; PI adequacy reviewed; OE sign-off confirmed as binding payment gate in Anquet and VEBME contracts",                  "Pending"),
                 ("CP", "NWL sub-vendor contracts reviewed — LD provisions, BGs, liability caps confirmed adequate: Anquet, VEBME, CPSmart",                                                  "Pending"),
+                ("CP", "Pre-screen effectiveness validated — Colubris and Simon to provide written feedback on inlet pre-screening design, capacity, and failure mode mitigation",              "Pending"),
                 ("CS", "All BGs received and confirmed before first payments released — Oxymem 56% trigger is first hard deadline",                                                           "Before first payment"),
                 ("CS", "WSP OE FAT supervision executed before Oxymem equipment ships",                                                                                                      "Before shipment"),
                 ("CS", "Selectra installation completed and WSP OE formal sign-off obtained — hard gate before commissioning start",                                                         "Before commissioning"),

@@ -79,7 +79,6 @@ class FacilityState:
     balance: float = field(init=False, default=0.0)
     _p_per: float = field(init=False, default=0.0)
     _p_per_after_dsra: float = field(init=False, default=0.0)
-    _repayment_index: int = field(init=False, default=0)   # 1-based repayment counter
     _rep_start_idx: int = field(init=False, default=0)
     _pro_rata: float = field(init=False, default=0.0)
 
@@ -223,17 +222,30 @@ class FacilityState:
             is_construction=False, is_repayment=True,
         )
 
-    def finalize_period(self, hi: int, acceleration: float = 0.0) -> None:
+    def finalize_period(
+        self,
+        hi: int,
+        acceleration: float = 0.0,
+        precomputed: "FacilityPeriod | None" = None,
+    ) -> None:
         """Apply acceleration, update balance, recalculate P_constant.
 
         Appends completed row to self.schedule.
         Must be called AFTER compute_period() and waterfall allocation.
+
+        Args:
+            hi: Period index.
+            acceleration: Waterfall-driven acceleration amount for this period.
+            precomputed: FacilityPeriod returned by a prior compute_period(hi)
+                call.  When provided, it is used directly and compute_period()
+                is NOT called again.  Pass this to avoid the redundant second
+                call that the loop already made.
         """
         # Construction periods are already finalized in __post_init__
         if hi < len(self.construction_periods):
             return
 
-        fp = self.compute_period(hi)
+        fp = precomputed if precomputed is not None else self.compute_period(hi)
 
         # Cap acceleration at available balance
         accel = min(acceleration, max(fp.pre_accel_closing, 0.0))
@@ -448,10 +460,14 @@ def build_schedule(
         movement = draw_down + principle - accel
         balance = opening + movement
 
-        # Recalculate p_per for remaining periods after acceleration
+        # Recalculate p_per for remaining periods after acceleration.
+        # For the DSRA path, update p_per_after_dsra the same way
+        # FacilityState.finalize_period() does: balance / remaining.
         remaining = repayments - i
         if accel > 0 and remaining > 0 and balance > 0.01:
             p_per = balance / remaining
+            if dsra_amount > 0 and i >= 2:
+                p_per_after_dsra = balance / remaining
 
         rows.append({
             "Period": period_idx, "Month": month, "Year": year,

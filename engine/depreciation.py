@@ -9,7 +9,7 @@ Two modes:
 
 from __future__ import annotations
 
-from engine.formulas import calc_s12c_depreciation
+from engine.formulas import S12C_ANNUAL_PCTS, calc_s12c_depreciation
 from engine.periods import year_index
 
 
@@ -59,7 +59,7 @@ def build_s12c_semi_annual(depreciable_base: float, num_periods: int = 20,
 
 # ── Per-tranche S12C depreciation ─────────────────────────────────
 
-_S12C_ANNUAL_PCTS = [0.40, 0.20, 0.20, 0.20]  # 4-year curve
+_S12C_ANNUAL_PCTS = list(S12C_ANNUAL_PCTS.values())  # [0.40, 0.20, 0.20, 0.20]
 
 
 def build_tranche_s12c_vector(

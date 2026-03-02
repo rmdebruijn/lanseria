@@ -171,6 +171,8 @@ def run_entity_loop(
     # ── Init reserve assets ──
     fd_rate = cfg.fd_rate_eur                              # 3.5%
     ops_coverage = cfg.ops_reserve_coverage                # 1.0
+    # Annual rate passed to MezzDivFD — the class halves it internally to
+    # obtain the semi-annual rate (mz_div_rate_semi = annual / 2).
     mz_div_rate = cfg.mz_div_gap_rate                      # 5.25%
 
     ops_reserve = OpsReserve(fd_rate, ops_coverage)
@@ -289,8 +291,8 @@ def run_entity_loop(
         sr_accel = wf_row["sr_accel_entity"]
         mz_accel = wf_row["mz_accel_entity"]
 
-        sr_fac.finalize_period(hi, acceleration=sr_accel)
-        mz_fac.finalize_period(hi, acceleration=mz_accel)
+        sr_fac.finalize_period(hi, acceleration=sr_accel, precomputed=sr_p)
+        mz_fac.finalize_period(hi, acceleration=mz_accel, precomputed=mz_p)
 
         # ── 6. Post-period: set actual closing balances ──
         wf_row["sr_ic_bal"] = sr_fac.balance
@@ -694,10 +696,12 @@ def build_annual(
         a["cum_dividends"] = w.get("cum_dividends", 0)
 
         # ── CF net (running cash accumulator — proven BS identity) ──
-        # Dividends EXIT cash (reduce reserves), so subtract them
+        # Dividends EXIT cash (reduce reserves), so subtract them.
+        # Swap debt service reduces cash in the period it is paid.
         a["cf_net"] = (a["cf_equity"] + a["cf_draw"] - a["cf_capex"]
                        + a["cf_grants"] - a["cf_grant_accel"]
                        + a["cf_ops"] - a["cf_ie"] - a["cf_pr"]
+                       - a.get("cf_swap_ds", 0)
                        - a["cf_dividend"])
 
         # Backward-compat: old-style DSRA/FD roll-forward keys (used in app.py FIXED DEPOSIT section)
@@ -716,6 +720,28 @@ def build_annual(
         cum_idc += a["cf_idc"]
         a["bs_fixed_assets"] = max(min(cum_capex + cum_idc, depreciable_base + cum_idc) - accumulated_depr, 0.0)
 
+        # ── DTL (Deferred Tax Liability): NOT APPLICABLE ──
+        # In this project finance model, S12C accelerated depreciation (40/20/20/20)
+        # and S13 straight-line depreciation are BOTH South African Income Tax Act
+        # provisions that serve as the accounting depreciation policy for these SPVs.
+        # There is no separate "accounting depreciation" (e.g. IFRS straight-line
+        # over useful economic life) distinct from "tax depreciation".
+        #
+        # Because the same depreciation method is used for both accounting and tax:
+        #   - Temporary difference = tax_depr - acct_depr = 0 each year
+        #   - Cumulative temporary difference = 0
+        #   - DTL = cum_temp_diff x tax_rate = 0
+        #
+        # If a future requirement introduces separate IFRS accounting depreciation
+        # (e.g. straight-line over 20yr useful life for ALL assets), a DTL should
+        # be computed as:
+        #   acct_depr_annual = depreciable_base / straight_line_life
+        #   temp_diff_yr = a["depr"] - acct_depr_annual  (positive when tax > acct)
+        #   cum_temp_diff += temp_diff_yr
+        #   bs_dtl = cum_temp_diff * tax_rate
+        # and bs_total_liabilities = bs_debt + bs_dtl, with equity as residual.
+        a["bs_dtl"] = 0.0
+
         # Cash / reserves: running CF accumulator (for BS identity)
         a["bs_dsra"] = _cash_bal
         # Total reserves for display: sum of 4 actual waterfall FD buckets
@@ -732,7 +758,19 @@ def build_annual(
         a["mz_closing"] = mz["Closing"]
         a["bs_sr"] = max(a["sr_closing"], 0)
         a["bs_mz"] = max(a["mz_closing"], 0)
-        a["bs_debt"] = a["bs_sr"] + a["bs_mz"]
+
+        # Swap detail (must be computed before bs_debt)
+        a["bs_swap_eur"] = a.get("swap_eur_bal", 0.0)
+        a["bs_swap_liability"] = (
+            ZAR(a.get("swap_zar_bal", 0.0)).to_eur(fx_rate).value
+            if swap_active and fx_rate > 0 else 0.0
+        )
+        a["bs_swap_net"] = a["bs_swap_eur"] - a["bs_swap_liability"]
+
+        # bs_debt includes Senior + Mezz + ZAR swap leg (EUR-equivalent) + IC overdraft
+        a["bs_debt"] = (a["bs_sr"] + a["bs_mz"]
+                        + a.get("bs_swap_liability", 0)
+                        + a.get("wf_od_bal", 0))
 
         a["bs_equity_sh"] = entity_equity
         a["bs_equity"] = a["bs_assets"] - a["bs_debt"]
@@ -743,14 +781,6 @@ def build_annual(
         # RE check: CumPAT + CumGrants - CumDividends (dividends reduce RE)
         a["bs_retained_check"] = cum_pat + cum_grants - a.get("cum_dividends", 0)
         a["bs_gap"] = a["bs_retained"] - a["bs_retained_check"]
-
-        # Swap detail (tracked separately — FX mismatch is informational)
-        a["bs_swap_eur"] = a.get("swap_eur_bal", 0.0)
-        a["bs_swap_liability"] = (
-            ZAR(a.get("swap_zar_bal", 0.0)).to_eur(fx_rate).value
-            if swap_active and fx_rate > 0 else 0.0
-        )
-        a["bs_swap_net"] = a["bs_swap_eur"] - a["bs_swap_liability"]
 
         annual.append(a)
 

@@ -22,14 +22,18 @@ def calc_flat_principal(balance: float, remaining_periods: int) -> float:
     return balance / remaining_periods
 
 
+# Section 12C accelerated depreciation rates (40/20/20/20 over 4 years).
+# Single source of truth — imported by engine/depreciation.py and engine/pnl.py.
+S12C_ANNUAL_PCTS: dict[int, float] = {0: 0.40, 1: 0.20, 2: 0.20, 3: 0.20}
+
+
 def calc_s12c_depreciation(depreciable_base: float, year_index: int) -> float:
     """Section 12C accelerated depreciation (40/20/20/20).
 
     year_index: 0-based annual index. Y0=40%, Y1=20%, Y2=20%, Y3=20%.
     Returns ANNUAL depreciation amount. Caller halves for semi-annual.
     """
-    pcts = {0: 0.40, 1: 0.20, 2: 0.20, 3: 0.20}
-    return depreciable_base * pcts.get(year_index, 0.0)
+    return depreciable_base * S12C_ANNUAL_PCTS.get(year_index, 0.0)
 
 
 def calc_tax(pbt: float, rate: float, loss_pool: float) -> tuple[float, float]:

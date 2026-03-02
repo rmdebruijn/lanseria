@@ -37,7 +37,8 @@ def _compute_coe_rent_monthly_eur(cfg: ModelConfig, om_overhead_pct: float = 2.0
     """
     sr_rate = cfg.sr_facility_rate
     mz_rate = cfg.mz_facility_rate
-    wacc = 0.85 * sr_rate + 0.15 * mz_rate
+    _ww = cfg.operations.get("timberworx", {}).get("wacc_weights", {"senior": 0.85, "mezzanine": 0.15})
+    wacc = _ww["senior"] * sr_rate + _ww["mezzanine"] * mz_rate
     total_yield = wacc + (om_overhead_pct / 100.0)
     coe_items = cfg.assets["assets"].get("coe", {}).get("line_items", [])
     coe_capex = float(coe_items[0].get("budget", 0)) if coe_items else 0.0

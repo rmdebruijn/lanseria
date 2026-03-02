@@ -107,6 +107,8 @@ def waterfall_step(
     fd_interest_rate = cfg.fd_rate_eur / 2.0               # 3.5% / 2
     fd_interest_rate_zar = cfg.fd_rate_zar / 2.0           # 9.0% / 2 (CC is ZAR-denominated)
     od_rate = cfg.od_rate / 2.0                            # 10% / 2
+    # Semi-annual: MezzDivFD class halves internally (One Big Loop path);
+    # batch path (waterfall_step / compute_entity_waterfall) halves here.
     mz_div_rate = cfg.mz_div_gap_rate / 2.0               # 5.25% / 2
 
     accel_rate_sr = cfg.sr_ic_rate                         # 5.20%
@@ -504,6 +506,8 @@ def compute_entity_waterfall(
     fd_interest_rate = cfg.fd_rate_eur / 2.0               # 3.5% / 2
     fd_interest_rate_zar = cfg.fd_rate_zar / 2.0           # 9.0% / 2 (CC is ZAR-denominated)
     od_rate = cfg.od_rate / 2.0                            # 10% / 2
+    # Semi-annual: MezzDivFD class halves internally (One Big Loop path);
+    # batch path (waterfall_step / compute_entity_waterfall) halves here.
     mz_div_rate = cfg.mz_div_gap_rate / 2.0               # 5.25% / 2
 
     rows = []
