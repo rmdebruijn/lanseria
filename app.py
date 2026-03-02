@@ -5148,7 +5148,7 @@ This means:
                     _pw_daily_kwh = 1.9 * 1000.0 * _pw_kwh  # MLD * 1000 m3/MLD * kWh/m3
                     _pw_annual_base = _pw_daily_kwh * 365.0 * _pw_rate
                     _pw1, _pw2, _pw3, _pw4 = st.columns(4)
-                    _pw1.metric(f"IC Rate (Eskom -{ic_discount:.0f}%)", f"R{_pw_rate:.2f}/kWh")
+                    _pw1.metric(f"IC Rate (Eskom -{_pw_disc:.0f}%)", f"R{_pw_rate:.2f}/kWh")
                     _pw2.metric("Daily consumption (steady)", f"{_pw_daily_kwh:,.0f} kWh")
                     _pw3.metric("Annual cost (Y1 rate)", f"R{_pw_annual_base:,.0f}")
                     _pw4.metric("Inter-company supplier", "LanRED Solar")
