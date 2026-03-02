@@ -1,0 +1,62 @@
+{
+  "_metadata": {
+    "entity": "timberworx",
+    "description": "TimberWorx assumptions — CoE lease, training, timber production.",
+    "note": "Uses both S12C (machinery) and S13 straight-line (real estate) depreciation"
+  },
+
+  "operations": {
+    "coe_lease": {
+      "escalation_pct": 5.0,
+      "start_month": 24,
+      "occupancy_ramp": [0.30, 0.50, 0.65, 0.75, 0.80, 0.85, 0.90, 0.90, 0.95, 0.95],
+      "om_overhead_pct": 2.0
+    },
+    "training": {
+      "fee_zar": 15000,
+      "seta_zar": 8000,
+      "throughput_pa": [12, 24, 36, 45, 50, 55, 60, 60, 65, 65],
+      "escalation_pct": 7.0,
+      "start_month": 18
+    },
+    "timber": {
+      "enabled": true,
+      "units_per_year": [0, 50, 120, 200, 280, 350, 420, 500, 580, 650],
+      "price_zar": 100000,
+      "escalation_pct": 5.0,
+      "sales_start_month": 36
+    },
+    "labor": {
+      "phase1_basis_zar_per_month": 130000,
+      "conversion_zar_per_house": 30000,
+      "escalation_pct": 5.0
+    },
+    "om": {
+      "fixed_zar": 180000,
+      "variable_pct": 5.0,
+      "indexation_pct": 5.0,
+      "start_month": 24
+    },
+    "coe_sale": {
+      "enabled": false,
+      "year": 4,
+      "premium_pct": 10.0
+    }
+  },
+
+  "financing": {
+    "wacc_weights": { "senior": 0.85, "mezzanine": 0.15 },
+    "sweep_pct": 100.0
+  },
+
+  "eca": {
+    "atradius": true,
+    "exporter": true
+  },
+
+  "tax": {
+    "depreciation_method": "mixed",
+    "s12c_schedule": { "0": 0.40, "1": 0.20, "2": 0.20, "3": 0.20 },
+    "straight_line_life_years": 20
+  }
+}

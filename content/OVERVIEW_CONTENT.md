@@ -101,4 +101,4 @@ Timberworx addresses the housing and construction deficit in South Africa throug
 
 ### LLC
 
-**Lanseria LLC** (the land and legal compliance entity) manages the land holdings, servitudes, and regulatory compliance for the Lanseria extensions. This includes the land on which the catalytic assets sit (funded separately via equity, excluded from the debt financing), the environmental authorisations (EA from Gauteng Province, Sept 2022), the township establishment processes, and the SG diagrams for Ext 35, 36, and 37. The land value is excluded from the SCLCA debt structure.
+**Lanseria Landowners Consortium** (the land and legal compliance entity) manages the land holdings, servitudes, and regulatory compliance for the Lanseria extensions. This includes the land on which the catalytic assets sit (funded separately via equity, excluded from the debt financing), the environmental authorisations (EA from Gauteng Province, Sept 2022), the township establishment processes, and the SG diagrams for Ext 35, 36, and 37. The land value is excluded from the SCLCA debt structure.

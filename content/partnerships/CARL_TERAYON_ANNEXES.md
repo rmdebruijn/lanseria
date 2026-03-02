@@ -22,9 +22,9 @@ Schedule B-1, B-2, etc. may override for a specific Designated Transaction.
 | Code | Scope Item | Primary | Secondary |
 |------|-----------|---------|-----------|
 | S-01 | Project origination | | X |
-| S-03 | First-loss / guarantee architecture | X | |
+| S-06 | First-loss / guarantee architecture | X | |
 | S-04 | Equity / mezzanine structuring | X | |
-| S-08 | Underwriting / swap credit conversion | X | |
+| S-07 | Underwriting / swap credit conversion | X | |
 
 Only scope items where Carl holds a Primary or Secondary role are listed.
 
@@ -60,8 +60,8 @@ Carl's origination (F-01) applies to Terayon-sourced opportunities outside the N
 
 | Fee Item | Scope | R% | Base Definition |
 |----------|-------|----|-----------------|
-| F-03: Equity structuring | S-04 | 5% | Equity amount raised/closed |
-| F-04: Mezzanine structuring | S-04 | 4% | Mezzanine amount raised/closed |
+| F-04a: Equity structuring | S-04 | 5% | Equity amount raised/closed |
+| F-04b: Mezzanine structuring | S-04 | 4% | Mezzanine amount raised/closed |
 
 ### Segment 3: Root-Curve Items (Frontier Funding Layers)
 
@@ -71,17 +71,17 @@ A is a fixed constant set per instrument. B_i is the Covered Amount per Designat
 
 | Fee Item | Scope | Layer | A | B_i Definition |
 |----------|-------|-------|---|----------------|
-| F-07: Corporate guarantee | S-03 | A | 63 | Guarantee Covered Amount |
-| F-08: PE cash-backed guarantee | S-03 | A | 63 | Cash-backed Covered Amount |
-| F-09: Captive cell insurance | S-03 | A | 16 | Insurance Covered Amount |
-| F-11: Underwriting / insurance wrap | S-08 | B | `[__]` | Underwriting Covered Amount |
-| F-12: Currency swap | S-08 | B | `[__]` | Swap notional Covered Amount |
+| F-06a: Corporate guarantee | S-06 | A | 63 | Guarantee Covered Amount |
+| F-06b: PE cash-backed guarantee | S-06 | A | 63 | Cash-backed Covered Amount |
+| F-06c: Captive cell insurance | S-06 | A | 16 | Insurance Covered Amount |
+| F-07b: Underwriting / insurance wrap | S-07 | B | `[__]` | Underwriting Covered Amount |
+| F-07c: Currency swap | S-07 | B | `[__]` | Swap notional Covered Amount |
 
-F-09 (captive cell) is set at A = 16 reflecting that Carl is compensated through the captive cell JV structure (see Annex S below). F-07 and F-08 are calibrated to ~2% effective at EUR 10M Covered Amount.
+F-06c (captive cell) is set at A = 16 reflecting that Carl is compensated through the captive cell JV structure (see Annex S below). F-06a and F-06b are calibrated to ~2% effective at EUR 10M Covered Amount.
 
 Renewal-decay and increase mechanics per Clause 7.6 of the Agreement apply to all Root-Curve items.
 
-**Example (F-07/F-08, A = 63):**
+**Example (F-06a/F-06b, A = 63):**
 
 | B_i (Covered Amount) | sqrt(B_i) | Fee_i | Effective % |
 |----------------------|-----------|-------|-------------|
@@ -91,7 +91,7 @@ Renewal-decay and increase mechanics per Clause 7.6 of the Agreement apply to al
 | 20,000,000 | 4,472 | 281,700 | 1.41% |
 | 50,000,000 | 7,071 | 445,500 | 0.89% |
 
-**Example (F-09, A = 16):**
+**Example (F-06c, A = 16):**
 
 | B_i (Covered Amount) | sqrt(B_i) | Fee_i | Effective % |
 |----------------------|-----------|-------|-------------|
@@ -118,8 +118,8 @@ Renewal-decay and increase mechanics per Clause 7.6 of the Agreement apply to al
 
 | Code | Scope Item | Class (P/S/—) | Notes |
 |------|-----------|---------------|-------|
-| S-08 | Underwriting / swap credit conversion | P | Cross Currency Swap structuring |
-| S-03 | First-loss / guarantee architecture | P | Veracity as guarantor |
+| S-07 | Underwriting / swap credit conversion | P | Cross Currency Swap structuring |
+| S-06 | First-loss / guarantee architecture | P | Veracity as guarantor |
 
 ### Credit Stack Routes
 
@@ -139,8 +139,8 @@ Renewal-decay and increase mechanics per Clause 7.6 of the Agreement apply to al
 
 | Fee Item | B_i (Covered Amount) | Notes |
 |----------|--------------------|-------|
-| F-12: Currency swap | ~EUR 2,000,000 | CCS notional — current estimate |
-| F-07: Corporate guarantee | ~EUR 2,000,000 | Veracity guarantee on CCS — Covered Amount aligned with swap notional |
+| F-07c: Currency swap | ~EUR 2,000,000 | CCS notional — current estimate |
+| F-06a: Corporate guarantee | ~EUR 2,000,000 | Veracity guarantee on CCS — Covered Amount aligned with swap notional |
 
 ### Exclusivity
 
@@ -168,8 +168,8 @@ None beyond standard terms.
 
 | Code | Scope Item | Class (P/S/—) | Notes |
 |------|-----------|---------------|-------|
-| S-08 | Underwriting / swap credit conversion | P | CCS (brownfield scenario) or underwriting (greenfield scenario) |
-| S-03 | First-loss / guarantee architecture | P | Supporting Layer A if required |
+| S-07 | Underwriting / swap credit conversion | P | CCS (brownfield scenario) or underwriting (greenfield scenario) |
+| S-06 | First-loss / guarantee architecture | P | Supporting Layer A if required |
 
 ### Credit Stack Routes
 
@@ -205,13 +205,13 @@ NexusNovus determines which scenario applies; the applicable route is confirmed 
 
 | Fee Item | B_i (Covered Amount) | Notes |
 |----------|--------------------|-------|
-| F-12: Currency swap | ~EUR 3,000,000 | CCS notional against PPA — current estimate |
+| F-07c: Currency swap | ~EUR 3,000,000 | CCS notional against PPA — current estimate |
 
 **Greenfield (Underwriting):**
 
 | Fee Item | B_i (Covered Amount) | Notes |
 |----------|--------------------|-------|
-| F-11: Underwriting / insurance wrap | ~EUR 3,000,000 | Underwriting Covered Amount — current estimate |
+| F-07b: Underwriting / insurance wrap | ~EUR 3,000,000 | Underwriting Covered Amount — current estimate |
 
 ### Exclusivity
 
@@ -353,14 +353,14 @@ Carl and NexusNovus intend to establish a captive cell insurance structure for f
 | Structure | Protected cell company or equivalent segregated-portfolio vehicle |
 | Governance | Joint — NexusNovus retains majority governance rights; Carl has operational involvement in cell structuring |
 | Carl's economic participation | Equity interest in the cell and/or management fee — to be agreed in a separate JV agreement |
-| Relationship to Annex A | F-09 (captive cell insurance) is set at A = 16, reflecting that Carl's primary compensation for captive cell work flows through the JV, not through the fee schedule |
+| Relationship to Annex A | F-06c (captive cell insurance) is set at A = 16, reflecting that Carl's primary compensation for captive cell work flows through the JV, not through the fee schedule |
 | Timeline | JV agreement to be executed within `[__]` months of Agreement Effective Date |
 
 ### Scope of Override
 
 | Provision Overridden | Nature of Override |
 |---------------------|-------------------|
-| F-09 fee level in Annex A | Reduced A value (16 vs 63 for other Layer A instruments) to reflect JV compensation |
+| F-06c fee level in Annex A | Reduced A value (16 vs 63 for other Layer A instruments) to reflect JV compensation |
 
 ## S.2 — Tail Period
 

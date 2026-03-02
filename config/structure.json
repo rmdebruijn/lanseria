@@ -1,9 +1,9 @@
 {
   "holding": {
-    "name": "Smart City Lanseria Catalytic Assets",
+    "name": "Catalytic Assets",
     "code": "SCLCA",
     "type": "financial_holding",
-    "registration": "Not yet incorporated",
+    "registration": "CIPC application pending",
     "description": "Financial holding company that receives debt facilities and deploys as intercompany loans to subsidiaries"
   },
   "devco": {
@@ -56,9 +56,9 @@
       "interest": {
         "base": "prime",
         "margin": 0.04,
-        "prime_rate": 0.1075,
-        "total_rate": 0.1475,
-        "note": "Prime + 4% = 14.75%"
+        "prime_rate": 0.1025,
+        "total_rate": 0.1425,
+        "note": "Prime + 4% = 14.25%"
       },
       "roll_up_months": 24,
       "repayment_months": 60,
@@ -117,10 +117,10 @@
         "note": "Facility 4.70% + IC margin 0.50% = 5.20%"
       },
       "mezz_to_subs": {
-        "rate": 0.1525,
-        "base_rate": 0.1475,
+        "rate": 0.1475,
+        "base_rate": 0.1425,
         "margin": 0.005,
-        "note": "Prime + 4% (14.75%) + IC margin 0.50% = 15.25%"
+        "note": "Prime + 4% (14.25%) + IC margin 0.50% = 14.75%"
       }
     },
     "loans_to_subsidiaries": {

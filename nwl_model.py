@@ -133,7 +133,7 @@ class NWLModel:
             "month_24_principal": exp["month_24_principal"],
             "less_solar_carve_out": exp["less_solar_carve_out"],
             "net_lending_envelope": exp["net_lending_envelope"],
-            "less_prepayments": exp["less_prepayments"],
+            "less_grant_acceleration": exp["less_prepayments"],
             "final_sponsor_exposure": exp["final_sponsor_exposure"]
         }
 
@@ -215,7 +215,7 @@ class NWLModel:
         lines.append(f"  M24 Principal:      €{waterfall['month_24_principal']:,.0f}")
         lines.append(f"  Less Solar:         €{waterfall['less_solar_carve_out']:,.0f}")
         lines.append(f"  Net Lending:        €{waterfall['net_lending_envelope']:,.0f}")
-        lines.append(f"  Less Prepayments:   €{waterfall['less_prepayments']:,.0f}")
+        lines.append(f"  Less Grant Accel:   €{waterfall['less_grant_acceleration']:,.0f}")
         lines.append(f"  FINAL EXPOSURE:     €{waterfall['final_sponsor_exposure']:,.0f}")
 
         lines.extend([

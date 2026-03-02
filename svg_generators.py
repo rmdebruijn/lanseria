@@ -362,7 +362,7 @@ def generate_nwl_financing_svg(
         f'font-size="11" font-weight="700" fill="#16a34a">'
         f'{_fmt_eur(grants_eur)} Grants</text>\n'
         f'  <text x="{grants_x:.0f}" y="106" text-anchor="middle" '
-        f'font-size="10" fill="#64748B">Prepay at M12</text>\n'
+        f'font-size="10" fill="#64748B">Accel at M12</text>\n'
     )
     # Arrow from annotation to timeline
     svg += (

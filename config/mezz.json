@@ -9,9 +9,9 @@
       "interest": {
         "base": "prime",
         "margin": 0.04,
-        "prime_rate": 0.1075,
-        "total_rate": 0.1475,
-        "note": "Prime + 4% = 14.75%"
+        "prime_rate": 0.1025,
+        "total_rate": 0.1425,
+        "note": "Prime + 4% = 14.25%"
       },
       "capital": {
         "initial_amount": 47082778,

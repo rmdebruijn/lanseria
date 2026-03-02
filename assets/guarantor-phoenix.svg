@@ -13,6 +13,8 @@
     </style>
   </defs>
 
+  <rect width="1100" height="600" fill="white"/>
+
   <!-- UBO Box -->
   <rect x="380" y="10" width="340" height="44" class="box" fill="#1F2937" stroke="#111827"/>
   <text x="550" y="30" text-anchor="middle" class="label-white">Mark van Houten (UBO)</text>
@@ -171,7 +173,7 @@
   <text x="905" y="458" text-anchor="middle" class="tag-lc" fill="white">SOLD</text>
 
   <!-- Legend -->
-  <rect x="20" y="490" width="1060" height="80" rx="6" fill="#F9FAFB" stroke="#E5E7EB"/>
+  <rect x="20" y="490" width="1060" height="80" rx="6" fill="white" stroke="#E5E7EB"/>
   <text x="40" y="510" class="label-bold" font-size="11">Legend:</text>
 
   <line x1="40" y1="523" x2="70" y2="523" class="line-solid"/>

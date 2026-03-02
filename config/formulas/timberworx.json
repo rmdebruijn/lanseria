@@ -1,0 +1,21 @@
+{
+  "_metadata": {
+    "entity": "timberworx",
+    "description": "TimberWorx-specific formula overrides.",
+    "note": "TWX revenue combines lease, training fees, and timber unit sales"
+  },
+  "formulas": {
+    "revenue": {
+      "expr": "lease_revenue + training_revenue + timber_revenue",
+      "depends_on": ["lease_revenue", "training_revenue", "timber_revenue"],
+      "unit": "EUR",
+      "description": "TWX revenue: CoE lease income + training fees + timber panel sales"
+    },
+    "depreciation": {
+      "expr": "depr_s12c + depr_straight_line",
+      "depends_on": ["depr_s12c", "depr_straight_line"],
+      "unit": "EUR",
+      "description": "TWX uses both S12C (machinery) and S13 straight-line (real estate) depreciation"
+    }
+  }
+}

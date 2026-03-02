@@ -15,7 +15,7 @@ Smart City Lanseria DevCo
 Master Development Company — land development, township establishment, bulk infrastructure
 
 ## llc_name
-Lanseria LLC
+Lanseria Landowners Consortium
 
 ## llc_line1
 Land Holdings, Servitudes

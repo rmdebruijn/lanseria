@@ -1,0 +1,21 @@
+{
+  "_metadata": {
+    "entity": "nwl",
+    "description": "NWL-specific formula overrides. These REPLACE global defaults by name.",
+    "note": "revenue uses volume × price × utilization — NWL's greenfield + brownfield mix"
+  },
+  "formulas": {
+    "revenue": {
+      "expr": "volume * price * utilization",
+      "depends_on": ["volume", "price", "utilization"],
+      "unit": "EUR",
+      "description": "NWL revenue: volume (kL) × tariff (EUR/kL) × plant utilization factor"
+    },
+    "cfads": {
+      "expr": "ebitda - tax + fd_income",
+      "depends_on": ["ebitda", "tax", "fd_income"],
+      "unit": "EUR",
+      "description": "NWL CFADS includes fixed deposit income (DSRA + entity FD earn interest)"
+    }
+  }
+}

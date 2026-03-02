@@ -23,10 +23,10 @@ Schedule B-1, B-2, etc. may override for a specific Designated Transaction.
 |------|-----------|---------|-----------|
 | S-01 | Project origination | | X |
 | S-02 | Technology and Exporter Pre-Selection | X | |
-| S-05 | ECA packaging and credit conversion | | X |
-| S-06 | Non-recourse debt structuring | | X |
-| S-07 | Credit-enhanced development debt (DFI) | | X |
-| S-09 | Subsidy access (vendor-linked) | X | |
+| S-07 | ECA packaging and credit conversion | | X |
+| S-05 | Non-recourse debt structuring | | X |
+| S-08 | Credit-enhanced development debt (DFI) | | X |
+| S-03 | Subsidy access (vendor-linked) | X | |
 
 Only scope items where Philip holds a Primary or Secondary role are listed. Philip does not receive supplier commissions. Any supplier-side economics are disclosed and flow through NexusNovus governance.
 
@@ -63,8 +63,8 @@ Decay tracks per origination source (F-01) and per technology provider (F-02) in
 
 | Fee Item | Scope | R% | Base Definition |
 |----------|-------|----|-----------------|
-| F-05: Non-recourse debt | S-06 | 3% | Debt facility amount closed |
-| F-06: Subsidy success fee | S-09 | 5% | Subsidy amount secured |
+| F-05: Non-recourse debt | S-05 | 3% | Debt facility amount closed |
+| F-03: Subsidy success fee | S-03 | 5% | Subsidy amount secured |
 
 ### Segment 3: Root-Curve Items (Frontier Funding Layers)
 
@@ -74,8 +74,8 @@ A is a fixed constant set per instrument. B_i is the Covered Amount per Designat
 
 | Fee Item | Scope | Layer | A | B_i Definition |
 |----------|-------|-------|---|----------------|
-| F-10: ECA packaging | S-05 | B | `[__]` | ECA Covered Amount |
-| F-13: Credit-enhanced development debt (DFI) | S-07 | C | `[__]` | DFI facility Covered Amount |
+| F-07a: ECA packaging | S-07 | B | `[__]` | ECA Covered Amount |
+| F-08: Credit-enhanced development debt (DFI) | S-08 | C | `[__]` | DFI facility Covered Amount |
 
 Renewal-decay and increase mechanics per Clause 7.6 of the Agreement apply to all Root-Curve items.
 
@@ -168,21 +168,21 @@ Retainer is not activated for Philip at this time. If activated in the future, t
 
 ### Special Terms
 
-In lieu of the standard subsidy success fee (F-06) for the first Designated Transaction involving TWX, Philip may elect to convert the subsidy success fee into a minority equity stake in TWX.
+In lieu of the standard subsidy success fee (F-03) for the first Designated Transaction involving TWX, Philip may elect to convert the subsidy success fee into a minority equity stake in TWX.
 
 | Field | Value |
 |-------|-------|
 | Conversion right | One-time election: subsidy success fee for the first TWX transaction may be converted to minority equity in TWX |
-| Equity stake | Minority — percentage to be determined based on F-06 fee amount and TWX valuation at the time of conversion |
+| Equity stake | Minority — percentage to be determined based on F-03 fee amount and TWX valuation at the time of conversion |
 | Valuation basis | Independent valuation or mutual agreement |
 | Replaces | This special replaces any right of first refusal (ROFR) that would otherwise apply under Contract B for the first TWX transaction |
-| Subsequent transactions | Normal F-06 subsidy success fee applies (cash, per Annex A) — this conversion right is not repeatable |
+| Subsequent transactions | Normal F-03 subsidy success fee applies (cash, per Annex A) — this conversion right is not repeatable |
 
 ### Scope of Override
 
 | Provision Overridden | Nature of Override |
 |---------------------|-------------------|
-| F-06 (Subsidy success fee) | One-time conversion to TWX minority equity instead of cash fee, for first TWX transaction only |
+| F-03 (Subsidy success fee) | One-time conversion to TWX minority equity instead of cash fee, for first TWX transaction only |
 | Any ROFR under Contract B | Replaced by this equity conversion right for first TWX transaction |
 
 ## S.2 — Timber Trade Joint Venture (Finland)
@@ -235,7 +235,7 @@ Philip is authorized to engage Sub-Agents, subject to prior written NexusNovus a
 | # | Service Description | Linked Scope Code(s) | Notes |
 |---|--------------------|-----------------------|-------|
 | 1 | Technology and exporter sourcing — Nordic/Swedish market | S-02 | Swedish and Nordic supplier identification, qualification, and relationship management |
-| 2 | Subsidy access — Swedish/EU subsidy pathways | S-09 | Swedish export subsidy and EU funding programme navigation |
+| 2 | Subsidy access — Swedish/EU subsidy pathways | S-03 | Swedish export subsidy and EU funding programme navigation |
 
 ### Reporting Line
 

@@ -589,6 +589,7 @@ def classify_lifecycle(
     is_analysis: Optional[dict] = None,
     bs_analysis: Optional[dict] = None,
     mgmt_report_analysis: Optional[dict] = None,
+    entity_config: Optional[dict] = None,
 ) -> dict:
     """Classify entity lifecycle stage from AFS + management account analysis.
 
@@ -661,6 +662,57 @@ def classify_lifecycle(
             tl = ta - te
         signals["afs_assets"] = ta
         signals["afs_liabilities"] = tl
+
+        # Investment property — try common field name variants
+        ip = _gval(bs, "assets", "non_current_assets", "investment_property")
+        if ip is None:
+            ip = _gval(bs, "assets", "non_current_assets", "investment_property_at_fair_value")
+        signals["afs_ip"] = ip
+
+        # LT Borrowings — sum all debt-like NCL items, excluding deferred tax.
+        # AFS JSONs may use: other_financial_liabilities, mortgage_bonds,
+        # loans_from_shareholders, loans_from_group_companies, secured_borrowings, etc.
+        ncl_node = bs.get("equity_and_liabilities", {}).get("non_current_liabilities", {})
+        _exclude_keys = {"total", "total_non_current_liabilities",
+                         "deferred_tax", "deferred_tax_liabilities",
+                         "deferred_tax_liability"}
+        lt_borrowings = 0
+        for k, v in ncl_node.items():
+            if k in _exclude_keys:
+                continue
+            if isinstance(v, dict) and "values" in v:
+                vals = v["values"]
+                if isinstance(vals, list) and vals and vals[0] is not None:
+                    lt_borrowings += abs(float(vals[0]))
+        signals["afs_lt_borrowings"] = lt_borrowings if lt_borrowings > 0 else None
+
+        # Quasi-equity separation: identify shareholder/related-party loans
+        # that accrue interest (not cash-paid) and treat as quasi-equity.
+        qe_config = (entity_config or {}).get("quasi_equity")
+        qe_amount = 0
+        if qe_config and qe_config.get("confirmed"):
+            qe_fields = set(qe_config.get("fields", []))
+            for k, v in ncl_node.items():
+                if k in qe_fields:
+                    if isinstance(v, dict) and "values" in v:
+                        vals = v["values"]
+                        if isinstance(vals, list) and vals and vals[0] is not None:
+                            qe_amount += abs(float(vals[0]))
+        signals["quasi_equity_amount"] = qe_amount if qe_amount > 0 else None
+        signals["quasi_equity_confirmed"] = bool(qe_config and qe_config.get("confirmed"))
+
+        senior_borrowings = lt_borrowings - qe_amount
+        signals["afs_senior_borrowings"] = senior_borrowings if senior_borrowings > 0 else None
+
+        # LTV from AFS (book = all debt, adjusted = senior only)
+        if ip and ip > 0 and lt_borrowings > 0:
+            signals["afs_ltv"] = round(lt_borrowings / ip * 100, 1)
+        else:
+            signals["afs_ltv"] = None
+        if ip and ip > 0 and senior_borrowings > 0 and qe_amount > 0:
+            signals["afs_ltv_adjusted"] = round(senior_borrowings / ip * 100, 1)
+        else:
+            signals["afs_ltv_adjusted"] = None
     else:
         signals["is_gc"] = False
         signals["is_neg_eq"] = False
@@ -778,6 +830,27 @@ def classify_lifecycle(
     fc = signals.get("afs_fc") or 0
     best_ebitda = signals.get("mgmt_ebitda_ann") or signals.get("afs_ebitda") or 0
     covers_fc = best_ebitda > fc > 0
+
+    # Quasi-equity adjusted IC: if confirmed QE, estimate senior-only FC
+    # by subtracting QE proportion of total FC.
+    qe_amt = signals.get("quasi_equity_amount") or 0
+    lt_borr = signals.get("afs_lt_borrowings") or 0
+    if qe_amt > 0 and lt_borr > 0 and fc > 0 and signals.get("quasi_equity_confirmed"):
+        qe_fc_fraction = qe_amt / lt_borr  # proportion of debt that is quasi-equity
+        senior_fc = fc * (1 - qe_fc_fraction)
+        signals["afs_senior_fc"] = round(senior_fc)
+        signals["afs_ic_adjusted"] = round(best_ebitda / senior_fc, 2) if senior_fc > 0 else None
+        covers_fc_adjusted = best_ebitda > senior_fc > 0
+        signals["covers_fc_adjusted"] = covers_fc_adjusted
+        # If book IC < 1 but adjusted IC >= 1, allow upgrade
+        if not covers_fc and covers_fc_adjusted:
+            covers_fc = True
+            signals["qe_upgrade"] = True
+    else:
+        signals["afs_senior_fc"] = None
+        signals["afs_ic_adjusted"] = None
+        signals["covers_fc_adjusted"] = None
+        signals["qe_upgrade"] = False
 
     # Override only when DSCR is consistently supportive (robust stats).
     # If disposal-like event happened, use post-sale DSCR only.
@@ -1258,15 +1331,96 @@ def generate_story(
     return story
 
 
+def compute_co_ownership_consolidated(
+    entity_afs: Optional[dict],
+    co_owner_afs: Optional[dict],
+    entity_mgmt: Optional[dict],
+    co_owner_mgmt: Optional[dict],
+    ownership_pct: int = 50,
+    lifecycle_signals: Optional[dict] = None,
+) -> Optional[dict]:
+    """Compute consolidated economic metrics for a co-ownership structure.
+
+    Where an entity holds a fractional interest in a property but carries 100%
+    of debt, entity-level metrics are misleading. This consolidates by attributing
+    ownership_pct of the co-owner's revenue to the entity.
+
+    Returns dict with book and consolidated metrics, or None if insufficient data.
+    """
+    if not entity_afs:
+        return None
+    sig = lifecycle_signals or {}
+    frac = ownership_pct / 100.0
+
+    # Entity metrics from lifecycle signals (already computed by classify_lifecycle)
+    entity_rev = sig.get("afs_rev") or 0
+    entity_fc = sig.get("afs_fc") or 0
+    entity_ip = sig.get("afs_ip") or 0
+    entity_lt_borr = sig.get("afs_lt_borrowings") or 0
+    # Use best EBITDA: mgmt (annualised) if available, else AFS
+    entity_ebitda = sig.get("mgmt_ebitda_ann") or sig.get("afs_ebitda") or 0
+
+    # Co-owner revenue from their AFS (top-level, not under financial_data)
+    co_rev = 0
+    if co_owner_afs:
+        co_pl = co_owner_afs.get("statement_of_comprehensive_income", {})
+        r = co_pl.get("revenue", {})
+        if isinstance(r, dict) and "values" in r:
+            vals = r["values"]
+            if isinstance(vals, list) and vals and vals[0] is not None:
+                co_rev = abs(float(vals[0]))
+
+    # Consolidated revenue = entity revenue + fraction of co-owner revenue
+    consol_rev = entity_rev + frac * co_rev
+
+    # Consolidated EBITDA: entity EBITDA + fraction of co-owner revenue
+    # (entity already books its share; co-owner passes through ALL rent
+    # netting to zero, so frac * co_rev is the incremental attributable income)
+    # This effectively replaces entity_rev with consol_rev in the EBITDA calc:
+    #   consol_ebitda = entity_ebitda + (consol_rev - entity_rev)
+    consol_ebitda = entity_ebitda + (frac * co_rev)
+
+    consol_ic = round(consol_ebitda / entity_fc, 2) if entity_fc > 0 else None
+
+    # Consolidated LTV: entity debt / (total property value estimated as IP / frac)
+    # Entity IP on BS = their share of the property value
+    total_prop_value = entity_ip / frac if frac > 0 and entity_ip > 0 else 0
+    consol_ltv = round(entity_lt_borr / total_prop_value * 100, 1) if total_prop_value > 0 and entity_lt_borr > 0 else None
+
+    return {
+        "ownership_pct": ownership_pct,
+        "entity_rev": entity_rev,
+        "co_owner_rev": co_rev,
+        "consolidated_rev": round(consol_rev),
+        "consolidated_ebitda": round(consol_ebitda),
+        "entity_fc": entity_fc,
+        "consolidated_ic": consol_ic,
+        "entity_lt_borrowings": entity_lt_borr,
+        "total_property_value_est": round(total_prop_value),
+        "consolidated_ltv": consol_ltv,
+    }
+
+
 def analyse_entity(entity_name: str, afs_data: Optional[dict], mgmt_data: Optional[dict],
-                   mgmt_report_data: Optional[dict] = None) -> dict:
+                   mgmt_report_data: Optional[dict] = None,
+                   entity_config: Optional[dict] = None,
+                   co_owner_afs_data: Optional[dict] = None,
+                   co_owner_mgmt_data: Optional[dict] = None) -> dict:
     """Full analysis pipeline for a single entity.
+
+    Args:
+      entity_config: dict with optional keys:
+        - quasi_equity: {fields: [...], confirmed: bool} — NCL items to treat as quasi-equity
+        - co_ownership: {ownership_pct: int, ...} — co-ownership consolidation params
+      co_owner_afs_data: AFS data for the co-owner entity (for co-ownership consolidation)
+      co_owner_mgmt_data: management data for the co-owner entity
 
     Returns:
       - lifecycle: classification result
       - is_analysis: IS monthly analysis (if mgmt data available)
       - bs_analysis: BS trajectory analysis (if mgmt data available)
       - mr_analysis: management report analysis (if Broll report available)
+      - co_ownership: consolidated metrics (if co-ownership config present)
       - story: list of narrative paragraphs
     """
     is_analysis = analyse_is_monthly(mgmt_data) if mgmt_data and mgmt_data.get("general_ledger_detail") else None
@@ -1274,9 +1428,33 @@ def analyse_entity(entity_name: str, afs_data: Optional[dict], mgmt_data: Option
     mr_analysis = analyse_mgmt_report(mgmt_report_data) if mgmt_report_data else None
 
     lifecycle = classify_lifecycle(afs_data, mgmt_data, is_analysis, bs_analysis,
-                                  mgmt_report_analysis=mr_analysis)
+                                  mgmt_report_analysis=mr_analysis,
+                                  entity_config=entity_config)
     story = generate_story(entity_name, lifecycle, is_analysis, bs_analysis,
                           mgmt_report_analysis=mr_analysis)
+
+    # Co-ownership consolidation
+    co_ownership = None
+    co_config = (entity_config or {}).get("co_ownership")
+    if co_config:
+        co_ownership = compute_co_ownership_consolidated(
+            entity_afs=afs_data, co_owner_afs=co_owner_afs_data,
+            entity_mgmt=mgmt_data, co_owner_mgmt=co_owner_mgmt_data,
+            ownership_pct=co_config.get("ownership_pct", 50),
+            lifecycle_signals=lifecycle.get("signals", {}))
+        if co_ownership:
+            # If consolidated IC >= 1.0 but entity IC < 1.0, flag for upgrade
+            if (co_ownership.get("consolidated_ic") and
+                    co_ownership["consolidated_ic"] >= 1.0 and
+                    not lifecycle["signals"].get("covers_fc")):
+                lifecycle["signals"]["co_own_upgrade"] = True
+                lifecycle["stage"] = "cash_generating"
+                lifecycle["label"] = LIFECYCLE_STAGES["cash_generating"]["label"]
+                lifecycle["color"] = LIFECYCLE_STAGES["cash_generating"]["color"]
+                lifecycle["detail"] += (" [CO-OWN] Consolidated IC "
+                                        f"{co_ownership['consolidated_ic']:.2f}x — "
+                                        "entity carries 100% debt but receives only "
+                                        f"{co_config.get('ownership_pct', 50)}% income.")
 
     return {
         "entity": entity_name,
@@ -1284,6 +1462,7 @@ def analyse_entity(entity_name: str, afs_data: Optional[dict], mgmt_data: Option
         "is_analysis": is_analysis,
         "bs_analysis": bs_analysis,
         "mr_analysis": mr_analysis,
+        "co_ownership": co_ownership,
         "story": story,
     }
 
@@ -1292,45 +1471,203 @@ def analyse_entity(entity_name: str, afs_data: Optional[dict], mgmt_data: Option
 # CLI Entry Point
 # ============================================================================
 
+def _load_json(path: Path) -> Optional[dict]:
+    """Load a JSON file if it exists, else return None."""
+    if path.exists():
+        with open(path, "r") as f:
+            return json.load(f)
+    return None
+
+
+def _build_entity_configs(guarantor_config: dict) -> dict:
+    """Build per-entity config dicts from guarantor.json adjustments section.
+
+    Returns: {entity_key: {quasi_equity: {...}, co_ownership: {...}}}
+    """
+    adjustments = guarantor_config.get("adjustments", {})
+    qe_configs = adjustments.get("quasi_equity", {})
+    co_configs = adjustments.get("co_ownership", {})
+    entity_cfgs = {}
+
+    for key, qe in qe_configs.items():
+        if key.startswith("_"):
+            continue
+        entity_cfgs.setdefault(key, {})["quasi_equity"] = qe
+
+    for key, co in co_configs.items():
+        if key.startswith("_"):
+            continue
+        ek = co.get("entity_key", key)
+        entity_cfgs.setdefault(ek, {})["co_ownership"] = co
+
+    return entity_cfgs
+
+
+def _map_config_key_to_afs_key(config_key: str, afs_map: dict) -> Optional[str]:
+    """Map guarantor.json entity key (e.g. 'ireo') to AFS_MAP key (e.g. 'IreoProject10').
+
+    Tries exact match first, then case-insensitive prefix match.
+    """
+    if config_key in afs_map:
+        return config_key
+    ck_lower = config_key.lower()
+    for afs_key in afs_map:
+        if afs_key.lower().startswith(ck_lower):
+            return afs_key
+    return None
+
+
 def main():
-    """Analyse all management account JSONs and print results."""
+    """Analyse all entities using AFS + management accounts + config adjustments."""
+    import sys
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent.parent / "scripts"))
     import re_extract_mgmt_accounts as extractor
+
+    # Load guarantor config
+    config_path = Path(__file__).resolve().parent.parent / "config" / "guarantor.json"
+    guarantor_config = _load_json(config_path) or {}
+    entity_configs = _build_entity_configs(guarantor_config)
 
     print("=" * 80)
     print("Guarantor Financial Analysis Engine")
     print("=" * 80)
+    if entity_configs:
+        print(f"  Config: {len(entity_configs)} entities with adjustments "
+              f"(from {config_path.name})")
+        for k, v in entity_configs.items():
+            flags = []
+            if "quasi_equity" in v:
+                qe = v["quasi_equity"]
+                flags.append(f"[QE {'confirmed' if qe.get('confirmed') else 'unconfirmed'}]")
+            if "co_ownership" in v:
+                flags.append(f"[CO-OWN {v['co_ownership'].get('ownership_pct', '?')}%]")
+            print(f"    {k}: {' '.join(flags)}")
 
-    for base, xlsx, jname, grp in extractor.FILE_MAP:
-        json_path = base / jname
-        if not json_path.exists():
-            print(f"\n  SKIP: {jname} — not found")
-            continue
+    # Pre-load all AFS JSONs
+    afs_cache = {}
+    for afs_key, (afs_path, grp, has_mgmt) in extractor.AFS_MAP.items():
+        afs_cache[afs_key] = _load_json(afs_path)
 
-        with open(json_path, "r") as f:
-            data = json.load(f)
+    # Pre-load all management account JSONs
+    mgmt_cache = {}
+    for mgmt_key, mgmt_path in extractor.MGMT_MAP.items():
+        mgmt_cache[mgmt_key] = _load_json(mgmt_path)
 
-        entity = data.get("metadata", {}).get("entity", {}).get("legal_name", jname)
-        result = analyse_entity(entity, afs_data=None, mgmt_data=data)
+    # Analyse each entity in AFS_MAP (superset of FILE_MAP)
+    results = []
+    for afs_key, (afs_path, grp, has_mgmt) in extractor.AFS_MAP.items():
+        afs_data = afs_cache.get(afs_key)
+        mgmt_data = mgmt_cache.get(afs_key)
+
+        # Resolve entity config from guarantor.json adjustment keys
+        ent_config = None
+        for cfg_key, cfg_val in entity_configs.items():
+            resolved = _map_config_key_to_afs_key(cfg_key, extractor.AFS_MAP)
+            if resolved == afs_key:
+                ent_config = cfg_val
+                break
+
+        # Resolve co-owner data if co-ownership config present
+        co_owner_afs = None
+        co_owner_mgmt = None
+        if ent_config and "co_ownership" in ent_config:
+            co_key = ent_config["co_ownership"].get("co_owner_key")
+            if co_key:
+                co_afs_key = _map_config_key_to_afs_key(co_key, extractor.AFS_MAP)
+                if co_afs_key:
+                    co_owner_afs = afs_cache.get(co_afs_key)
+                    co_owner_mgmt = mgmt_cache.get(co_afs_key)
+
+        # Load management report JSON if referenced in guarantor.json
+        mgmt_report_data = None
+        # Check guarantor.json entity tree for mgmt_report key
+        for group_data in guarantor_config.get("groups", {}).values():
+            holding = group_data.get("holding", {})
+            for child in _flatten_children(holding):
+                if child.get("key") and _map_config_key_to_afs_key(
+                        child["key"], {afs_key: None}) == afs_key:
+                    mr_json = child.get("mgmt_report")
+                    if mr_json:
+                        # Try phoenix then veracity Broll paths
+                        for base in [extractor.BASE_AFS_PHOENIX.parent / "Broll Reports",
+                                     extractor.BASE_AFS_VERACITY.parent / "Broll Reports"]:
+                            mr_path = base / f"{mr_json}.json"
+                            if mr_path.exists():
+                                mgmt_report_data = _load_json(mr_path)
+                                break
+
+        entity_name = afs_key
+        if afs_data:
+            meta = afs_data.get("metadata", {}).get("entity", {})
+            entity_name = meta.get("legal_name", afs_key)
+        elif mgmt_data:
+            meta = mgmt_data.get("metadata", {}).get("entity", {})
+            entity_name = meta.get("legal_name", afs_key)
+
+        result = analyse_entity(
+            entity_name, afs_data=afs_data, mgmt_data=mgmt_data,
+            mgmt_report_data=mgmt_report_data, entity_config=ent_config,
+            co_owner_afs_data=co_owner_afs, co_owner_mgmt_data=co_owner_mgmt)
+        results.append((afs_key, grp, result))
+
         lc = result["lifecycle"]
+        sig = lc.get("signals", {})
 
         print(f"\n{'='*60}")
-        print(f"  {entity}")
+        print(f"  {entity_name} [{afs_key}] ({grp})")
         print(f"  Stage: {lc['label']} ({lc['color']}) — Confidence: {lc['confidence']:.0%}")
         print(f"  {lc['detail']}")
 
-        if result["is_analysis"]:
+        # Show adjustment flags
+        if sig.get("qe_upgrade"):
+            print(f"  [QE] Quasi-equity upgrade: book IC < 1 → adjusted IC "
+                  f"{sig.get('afs_ic_adjusted', '?')}x (senior FC only)")
+        if sig.get("co_own_upgrade"):
+            co = result.get("co_ownership", {})
+            print(f"  [CO-OWN] Consolidated IC {co.get('consolidated_ic', '?')}x, "
+                  f"LTV {co.get('consolidated_ltv', '?')}%")
+        if sig.get("quasi_equity_amount"):
+            print(f"  Quasi-equity: R{sig['quasi_equity_amount']/1e6:.1f}M "
+                  f"({'confirmed' if sig.get('quasi_equity_confirmed') else 'unconfirmed'})")
+        if sig.get("afs_ltv"):
+            ltv_str = f"LTV {sig['afs_ltv']:.0f}%"
+            if sig.get("afs_ltv_adjusted"):
+                ltv_str += f" (adjusted {sig['afs_ltv_adjusted']:.0f}%)"
+            print(f"  {ltv_str}")
+
+        if result.get("is_analysis"):
             ia = result["is_analysis"]
             print(f"  IS: {ia['active_months']} months, Rev mean R{ia['revenue_mean']/1e6:.2f}M/mo, "
                   f"CV={ia['revenue_cv']:.0%}, Slope={ia['revenue_slope']}")
 
-        if result["bs_analysis"]:
+        if result.get("bs_analysis"):
             ba = result["bs_analysis"]
             print(f"  BS: Assets R{ba['assets_cy']/1e6:.1f}M, Equity R{ba['equity_cy']/1e6:.1f}M, "
                   f"Debt slope={ba['debt_slope']}, Cash slope={ba['cash_slope']}")
 
-        print(f"  Story:")
-        for s in result["story"]:
-            print(f"    {s[:120]}")
+        if result.get("co_ownership"):
+            co = result["co_ownership"]
+            print(f"  Co-ownership ({co['ownership_pct']}%): entity rev R{co['entity_rev']/1e6:.1f}M + "
+                  f"co-owner R{co['co_owner_rev']/1e6:.1f}M → consol R{co['consolidated_rev']/1e6:.1f}M, "
+                  f"IC {co['consolidated_ic']}x, LTV {co['consolidated_ltv']}%")
+
+    # Summary
+    print(f"\n{'='*80}")
+    print(f"  Processed: {len(results)} entities")
+    stages = {}
+    for _, grp, r in results:
+        s = r["lifecycle"]["label"]
+        stages[s] = stages.get(s, 0) + 1
+    for s, c in sorted(stages.items(), key=lambda x: -x[1]):
+        print(f"    {s}: {c}")
+
+
+def _flatten_children(node: dict) -> list:
+    """Recursively flatten the children tree from guarantor.json."""
+    result = [node]
+    for child in node.get("children", []):
+        result.extend(_flatten_children(child))
+    return result
 
 
 if __name__ == "__main__":

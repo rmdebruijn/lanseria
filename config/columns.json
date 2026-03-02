@@ -1,0 +1,2089 @@
+{
+  "_meta": {
+    "version": "1.0",
+    "description": "Column registry — single source of truth for all DataFrame column metadata. Auto-generated from value_tags._PREFIX_TAGS, ops_tables.*_COLS, loop._WATERFALL_STOCK_KEYS, WaterfallRow/PnlRow/BalanceSheetRow TypedDicts, and build_annual() keys. Manually reviewed and corrected.",
+    "natures": ["flow", "stock", "parameter"],
+    "signs": ["positive", "negative", "neutral"],
+    "families": ["revenue", "expense", "ebitda", "depreciation", "interest", "tax", "profit", "asset", "liability", "equity", "cf_ops", "cf_invest", "cf_finance", "cf_net", "volume", "ratio", "reserve", "acceleration", "dividend", "period"]
+  },
+
+  "year": {
+    "label": "Year",
+    "nature": "parameter",
+    "unit": "",
+    "sign": "neutral",
+    "family": "period",
+    "fmt": "int"
+  },
+  "month": {
+    "label": "Month",
+    "nature": "parameter",
+    "unit": "",
+    "sign": "neutral",
+    "family": "period",
+    "fmt": "int"
+  },
+  "index": {
+    "label": "Period Index",
+    "nature": "parameter",
+    "unit": "",
+    "sign": "neutral",
+    "family": "period",
+    "fmt": "int"
+  },
+
+  "rev_greenfield_sewage": {
+    "label": "Greenfield Sewage Revenue",
+    "nature": "flow",
+    "unit": "EUR",
+    "sign": "positive",
+    "family": "revenue",
+    "fmt": "money",
+    "entity": ["nwl"]
+  },
+  "rev_brownfield_sewage": {
+    "label": "Brownfield Sewage Revenue",
+    "nature": "flow",
+    "unit": "EUR",
+    "sign": "positive",
+    "family": "revenue",
+    "fmt": "money",
+    "entity": ["nwl"]
+  },
+  "rev_sewage": {
+    "label": "Total Sewage Revenue",
+    "nature": "flow",
+    "unit": "EUR",
+    "sign": "positive",
+    "family": "revenue",
+    "fmt": "money",
+    "entity": ["nwl"]
+  },
+  "rev_greenfield_reuse": {
+    "label": "Greenfield Reuse Revenue",
+    "nature": "flow",
+    "unit": "EUR",
+    "sign": "positive",
+    "family": "revenue",
+    "fmt": "money",
+    "entity": ["nwl"]
+  },
+  "rev_construction": {
+    "label": "Construction Water Revenue",
+    "nature": "flow",
+    "unit": "EUR",
+    "sign": "positive",
+    "family": "revenue",
+    "fmt": "money",
+    "entity": ["nwl"]
+  },
+  "rev_agri": {
+    "label": "Agricultural Reuse Revenue",
+    "nature": "flow",
+    "unit": "EUR",
+    "sign": "positive",
+    "family": "revenue",
+    "fmt": "money",
+    "entity": ["nwl"]
+  },
+  "rev_reuse": {
+    "label": "Total Reuse Revenue",
+    "nature": "flow",
+    "unit": "EUR",
+    "sign": "positive",
+    "family": "revenue",
+    "fmt": "money",
+    "entity": ["nwl"]
+  },
+  "rev_operating": {
+    "label": "Operating Revenue",
+    "nature": "flow",
+    "unit": "EUR",
+    "sign": "positive",
+    "family": "revenue",
+    "fmt": "money"
+  },
+  "rev_bulk_services": {
+    "label": "Bulk Services Revenue",
+    "nature": "flow",
+    "unit": "EUR",
+    "sign": "positive",
+    "family": "revenue",
+    "fmt": "money",
+    "entity": ["nwl"]
+  },
+  "rev_total": {
+    "label": "Total Revenue",
+    "nature": "flow",
+    "unit": "EUR",
+    "sign": "positive",
+    "family": "revenue",
+    "fmt": "money"
+  },
+  "rev": {
+    "label": "Revenue (semi-annual P&L)",
+    "nature": "flow",
+    "unit": "EUR",
+    "sign": "positive",
+    "family": "revenue",
+    "fmt": "money"
+  },
+  "rev_ic_nwl": {
+    "label": "NWL IC Power Sales",
+    "nature": "flow",
+    "unit": "EUR",
+    "sign": "positive",
+    "family": "revenue",
+    "fmt": "money",
+    "entity": ["lanred"]
+  },
+  "rev_smart_city": {
+    "label": "Smart City Off-Take",
+    "nature": "flow",
+    "unit": "EUR",
+    "sign": "positive",
+    "family": "revenue",
+    "fmt": "money",
+    "entity": ["lanred"]
+  },
+  "rev_open_market": {
+    "label": "Open Market Sales",
+    "nature": "flow",
+    "unit": "EUR",
+    "sign": "positive",
+    "family": "revenue",
+    "fmt": "money",
+    "entity": ["lanred"]
+  },
+  "rev_bess_arbitrage": {
+    "label": "BESS TOU Arbitrage",
+    "nature": "flow",
+    "unit": "EUR",
+    "sign": "positive",
+    "family": "revenue",
+    "fmt": "money",
+    "entity": ["lanred"]
+  },
+  "rev_power_sales": {
+    "label": "Total Power Sales",
+    "nature": "flow",
+    "unit": "EUR",
+    "sign": "positive",
+    "family": "revenue",
+    "fmt": "money",
+    "entity": ["lanred"]
+  },
+  "rev_total_northlands": {
+    "label": "Northlands PPA Income",
+    "nature": "flow",
+    "unit": "EUR",
+    "sign": "positive",
+    "family": "revenue",
+    "fmt": "money",
+    "entity": ["lanred"]
+  },
+  "rev_northlands_gross_zar": {
+    "label": "Northlands Revenue (ZAR)",
+    "nature": "flow",
+    "unit": "ZAR",
+    "sign": "positive",
+    "family": "revenue",
+    "fmt": "money_zar",
+    "entity": ["lanred"]
+  },
+  "rev_lease": {
+    "label": "CoE Lease Income",
+    "nature": "flow",
+    "unit": "EUR",
+    "sign": "positive",
+    "family": "revenue",
+    "fmt": "money",
+    "entity": ["timberworx"]
+  },
+  "rev_training": {
+    "label": "Training Programs Revenue",
+    "nature": "flow",
+    "unit": "EUR",
+    "sign": "positive",
+    "family": "revenue",
+    "fmt": "money",
+    "entity": ["timberworx"]
+  },
+  "rev_timber_gross": {
+    "label": "Timber Gross Revenue",
+    "nature": "flow",
+    "unit": "EUR",
+    "sign": "positive",
+    "family": "revenue",
+    "fmt": "money",
+    "entity": ["timberworx"]
+  },
+  "rev_timber_sales": {
+    "label": "Timber Net Revenue",
+    "nature": "flow",
+    "unit": "EUR",
+    "sign": "positive",
+    "family": "revenue",
+    "fmt": "money",
+    "entity": ["timberworx"]
+  },
+  "rev_coe_sale": {
+    "label": "CoE Sale Proceeds",
+    "nature": "flow",
+    "unit": "EUR",
+    "sign": "positive",
+    "family": "revenue",
+    "fmt": "money",
+    "entity": ["timberworx"]
+  },
+
+  "om_cost": {
+    "label": "O&M Cost",
+    "nature": "flow",
+    "unit": "EUR",
+    "sign": "negative",
+    "family": "expense",
+    "fmt": "money"
+  },
+  "power_cost": {
+    "label": "Power Cost",
+    "nature": "flow",
+    "unit": "EUR",
+    "sign": "negative",
+    "family": "expense",
+    "fmt": "money"
+  },
+  "rent_cost": {
+    "label": "CoE Rent",
+    "nature": "flow",
+    "unit": "EUR",
+    "sign": "negative",
+    "family": "expense",
+    "fmt": "money",
+    "entity": ["nwl"]
+  },
+  "grid_cost": {
+    "label": "Grid Connection Cost",
+    "nature": "flow",
+    "unit": "EUR",
+    "sign": "negative",
+    "family": "expense",
+    "fmt": "money",
+    "entity": ["lanred"]
+  },
+  "labor_cost": {
+    "label": "Timber Labor Cost",
+    "nature": "flow",
+    "unit": "EUR",
+    "sign": "negative",
+    "family": "expense",
+    "fmt": "money",
+    "entity": ["timberworx"]
+  },
+  "opex": {
+    "label": "Total Opex",
+    "nature": "flow",
+    "unit": "EUR",
+    "sign": "negative",
+    "family": "expense",
+    "fmt": "money"
+  },
+  "om_zar": {
+    "label": "O&M Cost (ZAR)",
+    "nature": "flow",
+    "unit": "ZAR",
+    "sign": "negative",
+    "family": "expense",
+    "fmt": "money_zar",
+    "entity": ["nwl"]
+  },
+  "power_zar": {
+    "label": "Power Cost (ZAR)",
+    "nature": "flow",
+    "unit": "ZAR",
+    "sign": "negative",
+    "family": "expense",
+    "fmt": "money_zar",
+    "entity": ["nwl"]
+  },
+  "rent_zar": {
+    "label": "CoE Rent (ZAR)",
+    "nature": "flow",
+    "unit": "ZAR",
+    "sign": "negative",
+    "family": "expense",
+    "fmt": "money_zar",
+    "entity": ["nwl"]
+  },
+  "northlands_cogs_zar": {
+    "label": "Northlands COGS (ZAR)",
+    "nature": "flow",
+    "unit": "ZAR",
+    "sign": "negative",
+    "family": "expense",
+    "fmt": "money_zar",
+    "entity": ["lanred"]
+  },
+  "northlands_gross_profit_zar": {
+    "label": "Northlands Gross Profit (ZAR)",
+    "nature": "flow",
+    "unit": "ZAR",
+    "sign": "positive",
+    "family": "profit",
+    "fmt": "money_zar",
+    "entity": ["lanred"]
+  },
+  "northlands_ins_zar": {
+    "label": "Northlands Insurance (ZAR)",
+    "nature": "flow",
+    "unit": "ZAR",
+    "sign": "negative",
+    "family": "expense",
+    "fmt": "money_zar",
+    "entity": ["lanred"]
+  },
+  "northlands_om_zar": {
+    "label": "Northlands O&M (ZAR)",
+    "nature": "flow",
+    "unit": "ZAR",
+    "sign": "negative",
+    "family": "expense",
+    "fmt": "money_zar",
+    "entity": ["lanred"]
+  },
+  "northlands_net_zar": {
+    "label": "Northlands Net Income (ZAR)",
+    "nature": "flow",
+    "unit": "ZAR",
+    "sign": "positive",
+    "family": "profit",
+    "fmt": "money_zar",
+    "entity": ["lanred"]
+  },
+
+  "ebitda": {
+    "label": "EBITDA",
+    "nature": "flow",
+    "unit": "EUR",
+    "sign": "positive",
+    "family": "ebitda",
+    "fmt": "money"
+  },
+  "depr": {
+    "label": "Depreciation",
+    "nature": "flow",
+    "unit": "EUR",
+    "sign": "negative",
+    "family": "depreciation",
+    "fmt": "money"
+  },
+  "ebit": {
+    "label": "EBIT",
+    "nature": "flow",
+    "unit": "EUR",
+    "sign": "positive",
+    "family": "profit",
+    "fmt": "money"
+  },
+
+  "ie": {
+    "label": "Total Interest Expense",
+    "nature": "flow",
+    "unit": "EUR",
+    "sign": "negative",
+    "family": "interest",
+    "fmt": "money"
+  },
+  "ie_sr": {
+    "label": "Senior Cash Interest",
+    "nature": "flow",
+    "unit": "EUR",
+    "sign": "negative",
+    "family": "interest",
+    "fmt": "money"
+  },
+  "ie_mz": {
+    "label": "Mezz Cash Interest",
+    "nature": "flow",
+    "unit": "EUR",
+    "sign": "negative",
+    "family": "interest",
+    "fmt": "money"
+  },
+  "ie_sr_all": {
+    "label": "Senior Interest (incl IDC)",
+    "nature": "flow",
+    "unit": "EUR",
+    "sign": "negative",
+    "family": "interest",
+    "fmt": "money"
+  },
+  "ie_mz_all": {
+    "label": "Mezz Interest (incl IDC)",
+    "nature": "flow",
+    "unit": "EUR",
+    "sign": "negative",
+    "family": "interest",
+    "fmt": "money"
+  },
+  "ie_half_sr": {
+    "label": "Senior Half-Year Interest",
+    "nature": "flow",
+    "unit": "EUR",
+    "sign": "negative",
+    "family": "interest",
+    "fmt": "money"
+  },
+  "ie_half_mz": {
+    "label": "Mezz Half-Year Interest",
+    "nature": "flow",
+    "unit": "EUR",
+    "sign": "negative",
+    "family": "interest",
+    "fmt": "money"
+  },
+  "idc_sr": {
+    "label": "Senior IDC",
+    "nature": "flow",
+    "unit": "EUR",
+    "sign": "negative",
+    "family": "interest",
+    "fmt": "money"
+  },
+  "idc_mz": {
+    "label": "Mezz IDC",
+    "nature": "flow",
+    "unit": "EUR",
+    "sign": "negative",
+    "family": "interest",
+    "fmt": "money"
+  },
+  "ii_dsra": {
+    "label": "FD Interest Income",
+    "nature": "flow",
+    "unit": "EUR",
+    "sign": "positive",
+    "family": "interest",
+    "fmt": "money"
+  },
+  "fd_income": {
+    "label": "Fixed Deposit Income",
+    "nature": "flow",
+    "unit": "EUR",
+    "sign": "positive",
+    "family": "interest",
+    "fmt": "money"
+  },
+  "interest_expense": {
+    "label": "Interest Expense (legacy alias)",
+    "nature": "flow",
+    "unit": "EUR",
+    "sign": "negative",
+    "family": "interest",
+    "fmt": "money"
+  },
+
+  "pbt": {
+    "label": "Profit Before Tax",
+    "nature": "flow",
+    "unit": "EUR",
+    "sign": "positive",
+    "family": "profit",
+    "fmt": "money"
+  },
+  "tax": {
+    "label": "Tax",
+    "nature": "flow",
+    "unit": "EUR",
+    "sign": "negative",
+    "family": "tax",
+    "fmt": "money"
+  },
+  "tax_loss_pool": {
+    "label": "Tax Loss Pool",
+    "nature": "stock",
+    "unit": "EUR",
+    "sign": "neutral",
+    "family": "tax",
+    "fmt": "money"
+  },
+  "pat": {
+    "label": "Profit After Tax",
+    "nature": "flow",
+    "unit": "EUR",
+    "sign": "positive",
+    "family": "profit",
+    "fmt": "money"
+  },
+
+  "sr_pi": {
+    "label": "Senior P+I Payment",
+    "nature": "flow",
+    "unit": "EUR",
+    "sign": "negative",
+    "family": "cf_finance",
+    "fmt": "money"
+  },
+  "mz_pi": {
+    "label": "Mezz P+I Payment",
+    "nature": "flow",
+    "unit": "EUR",
+    "sign": "negative",
+    "family": "cf_finance",
+    "fmt": "money"
+  },
+  "sr_prin_sched": {
+    "label": "Senior Scheduled Principal",
+    "nature": "flow",
+    "unit": "EUR",
+    "sign": "negative",
+    "family": "cf_finance",
+    "fmt": "money"
+  },
+  "mz_prin_sched": {
+    "label": "Mezz Scheduled Principal",
+    "nature": "flow",
+    "unit": "EUR",
+    "sign": "negative",
+    "family": "cf_finance",
+    "fmt": "money"
+  },
+  "sr_grant_accel": {
+    "label": "Senior Grant Acceleration",
+    "nature": "flow",
+    "unit": "EUR",
+    "sign": "negative",
+    "family": "acceleration",
+    "fmt": "money"
+  },
+  "swap_leg_scheduled": {
+    "label": "Swap ZAR Scheduled Payment",
+    "nature": "flow",
+    "unit": "EUR",
+    "sign": "negative",
+    "family": "cf_finance",
+    "fmt": "money"
+  },
+  "ds_cash": {
+    "label": "Total Debt Service Cash",
+    "nature": "flow",
+    "unit": "EUR",
+    "sign": "negative",
+    "family": "cf_finance",
+    "fmt": "money"
+  },
+  "eur_leg_repayment": {
+    "label": "EUR Leg Repayment",
+    "nature": "flow",
+    "unit": "EUR",
+    "sign": "positive",
+    "family": "cf_finance",
+    "fmt": "money"
+  },
+
+  "dtic_grant": {
+    "label": "DTIC Grant Inflow",
+    "nature": "flow",
+    "unit": "EUR",
+    "sign": "positive",
+    "family": "cf_invest",
+    "fmt": "money"
+  },
+  "iic_grant": {
+    "label": "IIC Grant Inflow",
+    "nature": "flow",
+    "unit": "EUR",
+    "sign": "positive",
+    "family": "cf_invest",
+    "fmt": "money"
+  },
+  "specials": {
+    "label": "Special Cash Inflows",
+    "nature": "flow",
+    "unit": "EUR",
+    "sign": "positive",
+    "family": "cf_invest",
+    "fmt": "money"
+  },
+  "pre_rev_hedge": {
+    "label": "Pre-Revenue Hedge",
+    "nature": "flow",
+    "unit": "EUR",
+    "sign": "positive",
+    "family": "cf_invest",
+    "fmt": "money"
+  },
+  "mezz_draw": {
+    "label": "Mezz Drawdown",
+    "nature": "flow",
+    "unit": "EUR",
+    "sign": "positive",
+    "family": "cf_finance",
+    "fmt": "money"
+  },
+
+  "cash_available": {
+    "label": "Cash Available for Allocation",
+    "nature": "flow",
+    "unit": "EUR",
+    "sign": "positive",
+    "family": "cf_net",
+    "fmt": "money"
+  },
+  "surplus": {
+    "label": "Cash Surplus",
+    "nature": "flow",
+    "unit": "EUR",
+    "sign": "positive",
+    "family": "cf_net",
+    "fmt": "money"
+  },
+  "deficit": {
+    "label": "Cash Deficit",
+    "nature": "flow",
+    "unit": "EUR",
+    "sign": "negative",
+    "family": "cf_net",
+    "fmt": "money"
+  },
+  "free_surplus": {
+    "label": "Free Surplus",
+    "nature": "flow",
+    "unit": "EUR",
+    "sign": "positive",
+    "family": "cf_net",
+    "fmt": "money"
+  },
+
+  "sr_ic_bal": {
+    "label": "Senior IC Balance",
+    "nature": "stock",
+    "unit": "EUR",
+    "sign": "neutral",
+    "family": "liability",
+    "fmt": "money"
+  },
+  "mz_ic_bal": {
+    "label": "Mezz IC Balance",
+    "nature": "stock",
+    "unit": "EUR",
+    "sign": "neutral",
+    "family": "liability",
+    "fmt": "money"
+  },
+  "swap_leg_bal": {
+    "label": "Swap ZAR Leg Balance",
+    "nature": "stock",
+    "unit": "EUR",
+    "sign": "neutral",
+    "family": "liability",
+    "fmt": "money"
+  },
+
+  "ops_reserve_interest": {
+    "label": "Ops Reserve Interest",
+    "nature": "flow",
+    "unit": "EUR",
+    "sign": "positive",
+    "family": "reserve",
+    "account": "ops_reserve",
+    "fmt": "money"
+  },
+  "ops_reserve_fill": {
+    "label": "Ops Reserve Fill",
+    "nature": "flow",
+    "unit": "EUR",
+    "sign": "negative",
+    "family": "reserve",
+    "account": "ops_reserve",
+    "fmt": "money"
+  },
+  "ops_reserve_bal": {
+    "label": "Ops Reserve Balance",
+    "nature": "stock",
+    "unit": "EUR",
+    "sign": "positive",
+    "family": "reserve",
+    "account": "ops_reserve",
+    "fmt": "money"
+  },
+  "ops_reserve_target": {
+    "label": "Ops Reserve Target",
+    "nature": "stock",
+    "unit": "EUR",
+    "sign": "positive",
+    "family": "reserve",
+    "account": "ops_reserve",
+    "fmt": "money"
+  },
+
+  "opco_dsra_fill": {
+    "label": "DSRA Top-Up",
+    "nature": "flow",
+    "unit": "EUR",
+    "sign": "negative",
+    "family": "reserve",
+    "account": "opco_dsra",
+    "fmt": "money"
+  },
+  "opco_dsra_release": {
+    "label": "DSRA Release",
+    "nature": "flow",
+    "unit": "EUR",
+    "sign": "positive",
+    "family": "reserve",
+    "account": "opco_dsra",
+    "fmt": "money"
+  },
+  "opco_dsra_bal": {
+    "label": "DSRA Balance",
+    "nature": "stock",
+    "unit": "EUR",
+    "sign": "positive",
+    "family": "reserve",
+    "account": "opco_dsra",
+    "fmt": "money"
+  },
+  "opco_dsra_target": {
+    "label": "DSRA Target",
+    "nature": "stock",
+    "unit": "EUR",
+    "sign": "positive",
+    "family": "reserve",
+    "account": "opco_dsra",
+    "fmt": "money"
+  },
+
+  "od_lent": {
+    "label": "Overdraft Lent",
+    "nature": "flow",
+    "unit": "EUR",
+    "sign": "negative",
+    "family": "cf_finance",
+    "account": "overdraft",
+    "fmt": "money",
+    "entity": ["nwl"]
+  },
+  "od_received": {
+    "label": "Overdraft Received",
+    "nature": "flow",
+    "unit": "EUR",
+    "sign": "positive",
+    "family": "cf_finance",
+    "account": "overdraft",
+    "fmt": "money",
+    "entity": ["lanred"]
+  },
+  "od_repaid": {
+    "label": "Overdraft Repaid",
+    "nature": "flow",
+    "unit": "EUR",
+    "sign": "negative",
+    "family": "cf_finance",
+    "account": "overdraft",
+    "fmt": "money",
+    "entity": ["lanred"]
+  },
+  "od_interest": {
+    "label": "Overdraft Interest",
+    "nature": "flow",
+    "unit": "EUR",
+    "sign": "negative",
+    "family": "interest",
+    "account": "overdraft",
+    "fmt": "money"
+  },
+  "od_bal": {
+    "label": "Overdraft Balance",
+    "nature": "stock",
+    "unit": "EUR",
+    "sign": "neutral",
+    "family": "liability",
+    "account": "overdraft",
+    "fmt": "money"
+  },
+
+  "entity_fd_interest": {
+    "label": "Entity FD Interest",
+    "nature": "flow",
+    "unit": "EUR",
+    "sign": "positive",
+    "family": "reserve",
+    "account": "entity_fd",
+    "fmt": "money"
+  },
+  "entity_fd_fill": {
+    "label": "Entity FD Fill",
+    "nature": "flow",
+    "unit": "EUR",
+    "sign": "negative",
+    "family": "reserve",
+    "account": "entity_fd",
+    "fmt": "money"
+  },
+  "entity_fd_bal": {
+    "label": "Entity FD Balance",
+    "nature": "stock",
+    "unit": "EUR",
+    "sign": "positive",
+    "family": "reserve",
+    "account": "entity_fd",
+    "fmt": "money"
+  },
+
+  "sr_accel_entity": {
+    "label": "Senior Waterfall Acceleration",
+    "nature": "flow",
+    "unit": "EUR",
+    "sign": "negative",
+    "family": "acceleration",
+    "fmt": "money"
+  },
+  "mz_accel_entity": {
+    "label": "Mezz Waterfall Acceleration",
+    "nature": "flow",
+    "unit": "EUR",
+    "sign": "negative",
+    "family": "acceleration",
+    "fmt": "money"
+  },
+  "swap_leg_accel": {
+    "label": "Swap Leg Acceleration",
+    "nature": "flow",
+    "unit": "EUR",
+    "sign": "negative",
+    "family": "acceleration",
+    "fmt": "money"
+  },
+
+  "mz_div_opening_basis": {
+    "label": "Mezz Dividend Opening Basis",
+    "nature": "stock",
+    "unit": "EUR",
+    "sign": "positive",
+    "family": "dividend",
+    "account": "mz_div",
+    "fmt": "money"
+  },
+  "mz_div_accrual": {
+    "label": "Mezz Dividend Accrual",
+    "nature": "flow",
+    "unit": "EUR",
+    "sign": "negative",
+    "family": "dividend",
+    "account": "mz_div",
+    "fmt": "money"
+  },
+  "mz_div_liability_bal": {
+    "label": "Mezz Dividend Liability Balance",
+    "nature": "stock",
+    "unit": "EUR",
+    "sign": "neutral",
+    "family": "dividend",
+    "account": "mz_div",
+    "fmt": "money"
+  },
+  "mz_div_fd_interest": {
+    "label": "Mezz Dividend FD Interest",
+    "nature": "flow",
+    "unit": "EUR",
+    "sign": "positive",
+    "family": "reserve",
+    "account": "mz_div_fd",
+    "fmt": "money"
+  },
+  "mz_div_fd_fill": {
+    "label": "Mezz Dividend FD Fill",
+    "nature": "flow",
+    "unit": "EUR",
+    "sign": "negative",
+    "family": "reserve",
+    "account": "mz_div_fd",
+    "fmt": "money"
+  },
+  "mz_div_fd_bal": {
+    "label": "Mezz Dividend FD Balance",
+    "nature": "stock",
+    "unit": "EUR",
+    "sign": "positive",
+    "family": "reserve",
+    "account": "mz_div_fd",
+    "fmt": "money"
+  },
+  "mz_div_payout": {
+    "label": "Mezz Dividend Payout Flag",
+    "nature": "stock",
+    "unit": "bool",
+    "sign": "neutral",
+    "family": "dividend",
+    "fmt": "int"
+  },
+  "mz_div_payout_amount": {
+    "label": "Mezz Dividend Payout Amount",
+    "nature": "flow",
+    "unit": "EUR",
+    "sign": "negative",
+    "family": "dividend",
+    "account": "mz_div",
+    "fmt": "money"
+  },
+  "dividend_paid": {
+    "label": "Dividend Paid",
+    "nature": "flow",
+    "unit": "EUR",
+    "sign": "negative",
+    "family": "dividend",
+    "fmt": "money"
+  },
+  "cum_dividends": {
+    "label": "Cumulative Dividends",
+    "nature": "stock",
+    "unit": "EUR",
+    "sign": "neutral",
+    "family": "dividend",
+    "fmt": "money"
+  },
+
+  "bs_fixed_assets": {
+    "label": "Fixed Assets (Net)",
+    "nature": "stock",
+    "unit": "EUR",
+    "sign": "positive",
+    "family": "asset",
+    "fmt": "money"
+  },
+  "bs_dsra": {
+    "label": "DSRA Balance (BS)",
+    "nature": "stock",
+    "unit": "EUR",
+    "sign": "positive",
+    "family": "asset",
+    "fmt": "money"
+  },
+  "bs_reserves_total": {
+    "label": "Total Reserves (BS)",
+    "nature": "stock",
+    "unit": "EUR",
+    "sign": "positive",
+    "family": "asset",
+    "fmt": "money"
+  },
+  "bs_assets": {
+    "label": "Total Assets",
+    "nature": "stock",
+    "unit": "EUR",
+    "sign": "positive",
+    "family": "asset",
+    "fmt": "money"
+  },
+  "bs_swap_eur": {
+    "label": "Swap EUR Leg (Asset)",
+    "nature": "stock",
+    "unit": "EUR",
+    "sign": "positive",
+    "family": "asset",
+    "fmt": "money"
+  },
+  "bs_sr": {
+    "label": "Senior IC Loan (BS)",
+    "nature": "stock",
+    "unit": "EUR",
+    "sign": "neutral",
+    "family": "liability",
+    "fmt": "money"
+  },
+  "bs_mz": {
+    "label": "Mezzanine IC Loan (BS)",
+    "nature": "stock",
+    "unit": "EUR",
+    "sign": "neutral",
+    "family": "liability",
+    "fmt": "money"
+  },
+  "bs_debt": {
+    "label": "Total Debt (BS)",
+    "nature": "stock",
+    "unit": "EUR",
+    "sign": "neutral",
+    "family": "liability",
+    "fmt": "money"
+  },
+  "bs_swap_liability": {
+    "label": "Swap ZAR Leg (Liability)",
+    "nature": "stock",
+    "unit": "EUR",
+    "sign": "neutral",
+    "family": "liability",
+    "fmt": "money"
+  },
+  "bs_swap_net": {
+    "label": "Swap Net Position",
+    "nature": "stock",
+    "unit": "EUR",
+    "sign": "neutral",
+    "family": "ratio",
+    "fmt": "money"
+  },
+  "bs_equity_sh": {
+    "label": "Shareholder Equity",
+    "nature": "stock",
+    "unit": "EUR",
+    "sign": "positive",
+    "family": "equity",
+    "fmt": "money"
+  },
+  "bs_equity": {
+    "label": "Total Equity",
+    "nature": "stock",
+    "unit": "EUR",
+    "sign": "positive",
+    "family": "equity",
+    "fmt": "money"
+  },
+  "bs_retained": {
+    "label": "Retained Earnings",
+    "nature": "stock",
+    "unit": "EUR",
+    "sign": "neutral",
+    "family": "equity",
+    "fmt": "money"
+  },
+  "bs_retained_check": {
+    "label": "RE Check (CumPAT + CumGrants)",
+    "nature": "stock",
+    "unit": "EUR",
+    "sign": "neutral",
+    "family": "equity",
+    "fmt": "money"
+  },
+  "bs_gap": {
+    "label": "BS Gap (should be 0)",
+    "nature": "stock",
+    "unit": "EUR",
+    "sign": "neutral",
+    "family": "ratio",
+    "fmt": "money"
+  },
+  "sr_closing": {
+    "label": "Senior Facility Closing",
+    "nature": "stock",
+    "unit": "EUR",
+    "sign": "neutral",
+    "family": "liability",
+    "fmt": "money"
+  },
+  "mz_closing": {
+    "label": "Mezz Facility Closing",
+    "nature": "stock",
+    "unit": "EUR",
+    "sign": "neutral",
+    "family": "liability",
+    "fmt": "money"
+  },
+
+  "cf_ops": {
+    "label": "Cash from Operations",
+    "nature": "flow",
+    "unit": "EUR",
+    "sign": "positive",
+    "family": "cf_ops",
+    "fmt": "money"
+  },
+  "cf_operating_pre_debt": {
+    "label": "Operating Cash Pre-Debt",
+    "nature": "flow",
+    "unit": "EUR",
+    "sign": "positive",
+    "family": "cf_ops",
+    "fmt": "money"
+  },
+  "cf_tax": {
+    "label": "Tax Paid (CF)",
+    "nature": "flow",
+    "unit": "EUR",
+    "sign": "negative",
+    "family": "tax",
+    "fmt": "money"
+  },
+  "cf_ie": {
+    "label": "Cash Interest Paid",
+    "nature": "flow",
+    "unit": "EUR",
+    "sign": "negative",
+    "family": "cf_finance",
+    "fmt": "money"
+  },
+  "cf_ie_sr": {
+    "label": "Senior Cash Interest (CF)",
+    "nature": "flow",
+    "unit": "EUR",
+    "sign": "negative",
+    "family": "cf_finance",
+    "fmt": "money"
+  },
+  "cf_ie_mz": {
+    "label": "Mezz Cash Interest (CF)",
+    "nature": "flow",
+    "unit": "EUR",
+    "sign": "negative",
+    "family": "cf_finance",
+    "fmt": "money"
+  },
+  "cf_pr": {
+    "label": "Principal Paid",
+    "nature": "flow",
+    "unit": "EUR",
+    "sign": "negative",
+    "family": "cf_finance",
+    "fmt": "money"
+  },
+  "cf_pr_sr": {
+    "label": "Senior Principal (CF)",
+    "nature": "flow",
+    "unit": "EUR",
+    "sign": "negative",
+    "family": "cf_finance",
+    "fmt": "money"
+  },
+  "cf_pr_mz": {
+    "label": "Mezz Principal (CF)",
+    "nature": "flow",
+    "unit": "EUR",
+    "sign": "negative",
+    "family": "cf_finance",
+    "fmt": "money"
+  },
+  "cf_ds": {
+    "label": "Total Debt Service",
+    "nature": "flow",
+    "unit": "EUR",
+    "sign": "negative",
+    "family": "cf_finance",
+    "fmt": "money"
+  },
+  "cf_after_debt_service": {
+    "label": "Cash After Debt Service",
+    "nature": "flow",
+    "unit": "EUR",
+    "sign": "positive",
+    "family": "cf_finance",
+    "fmt": "money"
+  },
+  "cf_equity": {
+    "label": "Equity Injection",
+    "nature": "flow",
+    "unit": "EUR",
+    "sign": "positive",
+    "family": "cf_finance",
+    "fmt": "money"
+  },
+  "cf_draw": {
+    "label": "IC Loan Drawdowns",
+    "nature": "flow",
+    "unit": "EUR",
+    "sign": "positive",
+    "family": "cf_finance",
+    "fmt": "money"
+  },
+  "cf_draw_sr": {
+    "label": "Senior Drawdowns (CF)",
+    "nature": "flow",
+    "unit": "EUR",
+    "sign": "positive",
+    "family": "cf_finance",
+    "fmt": "money"
+  },
+  "cf_draw_mz": {
+    "label": "Mezz Drawdowns (CF)",
+    "nature": "flow",
+    "unit": "EUR",
+    "sign": "positive",
+    "family": "cf_finance",
+    "fmt": "money"
+  },
+  "cf_capex": {
+    "label": "Capital Expenditure",
+    "nature": "flow",
+    "unit": "EUR",
+    "sign": "negative",
+    "family": "cf_invest",
+    "fmt": "money"
+  },
+  "cf_idc": {
+    "label": "IDC Total (informational)",
+    "nature": "flow",
+    "unit": "EUR",
+    "sign": "negative",
+    "family": "interest",
+    "fmt": "money"
+  },
+  "cf_idc_sr": {
+    "label": "Senior IDC (CF)",
+    "nature": "flow",
+    "unit": "EUR",
+    "sign": "negative",
+    "family": "interest",
+    "fmt": "money"
+  },
+  "cf_idc_mz": {
+    "label": "Mezz IDC (CF)",
+    "nature": "flow",
+    "unit": "EUR",
+    "sign": "negative",
+    "family": "interest",
+    "fmt": "money"
+  },
+  "cf_grant_dtic": {
+    "label": "DTIC Grant (CF)",
+    "nature": "flow",
+    "unit": "EUR",
+    "sign": "positive",
+    "family": "cf_invest",
+    "fmt": "money"
+  },
+  "cf_grant_iic": {
+    "label": "IIC Grant (CF)",
+    "nature": "flow",
+    "unit": "EUR",
+    "sign": "positive",
+    "family": "cf_invest",
+    "fmt": "money"
+  },
+  "cf_grants": {
+    "label": "Total Grants (CF)",
+    "nature": "flow",
+    "unit": "EUR",
+    "sign": "positive",
+    "family": "cf_invest",
+    "fmt": "money"
+  },
+  "cf_grant_accel": {
+    "label": "Grant Acceleration Total",
+    "nature": "flow",
+    "unit": "EUR",
+    "sign": "negative",
+    "family": "acceleration",
+    "fmt": "money"
+  },
+  "cf_grant_accel_sr": {
+    "label": "Senior Grant Acceleration (CF)",
+    "nature": "flow",
+    "unit": "EUR",
+    "sign": "negative",
+    "family": "acceleration",
+    "fmt": "money"
+  },
+  "cf_grant_accel_dtic": {
+    "label": "DTIC Grant Acceleration",
+    "nature": "flow",
+    "unit": "EUR",
+    "sign": "negative",
+    "family": "acceleration",
+    "fmt": "money"
+  },
+  "cf_grant_accel_gepf": {
+    "label": "GEPF Grant Acceleration",
+    "nature": "flow",
+    "unit": "EUR",
+    "sign": "negative",
+    "family": "acceleration",
+    "fmt": "money"
+  },
+  "cf_sr_accel": {
+    "label": "Senior Waterfall Acceleration (CF)",
+    "nature": "flow",
+    "unit": "EUR",
+    "sign": "negative",
+    "family": "acceleration",
+    "fmt": "money"
+  },
+  "cf_mz_accel": {
+    "label": "Mezz Waterfall Acceleration (CF)",
+    "nature": "flow",
+    "unit": "EUR",
+    "sign": "negative",
+    "family": "acceleration",
+    "fmt": "money"
+  },
+  "cf_accel_sr": {
+    "label": "Senior Acceleration (CF alias)",
+    "nature": "flow",
+    "unit": "EUR",
+    "sign": "negative",
+    "family": "acceleration",
+    "fmt": "money"
+  },
+  "cf_accel_mz": {
+    "label": "Mezz Acceleration (CF alias)",
+    "nature": "flow",
+    "unit": "EUR",
+    "sign": "negative",
+    "family": "acceleration",
+    "fmt": "money"
+  },
+  "cf_prepay": {
+    "label": "Grant Prepayment (legacy alias)",
+    "nature": "flow",
+    "unit": "EUR",
+    "sign": "negative",
+    "family": "acceleration",
+    "fmt": "money"
+  },
+  "cf_prepay_sr": {
+    "label": "Senior Prepayment (legacy)",
+    "nature": "flow",
+    "unit": "EUR",
+    "sign": "negative",
+    "family": "acceleration",
+    "fmt": "money"
+  },
+  "cf_prepay_dtic": {
+    "label": "DTIC Prepayment (legacy)",
+    "nature": "flow",
+    "unit": "EUR",
+    "sign": "negative",
+    "family": "acceleration",
+    "fmt": "money"
+  },
+  "cf_prepay_gepf": {
+    "label": "GEPF Prepayment (legacy)",
+    "nature": "flow",
+    "unit": "EUR",
+    "sign": "negative",
+    "family": "acceleration",
+    "fmt": "money"
+  },
+  "cf_swap_accel": {
+    "label": "Swap Acceleration (CF)",
+    "nature": "flow",
+    "unit": "EUR",
+    "sign": "negative",
+    "family": "acceleration",
+    "fmt": "money"
+  },
+  "cf_swap_ds": {
+    "label": "Swap Debt Service",
+    "nature": "flow",
+    "unit": "EUR",
+    "sign": "negative",
+    "family": "cf_finance",
+    "fmt": "money"
+  },
+  "cf_swap_ds_i": {
+    "label": "Swap Interest (CF)",
+    "nature": "flow",
+    "unit": "EUR",
+    "sign": "negative",
+    "family": "cf_finance",
+    "fmt": "money"
+  },
+  "cf_swap_ds_p": {
+    "label": "Swap Principal (CF)",
+    "nature": "flow",
+    "unit": "EUR",
+    "sign": "negative",
+    "family": "cf_finance",
+    "fmt": "money"
+  },
+  "cf_ops_reserve_fill": {
+    "label": "Ops Reserve Fill (CF)",
+    "nature": "flow",
+    "unit": "EUR",
+    "sign": "negative",
+    "family": "reserve",
+    "account": "ops_reserve",
+    "fmt": "money"
+  },
+  "cf_opco_dsra_fill": {
+    "label": "DSRA Fill (CF)",
+    "nature": "flow",
+    "unit": "EUR",
+    "sign": "negative",
+    "family": "reserve",
+    "account": "opco_dsra",
+    "fmt": "money"
+  },
+  "cf_opco_dsra_release": {
+    "label": "DSRA Release (CF)",
+    "nature": "flow",
+    "unit": "EUR",
+    "sign": "positive",
+    "family": "reserve",
+    "account": "opco_dsra",
+    "fmt": "money"
+  },
+  "cf_mz_div_fd_fill": {
+    "label": "Mezz Dividend FD Fill (CF)",
+    "nature": "flow",
+    "unit": "EUR",
+    "sign": "negative",
+    "family": "reserve",
+    "account": "mz_div_fd",
+    "fmt": "money"
+  },
+  "cf_entity_fd_fill": {
+    "label": "Entity FD Fill (CF)",
+    "nature": "flow",
+    "unit": "EUR",
+    "sign": "negative",
+    "family": "reserve",
+    "account": "entity_fd",
+    "fmt": "money"
+  },
+  "cf_od_lent": {
+    "label": "Overdraft Lent (CF)",
+    "nature": "flow",
+    "unit": "EUR",
+    "sign": "negative",
+    "family": "cf_finance",
+    "account": "overdraft",
+    "fmt": "money"
+  },
+  "cf_free_surplus": {
+    "label": "Free Surplus (CF)",
+    "nature": "flow",
+    "unit": "EUR",
+    "sign": "positive",
+    "family": "cf_net",
+    "fmt": "money"
+  },
+  "cf_dividend": {
+    "label": "Dividend Paid (CF)",
+    "nature": "flow",
+    "unit": "EUR",
+    "sign": "negative",
+    "family": "dividend",
+    "fmt": "money"
+  },
+  "cf_net": {
+    "label": "Net Cash Flow",
+    "nature": "flow",
+    "unit": "EUR",
+    "sign": "neutral",
+    "family": "cf_net",
+    "fmt": "money"
+  },
+
+  "wf_ops_reserve": {
+    "label": "Ops Reserve (waterfall)",
+    "nature": "stock",
+    "unit": "EUR",
+    "sign": "positive",
+    "family": "reserve",
+    "account": "ops_reserve",
+    "fmt": "money"
+  },
+  "wf_opco_dsra": {
+    "label": "DSRA (waterfall)",
+    "nature": "stock",
+    "unit": "EUR",
+    "sign": "positive",
+    "family": "reserve",
+    "account": "opco_dsra",
+    "fmt": "money"
+  },
+  "wf_mz_div_fd": {
+    "label": "Mezz Div FD (waterfall)",
+    "nature": "stock",
+    "unit": "EUR",
+    "sign": "positive",
+    "family": "reserve",
+    "account": "mz_div_fd",
+    "fmt": "money"
+  },
+  "wf_entity_fd": {
+    "label": "Entity FD (waterfall)",
+    "nature": "stock",
+    "unit": "EUR",
+    "sign": "positive",
+    "family": "reserve",
+    "account": "entity_fd",
+    "fmt": "money"
+  },
+
+  "swap_eur_bal": {
+    "label": "Swap EUR Balance",
+    "nature": "stock",
+    "unit": "EUR",
+    "sign": "positive",
+    "family": "asset",
+    "fmt": "money"
+  },
+  "swap_eur_interest": {
+    "label": "Swap EUR Interest",
+    "nature": "flow",
+    "unit": "EUR",
+    "sign": "positive",
+    "family": "interest",
+    "fmt": "money"
+  },
+  "swap_eur_interest_cash": {
+    "label": "Swap EUR Cash Interest",
+    "nature": "flow",
+    "unit": "EUR",
+    "sign": "positive",
+    "family": "interest",
+    "fmt": "money"
+  },
+  "swap_zar_bal": {
+    "label": "Swap ZAR Balance",
+    "nature": "stock",
+    "unit": "ZAR",
+    "sign": "neutral",
+    "family": "liability",
+    "fmt": "money_zar"
+  },
+  "swap_zar_interest": {
+    "label": "Swap ZAR Interest",
+    "nature": "flow",
+    "unit": "ZAR",
+    "sign": "negative",
+    "family": "interest",
+    "fmt": "money_zar"
+  },
+  "swap_zar_interest_cash": {
+    "label": "Swap ZAR Cash Interest",
+    "nature": "flow",
+    "unit": "ZAR",
+    "sign": "negative",
+    "family": "interest",
+    "fmt": "money_zar"
+  },
+  "swap_zar_p": {
+    "label": "Swap ZAR Principal",
+    "nature": "flow",
+    "unit": "ZAR",
+    "sign": "negative",
+    "family": "cf_finance",
+    "fmt": "money_zar"
+  },
+  "swap_zar_total": {
+    "label": "Swap ZAR Total DS",
+    "nature": "flow",
+    "unit": "ZAR",
+    "sign": "negative",
+    "family": "cf_finance",
+    "fmt": "money_zar"
+  },
+
+  "vol_capacity_mld": {
+    "label": "Sewage Capacity",
+    "nature": "flow",
+    "unit": "MLD",
+    "sign": "positive",
+    "family": "volume",
+    "fmt": "volume",
+    "entity": ["nwl"]
+  },
+  "vol_treated_mld": {
+    "label": "Sewage Treated",
+    "nature": "flow",
+    "unit": "MLD",
+    "sign": "positive",
+    "family": "volume",
+    "fmt": "volume",
+    "entity": ["nwl"]
+  },
+  "vol_annual_m3": {
+    "label": "Annual Volume Treated",
+    "nature": "flow",
+    "unit": "m3",
+    "sign": "positive",
+    "family": "volume",
+    "fmt": "volume",
+    "entity": ["nwl"]
+  },
+  "vol_reuse_annual_m3": {
+    "label": "Annual Reuse Volume",
+    "nature": "flow",
+    "unit": "m3",
+    "sign": "positive",
+    "family": "volume",
+    "fmt": "volume",
+    "entity": ["nwl"]
+  },
+  "vol_brownfield_annual_m3": {
+    "label": "Annual Brownfield Volume",
+    "nature": "flow",
+    "unit": "m3",
+    "sign": "positive",
+    "family": "volume",
+    "fmt": "volume",
+    "entity": ["nwl"]
+  },
+
+  "installed_mwp": {
+    "label": "Installed Capacity",
+    "nature": "parameter",
+    "unit": "MWp",
+    "sign": "positive",
+    "family": "volume",
+    "fmt": "volume",
+    "entity": ["lanred"]
+  },
+  "bess_capacity_kwh": {
+    "label": "BESS Capacity",
+    "nature": "parameter",
+    "unit": "kWh",
+    "sign": "positive",
+    "family": "volume",
+    "fmt": "volume",
+    "entity": ["lanred"]
+  },
+  "bess_effective_kwh": {
+    "label": "BESS Effective Capacity",
+    "nature": "parameter",
+    "unit": "kWh",
+    "sign": "positive",
+    "family": "volume",
+    "fmt": "volume",
+    "entity": ["lanred"]
+  },
+  "generation_kwh": {
+    "label": "Annual Generation",
+    "nature": "flow",
+    "unit": "kWh",
+    "sign": "positive",
+    "family": "volume",
+    "fmt": "volume",
+    "entity": ["lanred"]
+  },
+  "capacity_factor_pct": {
+    "label": "Capacity Factor",
+    "nature": "parameter",
+    "unit": "%",
+    "sign": "neutral",
+    "family": "ratio",
+    "fmt": "pct",
+    "entity": ["lanred"]
+  },
+  "ic_share_pct": {
+    "label": "IC NWL Share",
+    "nature": "parameter",
+    "unit": "%",
+    "sign": "neutral",
+    "family": "ratio",
+    "fmt": "pct",
+    "entity": ["lanred"]
+  },
+  "sc_share_pct": {
+    "label": "Smart City Share",
+    "nature": "parameter",
+    "unit": "%",
+    "sign": "neutral",
+    "family": "ratio",
+    "fmt": "pct",
+    "entity": ["lanred"]
+  },
+  "mkt_share_pct": {
+    "label": "Open Market Share",
+    "nature": "parameter",
+    "unit": "%",
+    "sign": "neutral",
+    "family": "ratio",
+    "fmt": "pct",
+    "entity": ["lanred"]
+  },
+  "occupancy_pct": {
+    "label": "CoE Occupancy",
+    "nature": "parameter",
+    "unit": "%",
+    "sign": "neutral",
+    "family": "ratio",
+    "fmt": "pct",
+    "entity": ["timberworx"]
+  },
+  "students": {
+    "label": "Training Students",
+    "nature": "flow",
+    "unit": "students",
+    "sign": "positive",
+    "family": "volume",
+    "fmt": "int",
+    "entity": ["timberworx"]
+  },
+  "timber_units": {
+    "label": "Timber Houses Built",
+    "nature": "flow",
+    "unit": "units",
+    "sign": "positive",
+    "family": "volume",
+    "fmt": "int",
+    "entity": ["timberworx"]
+  },
+  "coe_sold": {
+    "label": "CoE Sold Flag",
+    "nature": "parameter",
+    "unit": "bool",
+    "sign": "neutral",
+    "family": "volume",
+    "fmt": "int",
+    "entity": ["timberworx"]
+  },
+
+  "dscr": {
+    "label": "Debt Service Coverage Ratio",
+    "nature": "flow",
+    "unit": "x",
+    "sign": "positive",
+    "family": "ratio",
+    "fmt": "ratio"
+  },
+  "llcr": {
+    "label": "Loan Life Coverage Ratio",
+    "nature": "flow",
+    "unit": "x",
+    "sign": "positive",
+    "family": "ratio",
+    "fmt": "ratio"
+  },
+  "plcr": {
+    "label": "Project Life Coverage Ratio",
+    "nature": "flow",
+    "unit": "x",
+    "sign": "positive",
+    "family": "ratio",
+    "fmt": "ratio"
+  },
+  "ebitda_margin": {
+    "label": "EBITDA Margin",
+    "nature": "flow",
+    "unit": "%",
+    "sign": "positive",
+    "family": "ratio",
+    "fmt": "pct"
+  },
+  "net_margin": {
+    "label": "Net Margin",
+    "nature": "flow",
+    "unit": "%",
+    "sign": "positive",
+    "family": "ratio",
+    "fmt": "pct"
+  },
+
+  "Opening": {
+    "label": "Facility Opening Balance",
+    "nature": "stock",
+    "unit": "EUR",
+    "sign": "neutral",
+    "family": "liability",
+    "fmt": "money"
+  },
+  "Closing": {
+    "label": "Facility Closing Balance",
+    "nature": "stock",
+    "unit": "EUR",
+    "sign": "neutral",
+    "family": "liability",
+    "fmt": "money"
+  },
+  "Draw Down": {
+    "label": "Facility Draw Down",
+    "nature": "flow",
+    "unit": "EUR",
+    "sign": "positive",
+    "family": "cf_finance",
+    "fmt": "money"
+  },
+  "IDC": {
+    "label": "Interest During Construction",
+    "nature": "flow",
+    "unit": "EUR",
+    "sign": "negative",
+    "family": "interest",
+    "fmt": "money"
+  },
+  "Interest": {
+    "label": "Facility Interest",
+    "nature": "flow",
+    "unit": "EUR",
+    "sign": "negative",
+    "family": "interest",
+    "fmt": "money"
+  },
+  "Principle": {
+    "label": "Facility Principal",
+    "nature": "flow",
+    "unit": "EUR",
+    "sign": "negative",
+    "family": "cf_finance",
+    "fmt": "money"
+  },
+  "Acceleration": {
+    "label": "Facility Acceleration",
+    "nature": "flow",
+    "unit": "EUR",
+    "sign": "negative",
+    "family": "acceleration",
+    "fmt": "money"
+  },
+  "Movement": {
+    "label": "Facility Movement",
+    "nature": "flow",
+    "unit": "EUR",
+    "sign": "neutral",
+    "family": "cf_finance",
+    "fmt": "money"
+  },
+  "Period": {
+    "label": "Facility Period",
+    "nature": "parameter",
+    "unit": "",
+    "sign": "neutral",
+    "family": "period",
+    "fmt": "int"
+  },
+  "Month": {
+    "label": "Facility Month",
+    "nature": "parameter",
+    "unit": "",
+    "sign": "neutral",
+    "family": "period",
+    "fmt": "int"
+  },
+
+  "revenue": {
+    "label": "Revenue (P&L)",
+    "nature": "flow",
+    "unit": "EUR",
+    "sign": "positive",
+    "family": "revenue",
+    "fmt": "money"
+  },
+  "depreciation": {
+    "label": "Depreciation (P&L)",
+    "nature": "flow",
+    "unit": "EUR",
+    "sign": "negative",
+    "family": "depreciation",
+    "fmt": "money"
+  },
+
+  "gepf_grant": {
+    "label": "GEPF Grant",
+    "nature": "flow",
+    "unit": "EUR",
+    "sign": "positive",
+    "family": "cf_invest",
+    "fmt": "money"
+  },
+
+  "bs_mra": {
+    "label": "MRA Balance (BS)",
+    "nature": "stock",
+    "unit": "EUR",
+    "sign": "positive",
+    "family": "asset",
+    "fmt": "money"
+  },
+  "ops_reserve": {
+    "label": "Operating Reserve (BS display)",
+    "nature": "stock",
+    "unit": "EUR",
+    "sign": "positive",
+    "family": "reserve",
+    "account": "ops_reserve",
+    "fmt": "money"
+  },
+  "mz_div_fd": {
+    "label": "Mezz Dividend FD (BS display)",
+    "nature": "stock",
+    "unit": "EUR",
+    "sign": "positive",
+    "family": "reserve",
+    "account": "mz_div_fd",
+    "fmt": "money"
+  },
+  "entity_fd": {
+    "label": "Entity Fixed Deposit (BS display)",
+    "nature": "stock",
+    "unit": "EUR",
+    "sign": "positive",
+    "family": "reserve",
+    "account": "entity_fd",
+    "fmt": "money"
+  },
+  "bs_swap_zar": {
+    "label": "Swap ZAR Leg (BS)",
+    "nature": "stock",
+    "unit": "EUR",
+    "sign": "neutral",
+    "family": "liability",
+    "fmt": "money"
+  },
+  "cf_swap_zar": {
+    "label": "Swap ZAR Leg (CF)",
+    "nature": "flow",
+    "unit": "EUR",
+    "sign": "negative",
+    "family": "cf_finance",
+    "fmt": "money"
+  },
+  "cf_swap_zar_i": {
+    "label": "Swap ZAR Interest (P&L)",
+    "nature": "flow",
+    "unit": "EUR",
+    "sign": "negative",
+    "family": "interest",
+    "fmt": "money"
+  },
+  "swap_eur_income": {
+    "label": "Swap EUR Interest Income (CF)",
+    "nature": "flow",
+    "unit": "EUR",
+    "sign": "positive",
+    "family": "interest",
+    "fmt": "money"
+  },
+  "dsra_fill": {
+    "label": "DSRA Fill (CF display)",
+    "nature": "flow",
+    "unit": "EUR",
+    "sign": "negative",
+    "family": "reserve",
+    "account": "opco_dsra",
+    "fmt": "money"
+  },
+  "dsra_release": {
+    "label": "DSRA Release (CF display)",
+    "nature": "flow",
+    "unit": "EUR",
+    "sign": "positive",
+    "family": "reserve",
+    "account": "opco_dsra",
+    "fmt": "money"
+  },
+  "mra_fill": {
+    "label": "MRA Fill",
+    "nature": "flow",
+    "unit": "EUR",
+    "sign": "negative",
+    "family": "reserve",
+    "fmt": "money"
+  },
+  "mra_release": {
+    "label": "MRA Release",
+    "nature": "flow",
+    "unit": "EUR",
+    "sign": "positive",
+    "family": "reserve",
+    "fmt": "money"
+  },
+  "cash_beginning": {
+    "label": "Cash Beginning Balance",
+    "nature": "stock",
+    "unit": "EUR",
+    "sign": "positive",
+    "family": "asset",
+    "fmt": "money"
+  },
+  "dsra_bal": {
+    "label": "DSRA Balance (CF display)",
+    "nature": "stock",
+    "unit": "EUR",
+    "sign": "positive",
+    "family": "reserve",
+    "account": "opco_dsra",
+    "fmt": "money"
+  },
+  "fd_bal": {
+    "label": "Fixed Deposit Balance (CF display)",
+    "nature": "stock",
+    "unit": "EUR",
+    "sign": "positive",
+    "family": "reserve",
+    "fmt": "money"
+  },
+  "power_cost_cogs": {
+    "label": "COGS Grid Purchases",
+    "nature": "flow",
+    "unit": "EUR",
+    "sign": "negative",
+    "family": "expense",
+    "fmt": "money",
+    "entity": ["lanred"]
+  },
+
+  "cons_rev": {
+    "label": "Consolidated Revenue",
+    "nature": "flow",
+    "unit": "EUR",
+    "sign": "positive",
+    "family": "revenue",
+    "fmt": "money",
+    "entity": ["sclca"]
+  },
+  "cons_ebitda": {
+    "label": "Consolidated EBITDA",
+    "nature": "flow",
+    "unit": "EUR",
+    "sign": "positive",
+    "family": "ebitda",
+    "fmt": "money",
+    "entity": ["sclca"]
+  },
+  "cons_assets_net": {
+    "label": "Consolidated Assets (net of IC)",
+    "nature": "stock",
+    "unit": "EUR",
+    "sign": "positive",
+    "family": "asset",
+    "fmt": "money",
+    "entity": ["sclca"]
+  },
+  "cons_debt": {
+    "label": "Consolidated Debt",
+    "nature": "stock",
+    "unit": "EUR",
+    "sign": "negative",
+    "family": "liability",
+    "fmt": "money",
+    "entity": ["sclca"]
+  },
+  "cons_equity": {
+    "label": "Consolidated Equity",
+    "nature": "stock",
+    "unit": "EUR",
+    "sign": "positive",
+    "family": "equity",
+    "fmt": "money",
+    "entity": ["sclca"]
+  },
+  "ic_revenue_elim": {
+    "label": "IC Revenue Elimination",
+    "nature": "flow",
+    "unit": "EUR",
+    "sign": "negative",
+    "family": "revenue",
+    "fmt": "money",
+    "entity": ["sclca"]
+  },
+  "ic_loan_elim": {
+    "label": "IC Loan Elimination",
+    "nature": "stock",
+    "unit": "EUR",
+    "sign": "negative",
+    "family": "asset",
+    "fmt": "money",
+    "entity": ["sclca"]
+  },
+  "dscr_consolidated": {
+    "label": "Consolidated DSCR",
+    "nature": "flow",
+    "unit": "x",
+    "sign": "positive",
+    "family": "ratio",
+    "fmt": "ratio",
+    "entity": ["sclca"]
+  },
+  "od_bal_net": {
+    "label": "IC Overdraft Balance (net)",
+    "nature": "stock",
+    "unit": "EUR",
+    "sign": "neutral",
+    "family": "reserve",
+    "fmt": "money",
+    "entity": ["sclca"]
+  }
+}

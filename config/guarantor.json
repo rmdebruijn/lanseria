@@ -247,6 +247,41 @@
       }
     }
   },
+  "adjustments": {
+    "quasi_equity": {
+      "_comment": "NCL fields treated as quasi-equity (shareholder loans with accruing interest). Adjusted metrics exclude these from senior debt, IC, LTV.",
+      "IreoProject10": {
+        "fields": ["other_financial_liabilities"],
+        "confirmed": true,
+        "note": "RSAD foreign loan + capital interest (~R10.3M) grouped under other_financial_liabilities (R9.6M in AFS). Interest accrues to balance, confirmed by gap between AFS CF and mgmt FC. Mortgage_bonds (R57.2M) is ABSA senior."
+      },
+      "ProvidenceProperty": {
+        "fields": ["loans_from_shareholders"],
+        "confirmed": false,
+        "note": "R14.6M shareholder loans in NCL. Accrual status unknown — apply adjustment only when confirmed by Mark."
+      },
+      "SixOnKloof": {
+        "fields": ["loans_from_shareholders"],
+        "confirmed": false,
+        "note": "R17.8M shareholder loans in NCL. Accrual status unknown — apply adjustment only when confirmed."
+      },
+      "Erf86Longmeadow": {
+        "fields": ["loans_from_shareholders"],
+        "confirmed": false,
+        "note": "R2.2M shareholder loans. Small relative to total debt — unlikely to change classification."
+      }
+    },
+    "co_ownership": {
+      "_comment": "Entities where entity-level metrics are structurally misleading due to fractional ownership. Consolidated metrics attribute proportional income.",
+      "ChartwellCorner": {
+        "entity_key": "ChartwellCorner",
+        "co_owner_key": "ChartwellCoOwner",
+        "ownership_pct": 50,
+        "debt_holder": "ChartwellCorner",
+        "note": "Chartwell Corner holds 50% of property + 100% of debt. Chartwell Co-Owner passes through 100% of rental income (nets to R0). Consolidated: entity revenue + 50% of co-owner revenue vs entity FC."
+      }
+    }
+  },
   "email_qa": [
     {
       "q": "Which entity will act as the Veracity guarantor?",

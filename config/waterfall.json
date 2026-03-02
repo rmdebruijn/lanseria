@@ -32,7 +32,10 @@
     "zar_leg_repayments": 12,
     "zar_leg_start_month": 36,
     "zar_rate": 0.0969,
-    "note": "IC stays vanilla. EUR bullet to Investec. ZAR Rand leg 12 semi-annual M36-M102. Rate: Investec quoted 9.69% fixed (Oct 2025)."
+    "note": "IC stays vanilla. EUR bullet to Investec. ZAR Rand leg 12 semi-annual M36-M102. Rate: Investec quoted 9.69% fixed (Oct 2025).",
+    "local_content_ceiling_eur": 3996392,
+    "nwl_civil_eur": 3746392,
+    "wsp_eur": 250000
   },
   "lanred_swap": {
     "eur_leg": "follows_ic",
@@ -44,7 +47,20 @@
   },
   "entity_cascade": {
     "ops_reserve_coverage_pct": 1.0,
-    "opco_dsra_coverage_periods": 1
+    "ops_reserve_basis": "semi_annual",
+    "ops_reserve_note": "1× semi-annual (1 period) operating costs",
+    "opco_dsra_coverage_periods": 1,
+    "fd_interest_rate": 0.035,
+    "fd_interest_note": "Annual interest earned on FD balances (Ops Reserve, Mezz Div FD, Entity FD). EUR money-market proxy."
+  },
+  "dividends": {
+    "enabled": false,
+    "pct": 0.0,
+    "start_period": 10,
+    "dscr_gate": 1.20,
+    "all_debt_must_be_zero": true,
+    "reserves_must_be_funded": true,
+    "note": "Dividends extract cash from entity FD after all debt is repaid and reserves funded. pct = fraction of remaining surplus per period. start_period = earliest semi-annual period (0-indexed). dscr_gate = minimum trailing DSCR required."
   },
   "surplus_priority_by_seniority": [
     {"name": "mezz_ic_accel", "rate": 0.1525, "character": "mezz"},

@@ -70,7 +70,7 @@
     "om": {
       "flat_fee_per_month_zar": 1000000,
       "annual_indexation_pa": 0.05,
-      "opex_start_month": 12,
+      "opex_start_month": 13,
       "awarded_contract": true,
       "equity_issued": true,
       "equity_value_prepayment_zar": 44720857,
@@ -190,6 +190,38 @@
       "start_month": 18,
       "note": "Grid connection availability charge from Eskom/City Power"
     },
+    "deal_structure": {
+      "greenfield": {
+        "budget_eur": 3000000,
+        "location": "Lanseria consortium-owned land",
+        "epc_model": "Turnkey EPC — zero EPC risk, zero headaches, zero decisions for promoters",
+        "priority_allocation": [
+          {"priority": 1, "asset": "Rooftop solar — Water Plant & CoE", "description": "Rooftop solar for NWL water treatment plant and Timberworx Centre of Excellence"},
+          {"priority": 2, "asset": "BESS — Water Plant & CoE", "description": "Battery energy storage as Eskom hedge for water plant and CoE"},
+          {"priority": 3, "asset": "Substation investment", "description": "Eskom substation — details pending Eskom response"},
+          {"priority": 4, "asset": "Large-scale BESS", "description": "Standalone battery storage for grid arbitrage and demand management"},
+          {"priority": 5, "asset": "On-ground solar", "description": "Ground-mount solar on available consortium land"}
+        ],
+        "note": "EUR 3M allocated across priority buckets. BESS-heavy preference for Eskom hedge. Simple, turnkey execution — EPC does all work."
+      },
+      "brownfield": {
+        "budget_eur": 10000000,
+        "budget_note": "EUR 10M or more, over and above greenfield allocation",
+        "criteria": {
+          "asset_type": "Running solar and BESS assets",
+          "ppa_requirement": "Long-term PPA in place (preference for existing contracted revenue)",
+          "surplus_requirement": "Surplus generation to wheel to Lanseria or utilise via upcoming energy exchange",
+          "cash_flow": "Proven operational cash flows — no development risk"
+        },
+        "note": "Brownfield acquisition of operational solar assets with long-term PPAs. Surplus wheeled to Lanseria / energy exchange. Cala to provide further detail on exchange mechanism and wheeling options."
+      },
+      "partner": "Cala",
+      "partner_agreement": "JDA",
+      "partner_equity_pct": 0.05,
+      "partner_success_fee_pct": 0.01,
+      "partner_retainer_zar_per_month": 25000,
+      "partner_retainer_max_months": 3
+    },
     "brownfield_plus": {
       "northlands_portfolio": {
         "purchase_price_zar": 60000000,
@@ -244,7 +276,7 @@
       "enabled": true,
       "sale_year": 4,
       "premium_pct": 10.0,
-      "note": "CoE sold to Lanseria LLC at 10% premium in Year 4. Stops rental income after sale. NWL rental obligation also stops."
+      "note": "CoE sold to Lanseria Landowners Consortium at 10% premium in Year 4. Stops rental income after sale. NWL rental obligation also stops."
     },
     "training_programs": {
       "seta_accredited": true,

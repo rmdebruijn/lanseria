@@ -1,48 +1,68 @@
-<svg width="820" height="320" viewBox="0 0 820 320" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <rect width="820" height="320" rx="12" fill="white" stroke="#E5E7EB" stroke-width="1"/>
+<svg width="820" height="310" viewBox="0 0 820 310" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <style>text{font-family:'Inter','Segoe UI',Arial,sans-serif}</style>
+  </defs>
+  <rect width="820" height="310" fill="white"/>
 
-  <text x="410" y="30" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="#1F2937" font-weight="bold">Smart City Lanseria DevCo — Shareholders</text>
+  <!-- Title -->
+  <text x="410" y="24" text-anchor="middle" font-size="13" fill="#111827" font-weight="bold">DevCo — Shareholders</text>
 
-  <!-- Shareholders row -->
-  <!-- ANDZAFUSION WATER -->
-  <rect x="15" y="60" width="185" height="65" rx="8" fill="#EFF6FF" stroke="#2563EB" stroke-width="1.5"/>
-  <text x="107" y="88" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="#2563EB" font-weight="bold">ANDZAFUSION WATER</text>
-  <text x="107" y="108" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="#6B7280">(Pty) Ltd</text>
+  <!-- ═══════════ ROW 1: Shareholders (y=48) ═══════════ -->
 
-  <!-- NexusNovus -->
-  <rect x="220" y="60" width="185" height="65" rx="8" fill="#F0FDF4" stroke="#16A34A" stroke-width="1.5"/>
-  <text x="312" y="88" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="#16A34A" font-weight="bold">NexusNovus</text>
-  <text x="312" y="108" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="#6B7280">Strategic Partner</text>
+  <rect x="15" y="48" width="180" height="52" rx="5" fill="#EFF6FF" stroke="#2563EB" stroke-width="1.5"/>
+  <text x="105" y="70" text-anchor="middle" font-size="10" fill="#1E40AF" font-weight="600">Andzafusion Water</text>
+  <text x="105" y="84" text-anchor="middle" font-size="8" fill="#6B7280">(Pty) Ltd</text>
+  <text x="105" y="95" text-anchor="middle" font-size="7" fill="#9CA3AF">via Sizakele Mabuza-Kekana</text>
 
-  <!-- Eckhardt -->
-  <rect x="425" y="60" width="185" height="65" rx="8" fill="#FEF3C7" stroke="#D97706" stroke-width="1.5"/>
-  <text x="517" y="88" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="#D97706" font-weight="bold">Eckhardt</text>
-  <text x="517" y="108" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="#6B7280">Shareholder</text>
+  <rect x="215" y="48" width="180" height="52" rx="5" fill="#F0FDF4" stroke="#16A34A" stroke-width="1.5"/>
+  <text x="305" y="70" text-anchor="middle" font-size="10" fill="#166534" font-weight="600">NexusNovus</text>
+  <text x="305" y="84" text-anchor="middle" font-size="8" fill="#6B7280">Strategic Partner</text>
+  <text x="305" y="95" text-anchor="middle" font-size="7" fill="#9CA3AF">via VHIT</text>
 
-  <!-- Others -->
-  <rect x="630" y="60" width="175" height="65" rx="8" fill="#F3F4F6" stroke="#6B7280" stroke-width="1" stroke-dasharray="5,3"/>
-  <text x="717" y="88" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="#6B7280" font-weight="bold">Others</text>
-  <text x="717" y="108" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="#9CA3AF">Minority Shareholders</text>
+  <rect x="415" y="48" width="180" height="52" rx="5" fill="#FEF3C7" stroke="#D97706" stroke-width="1.5"/>
+  <text x="505" y="70" text-anchor="middle" font-size="10" fill="#92400E" font-weight="600">Eckhardt</text>
+  <text x="505" y="84" text-anchor="middle" font-size="8" fill="#6B7280">Shareholder</text>
+  <text x="505" y="95" text-anchor="middle" font-size="7" fill="#9CA3AF">via VanSquared</text>
 
-  <!-- Arrows down -->
-  <path d="M107,125 L107,175" stroke="#2563EB" stroke-width="1.5" fill="none"/>
-  <polygon points="107,175 103,167 111,167" fill="#2563EB"/>
+  <rect x="615" y="48" width="180" height="52" rx="5" fill="#F3F4F6" stroke="#D1D5DB" stroke-width="1" stroke-dasharray="5,3"/>
+  <text x="705" y="70" text-anchor="middle" font-size="10" fill="#6B7280" font-weight="600">Others</text>
+  <text x="705" y="84" text-anchor="middle" font-size="8" fill="#9CA3AF">Minority Shareholders</text>
 
-  <path d="M312,125 L312,175" stroke="#16A34A" stroke-width="1.5" fill="none"/>
-  <polygon points="312,175 308,167 316,167" fill="#16A34A"/>
+  <!-- ═══════════ Arrows ═══════════ -->
 
-  <path d="M517,125 L517,175" stroke="#D97706" stroke-width="1.5" fill="none"/>
-  <polygon points="517,175 513,167 521,167" fill="#D97706"/>
+  <line x1="105" y1="100" x2="105" y2="150" stroke="#2563EB" stroke-width="1.2"/>
+  <polygon points="105,150 101,143 109,143" fill="#2563EB"/>
 
-  <path d="M717,125 L717,175" stroke="#6B7280" stroke-width="1.5" fill="none" stroke-dasharray="5,3"/>
-  <polygon points="717,175 713,167 721,167" fill="#6B7280"/>
+  <line x1="305" y1="100" x2="305" y2="150" stroke="#16A34A" stroke-width="1.2"/>
+  <polygon points="305,150 301,143 309,143" fill="#16A34A"/>
 
-  <!-- DevCo box -->
-  <rect x="185" y="185" width="450" height="75" rx="10" fill="#374151" filter=""/>
-  <text x="410" y="215" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" fill="#FFFFFF" font-weight="bold">Smart City Lanseria DevCo</text>
-  <text x="410" y="237" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="#D1D5DB">Master Development Company</text>
-  <text x="410" y="252" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="#9CA3AF">Reg: 2025/950567/07</text>
+  <line x1="505" y1="100" x2="505" y2="150" stroke="#D97706" stroke-width="1.2"/>
+  <polygon points="505,150 501,143 509,143" fill="#D97706"/>
 
-  <!-- Footnote -->
-  <text x="410" y="295" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="#9CA3AF">Lanseria Smart City Development (Pty) Ltd — land development, township establishment, bulk infrastructure</text>
+  <line x1="705" y1="100" x2="705" y2="150" stroke="#6B7280" stroke-width="1.0" stroke-dasharray="5,3"/>
+  <polygon points="705,150 701,143 709,143" fill="#6B7280"/>
+
+  <!-- ═══════════ DevCo Box (y=155) ═══════════ -->
+
+  <rect x="160" y="155" width="500" height="60" rx="5" fill="#374151"/>
+  <text x="410" y="177" text-anchor="middle" font-size="12" fill="#fff" font-weight="700">Smart City Lanseria DevCo</text>
+  <text x="410" y="192" text-anchor="middle" font-size="9" fill="#D1D5DB">Lanseria Smart City Development (Pty) Ltd</text>
+  <text x="410" y="207" text-anchor="middle" font-size="7.5" fill="#9CA3AF">Reg. 2025/950567/07 | Master Development Company</text>
+
+  <!-- ═══════════ Footnote ═══════════ -->
+
+  <text x="410" y="242" text-anchor="middle" font-size="8" fill="#9CA3AF">Shareholding percentages subject to DTIC requirement. Current LLC structure collapses into DevCo post-close.</text>
+  <text x="410" y="258" text-anchor="middle" font-size="8" fill="#9CA3AF">See Inter-Company Structure for full transaction sequence.</text>
+
+  <!-- ═══════════ LEGEND ═══════════ -->
+  <line x1="30" y1="275" x2="790" y2="275" stroke="#E5E7EB" stroke-width="0.8"/>
+  <rect x="40" y="284" width="10" height="10" rx="2" fill="#EFF6FF" stroke="#2563EB" stroke-width="1"/>
+  <text x="56" y="293" font-size="7.5" fill="#6B7280">Siza</text>
+  <rect x="90" y="284" width="10" height="10" rx="2" fill="#F0FDF4" stroke="#16A34A" stroke-width="1"/>
+  <text x="106" y="293" font-size="7.5" fill="#6B7280">Mark / NexusNovus</text>
+  <rect x="200" y="284" width="10" height="10" rx="2" fill="#FEF3C7" stroke="#D97706" stroke-width="1"/>
+  <text x="216" y="293" font-size="7.5" fill="#6B7280">Eckhardt</text>
+  <rect x="280" y="284" width="10" height="10" rx="2" fill="#F3F4F6" stroke="#D1D5DB" stroke-width="1" stroke-dasharray="3,2"/>
+  <text x="296" y="293" font-size="7.5" fill="#6B7280">Other / TBD</text>
+
 </svg>

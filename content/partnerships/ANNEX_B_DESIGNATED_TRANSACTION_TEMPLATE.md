@@ -23,18 +23,29 @@
 
 Partner is allocated the following scope items for this Designated Transaction. Classification overrides Annex A defaults where specified.
 
+**Tech and Project:**
+
 | Code | Scope Item | Class (P/S/—) | Notes |
 |------|-----------|---------------|-------|
 | S-01 | Project origination | `[__]` | `[__]` |
 | S-02 | Technology and Exporter Pre-Selection | `[__]` | `[__]` |
-| S-03 | First-loss / guarantee architecture | `[__]` | `[__]` |
+| S-03 | Subsidy access (vendor-linked) | `[__]` | `[__]` |
+
+**Equity and Senior Debt:**
+
+| Code | Scope Item | Class (P/S/—) | Notes |
+|------|-----------|---------------|-------|
 | S-04 | Equity / mezzanine structuring | `[__]` | `[__]` |
-| S-05 | ECA packaging and credit conversion | `[__]` | `[__]` |
-| S-06 | Non-recourse debt structuring | `[__]` | `[__]` |
-| S-07 | Credit-enhanced development debt (DFI) | `[__]` | `[__]` |
-| S-08 | Underwriting / swap credit conversion | `[__]` | `[__]` |
-| S-09 | Subsidy access (vendor-linked) | `[__]` | `[__]` |
-| S-10 | Supplier credit related supplier working capital | `[__]` | `[__]` |
+| S-05 | Non-recourse debt structuring | `[__]` | `[__]` |
+
+**Layer Capital Structures:**
+
+| Code | Scope Item | Class (P/S/—) | Notes |
+|------|-----------|---------------|-------|
+| S-06 | First-loss / guarantee architecture (Layer A) | `[__]` | `[__]` |
+| S-07 | Credit conversion — ECA / underwriting / swap (Layer B) | `[__]` | `[__]` |
+| S-08 | Credit-enhanced development debt / DFI (Layer C) | `[__]` | `[__]` |
+| S-09 | Supplier credit working capital (Layer D) | `[__]` | `[__]` |
 
 ---
 

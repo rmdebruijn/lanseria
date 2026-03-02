@@ -1,80 +1,45 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 700 320" font-family="'Segoe UI', Arial, sans-serif">
+<svg width="700" height="300" viewBox="0 0 700 300" fill="none" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <filter id="shadow" x="-6%" y="-6%" width="112%" height="118%">
-      <feDropShadow dx="1" dy="2" stdDeviation="3" flood-opacity="0.13"/>
-    </filter>
-    <marker id="arrowRed" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto">
-      <polygon points="0 0, 9 3.5, 0 7" fill="#dc2626"/>
-    </marker>
+    <style>text{font-family:'Inter','Segoe UI',Arial,sans-serif}</style>
   </defs>
-
-  <!-- Background -->
-  <rect width="700" height="320" rx="12" fill="#f8fafc"/>
+  <rect width="700" height="300" fill="white"/>
 
   <!-- Title -->
-  <text x="350" y="34" text-anchor="middle" font-size="20" font-weight="700" fill="#0f172a">Timberworx Security — Corporate Guarantee</text>
+  <text x="350" y="24" text-anchor="middle" font-size="13" fill="#111827" font-weight="bold">Timberworx Security — Corporate Guarantee</text>
 
-  <!-- ═══════════════ LEFT BOX: Timberworx Senior Loan ═══════════════ -->
-  <rect x="40" y="60" width="260" height="185" rx="10" fill="#8b4513" filter="url(#shadow)"/>
+  <!-- ═══════════ TWX Senior Loan (left) ═══════════ -->
 
-  <!-- Box title -->
-  <text x="170" y="91" text-anchor="middle" font-size="16" font-weight="700" fill="#ffffff">Timberworx Senior Loan</text>
+  <rect x="30" y="50" width="260" height="100" rx="5" fill="#FAF5FF" stroke="#C4B5FD" stroke-width="1.5"/>
+  <text x="160" y="74" text-anchor="middle" font-size="11" fill="#5B21B6" font-weight="700">Timberworx Senior Loan</text>
+  <text x="160" y="94" text-anchor="middle" font-size="16" fill="#5B21B6" font-weight="700">€1,753,747</text>
+  <text x="160" y="114" text-anchor="middle" font-size="9" fill="#6B7280">CoE building + Panel equipment</text>
+  <text x="160" y="130" text-anchor="middle" font-size="8" fill="#9CA3AF">Fully guaranteed from M24</text>
+  <text x="160" y="162" text-anchor="middle" font-size="8" fill="#5B21B6" font-weight="600">SENIOR LOAN</text>
 
-  <!-- Separator line -->
-  <line x1="60" y1="101" x2="280" y2="101" stroke="#ffffff" stroke-opacity="0.30" stroke-width="1"/>
+  <!-- ═══════════ Arrow ═══════════ -->
 
-  <!-- Amount -->
-  <text x="170" y="126" text-anchor="middle" font-size="17" font-weight="700" fill="#ffffff">€1,753,747</text>
+  <line x1="290" y1="100" x2="400" y2="100" stroke="#6B7280" stroke-width="1.5"/>
+  <polygon points="400,100 393,96 393,104" fill="#6B7280"/>
+  <text x="345" y="92" text-anchor="middle" font-size="9" fill="#6B7280" font-weight="600">guaranteed by</text>
 
-  <!-- Detail lines -->
-  <text x="170" y="150" text-anchor="middle" font-size="13" fill="#fcd9b6">CoE building + Panel equipment</text>
-  <text x="170" y="170" text-anchor="middle" font-size="13" fill="#fcd9b6">Fully guaranteed from M24</text>
+  <!-- ═══════════ Phoenix Guarantee (right) ═══════════ -->
 
-  <!-- Sub-separator -->
-  <line x1="60" y1="183" x2="280" y2="183" stroke="#ffffff" stroke-opacity="0.15" stroke-width="1" stroke-dasharray="4,3"/>
+  <rect x="410" y="50" width="260" height="100" rx="5" fill="#F1F5F9" stroke="#64748B" stroke-width="1.5"/>
+  <text x="540" y="72" text-anchor="middle" font-size="11" fill="#1E293B" font-weight="700">Phoenix Group Guarantee</text>
+  <text x="540" y="90" text-anchor="middle" font-size="9" fill="#6B7280">VH Properties (Pty) Ltd · 40% in Phoenix Group</text>
+  <text x="540" y="106" text-anchor="middle" font-size="9" fill="#6B7280">Portfolio EBITDA: R68M | 6 retail centres</text>
+  <text x="540" y="124" text-anchor="middle" font-size="8" fill="#94A3B8">2yr attrib. EBITDA: R54.6M vs loan R35.1M</text>
+  <text x="540" y="140" text-anchor="middle" font-size="10" fill="#2563EB" font-weight="700">Coverage: 1.56×</text>
 
-  <!-- Tag pill -->
-  <rect x="100" y="194" width="140" height="22" rx="11" fill="#6b3410"/>
-  <text x="170" y="209" text-anchor="middle" font-size="11" font-weight="600" fill="#fcd9b6">SENIOR LOAN</text>
+  <!-- ═══════════ ECA note ═══════════ -->
 
-  <!-- ═══════════════ RIGHT BOX: Phoenix Group Guarantee ═══════════════ -->
-  <rect x="400" y="60" width="260" height="185" rx="10" fill="#334155" filter="url(#shadow)"/>
+  <rect x="130" y="190" width="440" height="36" rx="5" fill="#FFFBEB" stroke="#FCD34D" stroke-width="1"/>
+  <text x="350" y="210" text-anchor="middle" font-size="9" fill="#92400E">Atradius ECA cover to be applied for — full senior loan amount.</text>
+  <text x="350" y="222" text-anchor="middle" font-size="8" fill="#B45309">Dutch content: Panel Equipment (€200k)</text>
 
-  <!-- Box title -->
-  <text x="530" y="91" text-anchor="middle" font-size="16" font-weight="700" fill="#ffffff">Phoenix Group Guarantee</text>
+  <!-- ═══════════ Footnote ═══════════ -->
 
-  <!-- Separator line -->
-  <line x1="420" y1="101" x2="640" y2="101" stroke="#ffffff" stroke-opacity="0.30" stroke-width="1"/>
-
-  <!-- Detail lines -->
-  <text x="530" y="123" text-anchor="middle" font-size="13" fill="#cbd5e1">VH Properties · 40% in Phoenix Group</text>
-  <text x="530" y="142" text-anchor="middle" font-size="13" fill="#cbd5e1">Portfolio EBITDA: R68M</text>
-  <text x="530" y="161" text-anchor="middle" font-size="13" fill="#cbd5e1">6 retail centres</text>
-
-  <!-- Sub-separator -->
-  <line x1="420" y1="172" x2="640" y2="172" stroke="#ffffff" stroke-opacity="0.15" stroke-width="1" stroke-dasharray="4,3"/>
-
-  <!-- Coverage detail -->
-  <text x="530" y="189" text-anchor="middle" font-size="12" fill="#94a3b8">2yr attrib. EBITDA: R54.6M  vs  loan R35.1M</text>
-
-  <!-- Coverage badge -->
-  <rect x="460" y="197" width="140" height="26" rx="13" fill="#1e3a5f"/>
-  <text x="530" y="214" text-anchor="middle" font-size="12" font-weight="700" fill="#60a5fa">Coverage: 1.56x</text>
-
-  <!-- ═══════════════ ARROW: right box → left box (guaranteed by) ═══════════════ -->
-  <!-- Full dashed red line from right box (x=400) to left box (x=300), at y=152 -->
-  <line x1="400" y1="152" x2="300" y2="152"
-        stroke="#dc2626"
-        stroke-width="2.5"
-        stroke-dasharray="7,4"
-        marker-end="url(#arrowRed)"/>
-
-  <!-- "guaranteed by" pill label centred on the arrow (x=350) — drawn on top of line -->
-  <rect x="308" y="134" width="84" height="36" rx="10" fill="#dc2626"/>
-  <text x="350" y="149" text-anchor="middle" font-size="11" font-weight="600" fill="#ffffff">guaranteed</text>
-  <text x="350" y="163" text-anchor="middle" font-size="11" font-weight="600" fill="#ffffff">by</text>
-
-  <!-- ═══════════════ FOOTER ═══════════════ -->
-  <text x="350" y="275" text-anchor="middle" font-size="12" fill="#64748b">Atradius ECA cover to be applied for — full senior loan amount.</text>
+  <text x="350" y="256" text-anchor="middle" font-size="8" fill="#9CA3AF">Timber Worx (Pty) Ltd | Reg. 2024/431134/07</text>
+  <text x="350" y="270" text-anchor="middle" font-size="8" fill="#9CA3AF">Guarantor: VH Properties (Pty) Ltd — Phoenix Group property fund umbrella</text>
 
 </svg>

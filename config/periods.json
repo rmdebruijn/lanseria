@@ -1,0 +1,30 @@
+{
+  "periods": [
+    {"index": 0,  "label": "C1",  "start_month": 0,   "end_month": 6,   "phase": "construction", "year": 1, "year_fraction": 1.0},
+    {"index": 1,  "label": "C2",  "start_month": 6,   "end_month": 12,  "phase": "construction", "year": 1, "year_fraction": 1.5},
+    {"index": 2,  "label": "C3",  "start_month": 12,  "end_month": 18,  "phase": "construction", "year": 2, "year_fraction": 2.0},
+    {"index": 3,  "label": "C4",  "start_month": 18,  "end_month": 24,  "phase": "construction", "year": 2, "year_fraction": 2.5},
+    {"index": 4,  "label": "R1",  "start_month": 24,  "end_month": 30,  "phase": "repayment",    "year": 3, "year_fraction": 3.0},
+    {"index": 5,  "label": "R2",  "start_month": 30,  "end_month": 36,  "phase": "repayment",    "year": 3, "year_fraction": 3.5},
+    {"index": 6,  "label": "R3",  "start_month": 36,  "end_month": 42,  "phase": "repayment",    "year": 4, "year_fraction": 4.0},
+    {"index": 7,  "label": "R4",  "start_month": 42,  "end_month": 48,  "phase": "repayment",    "year": 4, "year_fraction": 4.5},
+    {"index": 8,  "label": "R5",  "start_month": 48,  "end_month": 54,  "phase": "repayment",    "year": 5, "year_fraction": 5.0},
+    {"index": 9,  "label": "R6",  "start_month": 54,  "end_month": 60,  "phase": "repayment",    "year": 5, "year_fraction": 5.5},
+    {"index": 10, "label": "R7",  "start_month": 60,  "end_month": 66,  "phase": "repayment",    "year": 6, "year_fraction": 6.0},
+    {"index": 11, "label": "R8",  "start_month": 66,  "end_month": 72,  "phase": "repayment",    "year": 6, "year_fraction": 6.5},
+    {"index": 12, "label": "R9",  "start_month": 72,  "end_month": 78,  "phase": "repayment",    "year": 7, "year_fraction": 7.0},
+    {"index": 13, "label": "R10", "start_month": 78,  "end_month": 84,  "phase": "repayment",    "year": 7, "year_fraction": 7.5},
+    {"index": 14, "label": "R11", "start_month": 84,  "end_month": 90,  "phase": "repayment",    "year": 8, "year_fraction": 8.0},
+    {"index": 15, "label": "R12", "start_month": 90,  "end_month": 96,  "phase": "repayment",    "year": 8, "year_fraction": 8.5},
+    {"index": 16, "label": "R13", "start_month": 96,  "end_month": 102, "phase": "repayment",    "year": 9, "year_fraction": 9.0},
+    {"index": 17, "label": "R14", "start_month": 102, "end_month": 108, "phase": "repayment",    "year": 9, "year_fraction": 9.5},
+    {"index": 18, "label": "T1",  "start_month": 108, "end_month": 114, "phase": "tail",         "year": 10, "year_fraction": 10.0},
+    {"index": 19, "label": "T2",  "start_month": 114, "end_month": 120, "phase": "tail",         "year": 10, "year_fraction": 10.5}
+  ],
+  "construction_end_index": 3,
+  "repayment_start_index": 4,
+  "repayment_end_index": 17,
+  "total_periods": 20,
+  "years": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+  "note": "Annual figures: sum all periods with same 'year'. Y1=[C1,C2], Y2=[C3,C4], Y3=[R1,R2], etc."
+}

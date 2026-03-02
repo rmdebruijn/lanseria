@@ -13,7 +13,7 @@ _Generated: 2026-02-18 21:22_
 | Brackenfell Corner (Pty) Ltd | Cash Generating | R18.0M | R11.8M | 0.7x | 4.0x | 24% | R167.1M | [ST] [BROLL↑] |
 | Jukskei Meander (Pty) Ltd | Cash Generating | R8.6M | R7.7M | 2.5x | 1.2x | 5% | R90.4M | [ST] [?] |
 | Ridgeview Centre (Pty) Ltd | Cash Generating | R13.4M | R3.2M | 0.2x | 11.9x | 19% | R171.5M | [ST] [BROLL↑] |
-| Chartwell Corner (Pty) Ltd | Stabilising | R4.5M | R4.4M | 0.4x | 30.5x | 122% | R-22.8M | [-ve] [Z<1.1] |
+| Chartwell Corner (Pty) Ltd | Cash Generating² | R4.5M | R4.4M | 1.3x² | 30.5x | 77%² | R-22.8M | [-ve] [Z<1.1] [CO-OWN] |
 | Olivedale Corner (Pty) Ltd | Stabilising | R8.0M | R2.1M | 0.3x | 70.7x | 109% | R-2.6M | [-ve] [Z<1.1] |
 
 **Sold / Disposed**
@@ -32,8 +32,10 @@ _Generated: 2026-02-18 21:22_
 | Phoenix Property Fund SA (Pty) Ltd | Holding / Pass-through | R550 | R-19.6M | [-ve] [Z<1.1] [?] |
 | Phoenix Specialist Property Fund (Pty) Ltd | Dormant | R100 | R100 | [?] |
 
-Portfolio of 11 entities: 3 Cash Generating, 2 Stabilising, 3 Holding / Pass-through, 1 Asset Manager, 1 Dormant, 1 Sold.
-2 of 5 operating entities have negative equity.
+_² Chartwell Corner metrics marked ² are consolidated economic figures (including 50% of Co-Owner income). Entity-level: IC 0.39x, LTV 122%. See Chartwell Corner section for full co-ownership adjustment. [CO-OWN] = co-ownership structure adjustment applied._
+
+Portfolio of 11 entities: 4 Cash Generating, 1 Stabilising, 3 Holding / Pass-through, 1 Asset Manager, 1 Dormant, 1 Sold.
+2 of 5 operating entities have negative equity (Chartwell Corner structural, Olivedale operational).
 
 ## Brackenfell Corner (Pty) Ltd
 
@@ -562,21 +564,38 @@ Paramount Retail Africa Asset Management (Pty) Ltd is classified as **Asset Mana
 | Altman Z'' | -0.95 | -0.15 | -1.63 | -0.54 |
 | NOI Yield | 3.1% | n/a | n/a | 4.0% |
 | **Classification** |  |  |  |  |
-| Stage | **Distressed** [GC] [-ve] [Z<1.1] | **Distressed** [GC] [-ve] [Z<1.1] [?] | **Distressed** [GC] [-ve] [Z<1.1] [?] | **Stabilising** [-ve] [Z<1.1] |
-| Asset Phase | unknown | unknown | unknown | unknown |
+| Stage | **Cash Generating**² [GC] [-ve] [Z<1.1] | **Cash Generating**² [GC] [-ve] [Z<1.1] | **Cash Generating**² [GC] [-ve] [Z<1.1] | **Cash Generating**² [-ve] [Z<1.1] |
+| Asset Phase | established | established | established | established |
 | Source | afs_2024_py | afs_py | afs_cy | mgmt |
 
 _Metric notes:_
 1. Annualised from 10 months (×1.20)
-2. IC = EBITDA / FC = R4.4M / R11.3M = 0.39x
+2. IC (entity) = EBITDA / FC = R4.4M / R11.3M = 0.39x
 3. D/EBITDA = TotalLiab / EBITDA = R132.8M / R4.4M = 30.5x
-4. LTV = LT Borrowings / Investment Property = R134.0M / R110.3M = 121%
+4. LTV (entity) = LT Borrowings / Investment Property = R134.0M / R110.3M = 121%
+5. **Consolidated IC = 1.28x** — see co-ownership adjustment below
+6. **Consolidated LTV = 77%** — see co-ownership adjustment below
+
+**Co-ownership structure adjustment:**
+Chartwell Corner is a 50% co-owner of the Dainfern retail centre. Chartwell Co-Owner Company (pass-through) conducts the business — collecting all rent and paying all operating expenses. Corner receives its 50% share as management fee distributions, but carries 100% of the debt (R134.0M). Entity-level metrics understate the true economic position because they only capture 50% of income against 100% of debt.
+
+| | Entity (book) | Consolidated (economic) |
+|---|---:|---:|
+| Revenue attributable | R3.7M (50% share) | R3.7M + R7.7M (50% of Co-Owner R15.5M) = **R11.4M** |
+| EBITDA | R4.4M | ~**R11.4M** |
+| Finance costs | R9.4M | R9.4M (unchanged — all in Corner) |
+| **IC** | **0.39x** | **1.28x** |
+| LT Borrowings | R134.0M | R134.0M |
+| IP (50% share on BS) | R110.3M | Full property ~R181M (2 × R90.7M AFS) |
+| **LTV** | **122%** | **77%** (R134.0M / ~R174M adjusted) |
+
+_Annualised consolidated revenue: Corner R3.7M (10m) + 50% × Co-Owner R15.5M (10m) = R11.4M (10m). FC from mgmt GL: R9.4M (10m). Consolidated IC = R11.4M / R9.4M × (12/10 adjustment cancels) = 1.21x. Using AFS full-year: Corner R5.8M + 50% × Co-Owner R17.9M = R14.8M vs FC R11.6M = 1.28x._
 
 **Per-year justification:**
-- **2022-23** (afs_2024_py): EBITDA R3.5M does not cover FC R11.2M (IC=0.3x). Deeply negative equity (R-18.1M), LTV 139%. GC qualification — sale agreement in place. Early operational period.
-- **2023-24** (afs_py): Altman Z''=-0.1 (distress zone), negative equity, no EBITDA.
-- **2024-25** (afs_cy): Altman Z''=-1.6 (distress zone), negative equity, no EBITDA.
-- **25-26** (mgmt): Equity improving (R-22.8M vs R-27.9M PY). EBITDA positive (R4.4M), IC=0.4x — building. Broll: 9% vacancy (1 tenant liquidated, active leasing). Collections 94%. Property generating income ahead of budget (YTD R14.1M vs R13.2M budget). Classifying as **Stabilising**: property is operational, income recovering, negative equity driven by acquisition structure not operational failure.
+- **2022-23** (afs_2024_py): Entity IC 0.3x. Consolidated: Corner R8.3M + 50% × Co-Owner R15.1M = R15.9M vs FC R11.2M → **consolidated IC ≈ 1.41x**. GC qualification on entity-level was structural, not economic.
+- **2023-24** (afs_py): Entity: negative EBITDA. Consolidated: Corner R5.5M + 50% × Co-Owner R15.9M = R13.5M vs FC R10.8M → **consolidated IC ≈ 1.25x**. Negative EBITDA at entity level driven by FV write-down in operating expenses.
+- **2024-25** (afs_cy): Entity: negative EBITDA. Consolidated: Corner R5.8M + 50% × Co-Owner R17.9M = R14.8M vs FC R11.6M → **consolidated IC ≈ 1.28x**. Same pattern — entity understates economics.
+- **25-26** (mgmt): Entity IC 0.39x. **Consolidated IC ≈ 1.21x**. Broll: 9% vacancy (1 tenant liquidated, active leasing). Collections 94%. Property generating income ahead of budget (YTD R14.1M vs R13.2M budget). Classifying as **Cash Generating** on consolidated economic basis.
 
 ### B. Management Account Analysis (FY 25-26)
 - Data: 10 months (Mar-Dec 2025)
@@ -652,11 +671,18 @@ _Action items:_
 
 ### D. Combined Assessment
 
-Chartwell Corner (Pty) Ltd is classified as **Stabilising** (asset phase: unknown) based on mgmt data for FY 25-26.
-Trajectory: 2022-23: Distressed → 2023-24: Distressed → 2024-25: Distressed → 25-26: Stabilising.
-Property is operationally active and recovering — 9% vacancy (1 liquidated tenant), collections 94%, YTD net income ahead of budget. Negative equity reflects acquisition-period leverage (LTV 122%) rather than operational failure. Reclassified from Stalled: the asset is generating positive EBITDA and income is improving.
+Chartwell Corner (Pty) Ltd is classified as **Cash Generating** (asset phase: established) based on consolidated economic analysis for FY 25-26.
+Trajectory (entity): 2022-23: Distressed → 2023-24: Distressed → 2024-25: Distressed → 25-26: Cash Generating (consolidated).
 
-**Information gaps:** No independent valuation report — LTV trajectory and market comparables unavailable.
+**Entity-level metrics are structurally misleading.** Chartwell Corner is a 50% co-owner of the Dainfern retail centre but carries 100% of the debt (R134M). Entity-level IC of 0.39x only captures the 50% distribution received from Chartwell Co-Owner, understating the true debt service capacity. On a consolidated basis — attributing 50% of Co-Owner's full rental income to Corner — IC = 1.28x and LTV = 77%, confirming Cash Generating status.
+
+The property has been economically above water in every year assessed (consolidated IC: 1.41x, 1.25x, 1.28x, 1.21x across FY 22-23 to 25-26). The apparent distress in FY 23-24 and FY 24-25 was driven by FV write-downs flowing through entity-level operating expenses, not by operational failure.
+
+Broll confirms operational health: 91% occupied (1 liquidated tenant, active re-leasing), 94% collections, YTD net income R14.1M ahead of R13.2M budget. Lease expiry ≤12m only 9.4% of GLA. Active renovation programme underway.
+
+**Remaining risks:** Negative equity R-22.8M (entity-level) — structural from 50/50 co-ownership with asymmetric debt allocation; Vacancy from Nuhuman liquidation (702m², R481k outstanding); Council water connection stalled; No independent valuation — entity LTV 122% may overstate risk (consolidated LTV 77%).
+
+**Information gaps:** No independent valuation report — LTV trajectory and market comparables unavailable; Terms of co-ownership agreement not documented; Identity of other 50% co-owner unknown.
 
 ---
 
@@ -1069,6 +1095,31 @@ Where a Broll management report is available (5 Phoenix entities), the financial
 
 This addresses partial-year annualisation artifacts where IC < 1.0x is a function of 10-month EBITDA vs full-year finance costs, not genuine underperformance. Entities receiving this override are flagged `[BROLL↑]`.
 
+### Quasi-Equity Adjustment [QE]
+Where an entity carries shareholder or related-party loans with the following characteristics, those loans are treated as **quasi-equity** for metric computation:
+- Interest **accrues** to the loan balance rather than being cash-paid (confirmed by gap between AFS cash flow statement and management accounts)
+- Loan is **subordinated** to senior bank debt (structurally or contractually)
+- Lender is a **shareholder, director, or related party** (investor return, not arm's-length obligation)
+
+When the quasi-equity adjustment applies:
+- **IC (adjusted)** = EBITDA / senior finance costs only (excluding quasi-equity interest)
+- **LTV (adjusted)** = senior debt / investment property (excluding quasi-equity from numerator)
+- **D/EBITDA (adjusted)** = senior liabilities / EBITDA
+
+Both book (all debt) and adjusted (ex-quasi-equity) metrics are reported. Classification may be upgraded where adjusted IC ≥ 1.0x. Entities receiving this adjustment are flagged `[QE]` in the overview table.
+
+**Applies to:** Ireo Project 10 in Veracity portfolio (RSAD shareholder loans R10.3M). Check for applicability across Phoenix entities where `loans_from_shareholders` or `loans_from_group_companies` appear in AFS NCL.
+
+### Co-Ownership Consolidation [CO-OWN]
+Where an entity holds a fractional interest in a property but carries 100% of the associated debt (or vice versa), entity-level metrics are structurally misleading. In such cases, **consolidated economic metrics** are computed by attributing the entity's proportional share of total property income against its actual debt obligations.
+
+- **IC (consolidated)** = (entity revenue + ownership% × co-owner revenue) / entity FC
+- **LTV (consolidated)** = entity debt / (ownership% × total property value)
+- Both entity-level and consolidated figures are reported.
+- Entities receiving this adjustment are flagged `[CO-OWN]` or `²` in the overview table.
+
+**Applies to:** Chartwell Corner (50% co-owner, carries 100% debt). Entity IC 0.39x → Consolidated IC 1.28x. See Chartwell Corner entity section for full analysis.
+
 ### Limitations
 Classifications are based on **financial data only** unless a Broll management report override applies. The following cannot be assessed without management reports, valuation reports, and rent rolls:
 - Asset age, construction date, building condition, remaining useful life
@@ -1094,7 +1145,7 @@ The 2025 AFS covers FY 24-25 (current year) and FY 23-24 (prior year). A second 
 | Chartwell Co-Owner Company (Pty) Ltd | ✅ | ✅ | ✅ | ❌ |
 | Madelief Shopping Centre (Pty) Ltd | ✅ | ✅ | ✅ | ❌ |
 
-_Madelief Shopping Centre — sold. AFS and management accounts retained for historical completeness._
+_Madelief Shopping Centre — property sold, company dormant. AFS and management accounts retained for historical completeness. PRAAM — administrative company only, no management report needed (confirmed by Mark). Chartwell Corner Broll report (Jan 2026) received; applies to the property managed via Chartwell Co-Owner._
 
 **Holdings, Guarantors & Dormant Entities**
 
@@ -1105,4 +1156,4 @@ _Madelief Shopping Centre — sold. AFS and management accounts retained for his
 | Phoenix Property Fund SA (Pty) Ltd | ✅ | ✅ |
 | Phoenix Specialist Property Fund (Pty) Ltd | ✅ | ✅ |
 
-_VH Properties AFS 2025 and AFS 2024 — critical gap. This is the entity of record for the TWX corporate guarantee. Still to be received._
+_VH Properties AFS 2025 and AFS 2024 — critical gap. This is the entity of record for the TWX corporate guarantee. Mark confirms VH Properties being updated, not yet available._

@@ -1,92 +1,98 @@
 <svg width="640" height="240" viewBox="0 0 640 240" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <!-- Background -->
-  <rect width="640" height="240" rx="8" fill="#FAFAFA" stroke="#E5E7EB" stroke-width="1"/>
+  <defs><style>text{font-family:'Inter','Segoe UI',Arial,sans-serif}</style></defs>
+
+  <!-- White background -->
+  <rect width="640" height="240" fill="white"/>
 
   <!-- Title -->
-  <text x="320" y="20" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="#1E3A5F" font-weight="bold">Pre-Revenue Hedging: DSRA → FEC (2×(P+I) at M24)</text>
+  <text x="320" y="20" text-anchor="middle" font-size="14" fill="#111827" font-weight="bold">Pre-Revenue Hedging: DSRA → FEC (2×(P+I) at M24)</text>
 
-  <!-- Step numbers -->
+  <!-- Step 1 circle -->
   <circle cx="100" cy="42" r="9" fill="#7C3AED"/>
-  <text x="100" y="46" text-anchor="middle" font-family="Arial, sans-serif" font-size="9" fill="white" font-weight="bold">1</text>
+  <text x="100" y="46" text-anchor="middle" font-size="9" fill="white" font-weight="bold">1</text>
 
+  <!-- Step 2 circle -->
   <circle cx="280" cy="42" r="9" fill="#16A34A"/>
-  <text x="280" y="46" text-anchor="middle" font-family="Arial, sans-serif" font-size="9" fill="white" font-weight="bold">2</text>
+  <text x="280" y="46" text-anchor="middle" font-size="9" fill="white" font-weight="bold">2</text>
 
+  <!-- Step 3 circle -->
   <circle cx="460" cy="42" r="9" fill="#2563EB"/>
-  <text x="460" y="46" text-anchor="middle" font-family="Arial, sans-serif" font-size="9" fill="white" font-weight="bold">3</text>
+  <text x="460" y="46" text-anchor="middle" font-size="9" fill="white" font-weight="bold">3</text>
 
+  <!-- Step 4 circle -->
   <circle cx="460" cy="132" r="9" fill="#F59E0B"/>
-  <text x="460" y="136" text-anchor="middle" font-family="Arial, sans-serif" font-size="9" fill="white" font-weight="bold">4</text>
+  <text x="460" y="136" text-anchor="middle" font-size="9" fill="white" font-weight="bold">4</text>
 
+  <!-- Step 5 circle -->
   <circle cx="100" cy="132" r="9" fill="#DC2626"/>
-  <text x="100" y="136" text-anchor="middle" font-family="Arial, sans-serif" font-size="9" fill="white" font-weight="bold">5</text>
+  <text x="100" y="136" text-anchor="middle" font-size="9" fill="white" font-weight="bold">5</text>
 
   <!-- Creation Capital (top left) -->
-  <rect x="16" y="52" width="120" height="44" rx="6" fill="#F5F3FF" stroke="#7C3AED" stroke-width="1.5"/>
-  <text x="76" y="70" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="#7C3AED" font-weight="bold">Creation Capital</text>
-  <text x="76" y="84" text-anchor="middle" font-family="Arial, sans-serif" font-size="8" fill="#6B7280">2nd Mezz Draw</text>
+  <rect x="16" y="52" width="120" height="44" rx="5" fill="#F5F3FF" stroke="#7C3AED" stroke-width="1.5"/>
+  <text x="76" y="70" text-anchor="middle" font-size="11" fill="#7C3AED" font-weight="bold">Creation Capital</text>
+  <text x="76" y="84" text-anchor="middle" font-size="8" fill="#6B7280">2nd Mezz Draw</text>
 
   <!-- SCLCA Holding (top center) -->
-  <rect x="196" y="52" width="120" height="44" rx="6" fill="#F0FDF4" stroke="#16A34A" stroke-width="1.5"/>
-  <text x="256" y="70" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="#16A34A" font-weight="bold">SCLCA Holding</text>
-  <text x="256" y="84" text-anchor="middle" font-family="Arial, sans-serif" font-size="8" fill="#6B7280">Mezz IC ↑ to NWL</text>
+  <rect x="196" y="52" width="120" height="44" rx="5" fill="#F0FDF4" stroke="#16A34A" stroke-width="1.5"/>
+  <text x="256" y="70" text-anchor="middle" font-size="11" fill="#16A34A" font-weight="bold">SCLCA Holding</text>
+  <text x="256" y="84" text-anchor="middle" font-size="8" fill="#6B7280">Mezz IC ↑ to NWL</text>
 
   <!-- NWL (top right) -->
-  <rect x="380" y="52" width="120" height="44" rx="6" fill="#EFF6FF" stroke="#2563EB" stroke-width="1.5"/>
-  <text x="440" y="70" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="#2563EB" font-weight="bold">NWL</text>
-  <text x="440" y="84" text-anchor="middle" font-family="Arial, sans-serif" font-size="8" fill="#6B7280">Buys FEC (Investec)</text>
+  <rect x="376" y="52" width="120" height="44" rx="5" fill="#EFF6FF" stroke="#2563EB" stroke-width="1.5"/>
+  <text x="436" y="70" text-anchor="middle" font-size="11" fill="#2563EB" font-weight="bold">NWL</text>
+  <text x="436" y="84" text-anchor="middle" font-size="8" fill="#6B7280">Buys FEC (Investec)</text>
 
   <!-- FEC / Investec (right middle) -->
-  <rect x="524" y="80" width="100" height="36" rx="6" fill="#FFFBEB" stroke="#F59E0B" stroke-width="1.5"/>
-  <text x="574" y="95" text-anchor="middle" font-family="Arial, sans-serif" font-size="9" fill="#F59E0B" font-weight="bold">FEC (Investec)</text>
-  <text x="574" y="107" text-anchor="middle" font-family="Arial, sans-serif" font-size="7.5" fill="#6B7280">ZAR → EUR hedge</text>
+  <rect x="520" y="80" width="104" height="36" rx="5" fill="#FFFBEB" stroke="#F59E0B" stroke-width="1.5"/>
+  <text x="572" y="95" text-anchor="middle" font-size="9" fill="#F59E0B" font-weight="bold">FEC (Investec)</text>
+  <text x="572" y="108" text-anchor="middle" font-size="8" fill="#6B7280">ZAR → EUR hedge</text>
 
   <!-- NWL return path (bottom right) -->
-  <rect x="380" y="142" width="120" height="44" rx="6" fill="#EFF6FF" stroke="#2563EB" stroke-width="1.5" stroke-dasharray="4,2"/>
-  <text x="440" y="160" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="#2563EB" font-weight="bold">NWL</text>
-  <text x="440" y="174" text-anchor="middle" font-family="Arial, sans-serif" font-size="8" fill="#6B7280">EUR → pays Holding</text>
+  <rect x="376" y="142" width="120" height="44" rx="5" fill="#EFF6FF" stroke="#2563EB" stroke-width="1.5" stroke-dasharray="4,2"/>
+  <text x="436" y="160" text-anchor="middle" font-size="11" fill="#2563EB" font-weight="bold">NWL</text>
+  <text x="436" y="174" text-anchor="middle" font-size="8" fill="#6B7280">EUR → pays Holding</text>
 
   <!-- SCLCA return path (bottom center) -->
-  <rect x="196" y="142" width="120" height="44" rx="6" fill="#F0FDF4" stroke="#16A34A" stroke-width="1.5" stroke-dasharray="4,2"/>
-  <text x="256" y="160" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="#16A34A" font-weight="bold">SCLCA Holding</text>
-  <text x="256" y="174" text-anchor="middle" font-family="Arial, sans-serif" font-size="8" fill="#6B7280">EUR → pays IIC</text>
+  <rect x="196" y="142" width="120" height="44" rx="5" fill="#F0FDF4" stroke="#16A34A" stroke-width="1.5" stroke-dasharray="4,2"/>
+  <text x="256" y="160" text-anchor="middle" font-size="11" fill="#16A34A" font-weight="bold">SCLCA Holding</text>
+  <text x="256" y="174" text-anchor="middle" font-size="8" fill="#6B7280">EUR → pays IIC</text>
 
   <!-- IIC Senior (bottom left) -->
-  <rect x="16" y="142" width="120" height="44" rx="6" fill="#FEF2F2" stroke="#DC2626" stroke-width="1.5"/>
-  <text x="76" y="160" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="#DC2626" font-weight="bold">Invest Int (DFI)</text>
-  <text x="76" y="174" text-anchor="middle" font-family="Arial, sans-serif" font-size="8" fill="#6B7280">Senior facility ↓</text>
+  <rect x="16" y="142" width="120" height="44" rx="5" fill="#FEF2F2" stroke="#DC2626" stroke-width="1.5"/>
+  <text x="76" y="160" text-anchor="middle" font-size="11" fill="#DC2626" font-weight="bold">Invest Int (DFI)</text>
+  <text x="76" y="174" text-anchor="middle" font-size="8" fill="#6B7280">Senior facility ↓</text>
 
   <!-- Arrow 1: CC → Holding -->
   <path d="M136,74 L191,74" stroke="#7C3AED" stroke-width="1.5" fill="none"/>
   <polygon points="191,74 183,69 183,79" fill="#7C3AED"/>
-  <text x="163" y="67" text-anchor="middle" font-family="Arial, sans-serif" font-size="7.5" fill="#7C3AED" font-weight="bold">Mezz ↑</text>
+  <text x="163" y="67" text-anchor="middle" font-size="8" fill="#7C3AED" font-weight="bold">Mezz ↑</text>
 
   <!-- Arrow 2: Holding → NWL -->
-  <path d="M316,74 L375,74" stroke="#16A34A" stroke-width="1.5" fill="none"/>
-  <polygon points="375,74 367,69 367,79" fill="#16A34A"/>
-  <text x="345" y="67" text-anchor="middle" font-family="Arial, sans-serif" font-size="7.5" fill="#16A34A" font-weight="bold">Mezz IC ↑</text>
+  <path d="M316,74 L371,74" stroke="#16A34A" stroke-width="1.5" fill="none"/>
+  <polygon points="371,74 363,69 363,79" fill="#16A34A"/>
+  <text x="343" y="67" text-anchor="middle" font-size="8" fill="#16A34A" font-weight="bold">Mezz IC ↑</text>
 
   <!-- Arrow 3: NWL → FEC -->
-  <path d="M500,80 L519,92" stroke="#2563EB" stroke-width="1.5" fill="none"/>
+  <path d="M496,80 L519,92" stroke="#2563EB" stroke-width="1.5" fill="none"/>
   <polygon points="519,92 515,83 510,91" fill="#2563EB"/>
-  <text x="518" y="76" text-anchor="middle" font-family="Arial, sans-serif" font-size="7.5" fill="#2563EB" font-weight="bold">ZAR</text>
+  <text x="514" y="76" text-anchor="middle" font-size="8" fill="#2563EB" font-weight="bold">ZAR</text>
 
   <!-- Arrow 3b: FEC → NWL (EUR back) -->
-  <path d="M524,112 L505,135" stroke="#F59E0B" stroke-width="1.5" fill="none"/>
-  <polygon points="505,135 512,129 504,127" fill="#F59E0B"/>
-  <text x="525" y="128" text-anchor="middle" font-family="Arial, sans-serif" font-size="7.5" fill="#F59E0B" font-weight="bold">EUR</text>
+  <path d="M520,112 L501,135" stroke="#F59E0B" stroke-width="1.5" fill="none"/>
+  <polygon points="501,135 508,129 500,127" fill="#F59E0B"/>
+  <text x="521" y="128" text-anchor="middle" font-size="8" fill="#F59E0B" font-weight="bold">EUR</text>
 
   <!-- Arrow 4: NWL → Holding (EUR, Sr IC repay) -->
-  <path d="M380,164 L321,164" stroke="#F59E0B" stroke-width="1.5" fill="none"/>
+  <path d="M376,164 L321,164" stroke="#F59E0B" stroke-width="1.5" fill="none"/>
   <polygon points="321,164 329,159 329,169" fill="#F59E0B"/>
-  <text x="350" y="157" text-anchor="middle" font-family="Arial, sans-serif" font-size="7.5" fill="#F59E0B" font-weight="bold">Sr IC ↓</text>
+  <text x="348" y="157" text-anchor="middle" font-size="8" fill="#F59E0B" font-weight="bold">Sr IC ↓</text>
 
   <!-- Arrow 5: Holding → IIC -->
   <path d="M196,164 L141,164" stroke="#DC2626" stroke-width="1.5" fill="none"/>
   <polygon points="141,164 149,159 149,169" fill="#DC2626"/>
-  <text x="168" y="157" text-anchor="middle" font-family="Arial, sans-serif" font-size="7.5" fill="#DC2626" font-weight="bold">Sr payoff</text>
+  <text x="168" y="157" text-anchor="middle" font-size="8" fill="#DC2626" font-weight="bold">Sr payoff</text>
 
-  <!-- Amount label -->
+  <!-- Bottom label bar -->
   <rect x="220" y="204" width="200" height="24" rx="4" fill="#1E3A5F"/>
-  <text x="320" y="220" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="white" font-weight="bold">2×(P+I) at M24 — one shot</text>
+  <text x="320" y="220" text-anchor="middle" font-size="10" fill="white" font-weight="bold">2×(P+I) at M24 — one shot</text>
 </svg>

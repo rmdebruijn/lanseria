@@ -1,10 +1,10 @@
-# MASTER PARTNERSHIP AGREEMENT (DRAFT)
+# MASTER PARTNERSHIP AGREEMENT
 
 **This Master Partnership Agreement** (the "Agreement") is made and entered into on **[Effective Date]**
 
 between:
 
-**NexusNovus Capital B.V.**, a private company with limited liability incorporated under the laws of the Netherlands, having its registered office at **[Address]**, registered with the Dutch Chamber of Commerce under number **[KvK Number]** ("NexusNovus");
+**NexusNovus Capital B.V.**, a private company with limited liability incorporated under the laws of the Netherlands, having its registered office at De Corridor 14 j, 3621ZB Breukelen, registered with the Dutch Chamber of Commerce under number 63871262 ("NexusNovus");
 
 and
 
@@ -110,15 +110,20 @@ Within Layer A, each instrument (corporate guarantee, PE cash-backed guarantee, 
 
 4.4 Services may include, as allocated per Designated Transaction:
 
+**Tech and Project:**
 - (a) Project origination;
 - (b) Technology and Exporter Pre-Selection;
-- (c) First-loss / guarantee architecture;
+- (c) Subsidy access (vendor-linked);
+
+**Equity and Senior Debt:**
 - (d) Equity / mezzanine structuring;
-- (e) ECA packaging and credit conversion;
-- (f) Non-recourse debt structuring;
-- (g) Credit-enhanced development debt (DFI);
-- (h) Underwriting / swap pathway support;
-- (i) Subsidy access (vendor-linked);
+- (e) Non-recourse debt structuring;
+
+**Layer Capital Structures:**
+- (f) First-loss / guarantee architecture (Layer A);
+- (g) ECA packaging and credit conversion (Layer B);
+- (h) Underwriting / swap pathway support (Layer B);
+- (i) Credit-enhanced development debt / DFI (Layer C);
 - (j) Supplier credit related supplier working capital (Layer D).
 
 Note: first-loss (Layer A) enables ECA and alternative credit conversion (Layer B) by absorbing primary project risk such that credit agencies and institutional underwriters can cover the residual. An ECA or equivalent credit-conversion instrument makes DFI and bank liquidity (Layer C) possible. This causal chain is fundamental to Frontier Funding.
@@ -243,13 +248,13 @@ Where:
 
 ## 8. SUBSIDY STRATEGY AND INCENTIVES
 
-8.1 **Vendor-Linked Subsidy Pathways.** Partner shall support subsidy applications through exporter-of-record positioning as part of the Vendor-First Principle. Subsidy access depends on correct vendor structuring and is therefore inseparable from technology and exporter pre-selection activities under Clause 4.4(b).
+8.1 **Vendor-Linked Subsidy Pathways.** Partner shall support subsidy applications through exporter-of-record positioning as part of the Vendor-First Principle. Subsidy access depends on correct vendor structuring and is therefore inseparable from technology and exporter pre-selection activities under Clause 4.4(b) and (c).
 
 8.2 **Development Fund Replenishment.** Subsidy inflows contribute to Development Fund replenishment per Clause 3.3.
 
-8.3 **Retainer Linkage.** Where Annex R activates a retainer for a Partner, the retainer may be conditional on subsidy application initiation as specified in Annex R.
+8.3 **Retainer Linkage.** Where Annex R provides for the payment of a retainer to a Partner, such retainer shall become due and payable only upon the actual receipt by the Company of the first tranche of approved subsidy funds applicable to the relevant project. For the avoidance of doubt, no retainer obligation shall arise prior to the confirmed receipt of such subsidy funds.
 
-8.4 **Subsidy Success Fee.** A Partner who secures a subsidy for a Designated Transaction is entitled to a success fee on the subsidy amount secured, per Fee Item F-06 in Annex A. The subsidy success fee is a Fixed-Rate item and stacks independently of the Credit Stack Slab waterfall.
+8.4 **Subsidy Success Fee.** A Partner who secures a subsidy for a Designated Transaction is entitled to a success fee on the subsidy amount secured, per Fee Item F-03 in Annex A. The subsidy success fee is a Fixed-Rate item and stacks independently of the Credit Stack Slab waterfall.
 
 ---
 
@@ -425,9 +430,9 @@ Where:
 
 25.1 This Agreement commences on the Effective Date and continues until terminated under this Clause.
 
-25.2 Either Party may terminate for convenience on **[x]** days written notice unless Annex B states a fixed term for a specific Designated Transaction.
+25.2 Either Party may terminate for convenience on **60** days written notice unless Annex B states a fixed term for a specific Designated Transaction.
 
-25.3 Either Party may terminate immediately for material breach not cured within **[x]** days after notice.
+25.3 Either Party may terminate immediately for material breach not cured within **14** days after notice.
 
 25.4 NexusNovus may suspend services in whole or in part if governance, compliance, or delivery risk requires immediate intervention.
 
@@ -445,11 +450,11 @@ Where:
 
 ## 27. DISPUTE RESOLUTION, GOVERNING LAW, AND JURISDICTION
 
-27.1 Parties shall first seek good-faith executive resolution within **[x]** Business Days of dispute notice.
+27.1 Parties shall first seek good-faith executive resolution within **14** Business Days of dispute notice.
 
-27.2 Failing resolution, disputes shall be resolved by arbitration under **[chosen arbitration rules]** seated in **[seat]**, language English.
+27.2 Failing resolution, disputes shall be resolved by arbitration under the **Arbitration Rules of the Netherlands Arbitration Institute (NAI)**, seated in **Amsterdam, the Netherlands**, language English.
 
-27.3 This Agreement is governed by the laws of **[jurisdiction — propose Netherlands]**.
+27.3 This Agreement is governed by the laws of **the Netherlands**.
 
 ---
 

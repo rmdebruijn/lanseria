@@ -2,6 +2,8 @@
 """Check BS gap for all subsidiaries — standalone, no Streamlit."""
 import json, math
 from pathlib import Path
+from engine.facility import build_schedule as build_simple_ic_schedule
+from engine.periods import construction_period_labels, construction_end_index, period_start_month, total_periods
 
 CONFIG_DIR = Path(__file__).parent / "config"
 
@@ -46,8 +48,9 @@ def _asset_life_years(delivery, category):
     return 9
 
 def _month_to_year_idx(month):
-    if month < 1: return None
-    idx = math.ceil(month / 12) - 1
+    """Map month 0..119 to year index 0..9 (start-month convention)."""
+    if month < 0: return None
+    idx = month // 12
     return idx if 0 <= idx < 10 else None
 
 def _extrapolate_piecewise_linear(base_months, base_values, target_months, floor=None):
@@ -88,54 +91,8 @@ def compute_coe_rent_monthly_eur(om_overhead_pct=2.0):
     monthly_rent = annual_rent / 12.0
     return monthly_rent, annual_rent, wacc, total_yield
 
-def build_simple_ic_schedule(principal, total_principal, repayments, rate,
-                             drawdown_schedule, periods, prepayments=None,
-                             dsra_amount=0.0, dsra_drawdown=0.0):
-    rows, balance = [], 0.0
-    pro_rata = principal / total_principal if total_principal else 0
-    for idx, period in enumerate(periods):
-        month = (period + 4) * 6
-        opening = balance
-        idc = opening * rate / 2
-        draw_down = drawdown_schedule[idx] * pro_rata if idx < len(drawdown_schedule) else 0
-        prepay = prepayments.get(str(period), 0) if prepayments else 0
-        movement = draw_down + idc - prepay
-        balance = opening + movement
-        rows.append({"Period": period, "Month": month, "Year": month/12, "Opening": opening,
-                      "Draw Down": draw_down, "Interest": idc, "Prepayment": -prepay,
-                      "Principle": 0, "Repayment": 0, "Movement": movement, "Closing": balance})
 
-    if dsra_amount > 0:
-        dsra_balance_after = balance - dsra_amount
-        p_per_after_dsra = dsra_balance_after / (repayments - 2) if repayments > 2 else 0
-    elif dsra_drawdown > 0:
-        total_after_dsra = balance + dsra_drawdown
-        p_per = total_after_dsra / repayments if repayments > 0 else 0
-    else:
-        p_per = balance / repayments if repayments > 0 else 0
-
-    for i in range(1, repayments + 1):
-        month = 18 + (i * 6)
-        opening = balance
-        interest = opening * rate / 2
-        if dsra_amount > 0:
-            if i == 1: principle, draw_down = -dsra_amount, 0
-            elif i == 2: principle, draw_down = 0, 0
-            else: principle, draw_down = -p_per_after_dsra, 0
-            movement = principle
-        elif dsra_drawdown > 0:
-            draw_down = dsra_drawdown if i == 1 else 0
-            principle = -p_per
-            movement = draw_down + principle
-        else:
-            draw_down, principle = 0, -p_per
-            movement = principle
-        balance = opening + movement
-        rows.append({"Period": i, "Month": month, "Year": month/12, "Opening": opening,
-                      "Draw Down": draw_down, "Interest": interest, "Prepayment": 0,
-                      "Principle": principle, "Repayment": principle - interest,
-                      "Movement": movement, "Closing": balance})
-    return rows
+# build_simple_ic_schedule imported from engine.facility
 
 def _build_entity_asset_base(entity_key, assets_cfg):
     entity_map = {"nwl": {"assets": ["water"], "services": ["esg"]},
@@ -196,7 +153,7 @@ def _build_nwl_operating_annual_model():
     bulk_cfg = cfg.get("bulk_services", {})
     om_cfg = cfg.get("om", {})
     srv_cfg = cfg.get("sewerage_revenue_sharing", {})
-    months_semi = list(range(6, 121, 6))
+    months_semi = [period_start_month(si) for si in range(total_periods())]  # M0, M6, ..., M114
     month_to_idx = {m: i for i, m in enumerate(months_semi)}
     ramp_rows = on_ramp_cfg.get("rows", [])
     cap_points = [(int(r.get("period_months", 0)), r.get("capacity_available_mld")) for r in ramp_rows]
@@ -263,7 +220,7 @@ def _build_nwl_operating_annual_model():
             if yi is not None: rev_bulk_zar_year[yi] += amount
             continue
         start_m = 13; end_m = start_m + receipt_period
-        for mi in range(1, 121):
+        for mi in range(120):  # M0..M119 (0-based)
             if start_m <= mi < end_m:
                 yi = _month_to_year_idx(mi)
                 if yi is not None: rev_bulk_zar_year[yi] += amount / receipt_period
@@ -271,7 +228,7 @@ def _build_nwl_operating_annual_model():
     om_index_pa = float(om_cfg.get("annual_indexation_pa", 0.0))
     om_start_month = int(om_cfg.get("opex_start_month", 12))
     om_zar_year = [0.0]*10
-    for mi in range(1, 121):
+    for mi in range(120):  # M0..M119 (0-based)
         yi = _month_to_year_idx(mi)
         if yi is None or mi < om_start_month: continue
         monthly_cost = om_monthly_fee * ((1.0 + om_index_pa) ** ((mi - om_start_month) / 12.0))
@@ -284,7 +241,7 @@ def _build_nwl_operating_annual_model():
     power_escalation = float(power_cfg.get("annual_escalation_pct", 10.0)) / 100.0
     power_start_month = int(power_cfg.get("start_month", 18))
     power_zar_year = [0.0]*10
-    for mi in range(1, 121):
+    for mi in range(120):  # M0..M119 (0-based)
         yi = _month_to_year_idx(mi)
         if yi is None or mi < power_start_month: continue
         cap_mld = 0.0
@@ -306,14 +263,14 @@ def _build_nwl_operating_annual_model():
     rent_esc_pct = float(rent_cfg.get("annual_escalation_pct", 7.0)) / 100.0
     rent_start_month = int(rent_cfg.get("start_month", 24))
     rent_zar_year = [0.0]*10
-    for mi in range(1, 121):
+    for mi in range(120):  # M0..M119 (0-based)
         yi = _month_to_year_idx(mi)
         if yi is None or mi < rent_start_month: continue
         rent_indexed = rent_monthly_zar * ((1.0 + rent_esc_pct) ** ((mi - rent_start_month) / 12.0))
         rent_zar_year[yi] += rent_indexed
     annual_rows = []
     for yi in range(10):
-        m1, m2 = 6 + yi * 12, 12 + yi * 12
+        m1, m2 = yi * 12, yi * 12 + 6  # H1 and H2 start months
         i1, i2 = month_to_idx.get(m1), month_to_idx.get(m2)
         semi_idx = [i1, i2] if i1 is not None and i2 is not None else []
         def ysum(arr, si=semi_idx): return sum(arr[i] for i in si) if si else 0.0
@@ -357,24 +314,24 @@ def _build_lanred_operating_annual_model():
     grid_start_month = int(grid_cfg.get("start_month", 18))
     annual_rows = []
     for yi in range(10):
-        y_start, y_end = yi * 12 + 1, (yi + 1) * 12
+        y_start, y_end = yi * 12, (yi + 1) * 12  # 0-based: (0,12), (12,24), ...
         years_since_cod = max((y_start - cod_month) / 12.0, 0.0)
         cf_adj = capacity_factor_base * ((1.0 - solar_degradation_pa) ** years_since_cod)
-        if y_start < cod_month <= y_end:
-            hours = (y_end - cod_month + 1) * 30.44 * 24
-        elif y_end < cod_month: hours = 0.0
+        if y_start <= cod_month < y_end:
+            hours = (y_end - cod_month) * 30.44 * 24
+        elif y_end <= cod_month: hours = 0.0
         else: hours = 365.25 * 24
         gen_kwh = installed_mwp * 1000 * cf_adj * hours
         ic_rate_indexed = ic_rate * ((1.0 + ic_escalation) ** max((y_start - cod_month)/12.0, 0.0))
         rev_total = gen_kwh * ic_share * ic_rate_indexed / FX_RATE
         om_cost = 0.0
-        if y_end >= om_start_month:
+        if y_end > om_start_month:
             om_fixed = om_fixed_annual_zar * ((1.0 + om_indexation) ** max((y_start - om_start_month)/12.0, 0.0))
             om_cost = (om_fixed + gen_kwh * om_variable_r_kwh) / FX_RATE
         grid_cost = 0.0
-        if y_end >= grid_start_month:
+        if y_end > grid_start_month:
             gm = grid_monthly_zar * ((1.0 + grid_escalation) ** max((y_start - grid_start_month)/12.0, 0.0))
-            months_grid = (y_end - grid_start_month + 1) if y_start < grid_start_month <= y_end else 12
+            months_grid = (y_end - grid_start_month) if y_start <= grid_start_month < y_end else 12
             grid_cost = gm * months_grid / FX_RATE
         annual_rows.append({"year": yi+1, "rev_total": rev_total, "om_cost": om_cost + grid_cost,
                             "power_cost": 0.0, "rent_cost": 0.0})
@@ -409,31 +366,31 @@ def _build_twx_operating_annual_model():
     om_start = int(om_cfg.get("opex_start_month", 24))
     annual_rows = []
     for yi in range(10):
-        y_start, y_end = yi*12+1, (yi+1)*12
+        y_start, y_end = yi * 12, (yi + 1) * 12  # 0-based: (0,12), (12,24), ...
         rev_lease_zar = 0.0
-        if y_end >= lease_start:
+        if y_end > lease_start:
             lr = monthly_rental_zar * ((1.0 + lease_esc) ** max((y_start - lease_start)/12.0, 0.0))
             occ = occ_ramp[yi] if yi < len(occ_ramp) else occ_ramp[-1]
-            ml = (y_end - lease_start + 1) if y_start < lease_start <= y_end else 12
+            ml = (y_end - lease_start) if y_start <= lease_start < y_end else 12
             rev_lease_zar = lr * ml * occ
         rev_tr_zar = 0.0
-        if y_end >= tr_start:
+        if y_end > tr_start:
             fi = tr_fee * ((1.0 + tr_esc) ** max((y_start - tr_start)/12.0, 0.0))
             si = tr_sub * ((1.0 + tr_esc) ** max((y_start - tr_start)/12.0, 0.0))
             stu = tr_throughput[yi] if yi < len(tr_throughput) else tr_throughput[-1]
-            if y_start < tr_start <= y_end: stu = stu * (y_end - tr_start + 1) / 12.0
+            if y_start <= tr_start < y_end: stu = stu * (y_end - tr_start) / 12.0
             rev_tr_zar = stu * (fi + si)
         rev_timber_zar = 0.0
-        if sales_enabled and y_end >= sales_start:
+        if sales_enabled and y_end > sales_start:
             ppi = price_pu * ((1.0 + sales_esc) ** max((y_start - sales_start)/12.0, 0.0))
             units = units_py[yi] if yi < len(units_py) else units_py[-1]
-            if y_start < sales_start <= y_end: units = units * (y_end - sales_start + 1) / 12.0
+            if y_start <= sales_start < y_end: units = units * (y_end - sales_start) / 12.0
             rev_timber_zar = units * ppi * (1 - cogs_pct)
         rev_total_zar = rev_lease_zar + rev_tr_zar + rev_timber_zar
         om_cost_zar = 0.0
-        if y_end >= om_start:
+        if y_end > om_start:
             omf = om_fixed * ((1.0 + om_idx) ** max((y_start - om_start)/12.0, 0.0))
-            if y_start < om_start <= y_end: omf = omf * (y_end - om_start + 1) / 12.0
+            if y_start <= om_start < y_end: omf = omf * (y_end - om_start) / 12.0
             om_cost_zar = omf + rev_total_zar * om_var_pct
         annual_rows.append({"year": yi+1, "rev_total": rev_total_zar / FX_RATE,
                             "om_cost": om_cost_zar / FX_RATE, "power_cost": 0.0, "rent_cost": 0.0})
@@ -455,11 +412,11 @@ def build_sub_annual_model(entity_key):
     total_mz = sum(l['mezz_portion'] for l in structure['uses']['loans_to_subsidiaries'].values())
     sr_detail = financing['loan_detail']['senior']
     sr_drawdowns = sr_detail['drawdown_schedule']
-    sr_periods = [-4, -3, -2, -1]
-    sr_prepayments_raw = sr_detail.get('prepayment_periods', {})
-    prepay_alloc = sr_detail.get('prepayment_allocation', {})
-    entity_prepay_pct = prepay_alloc.get(entity_key, 0.0) if prepay_alloc else 0.0
-    sr_prepayments = {k: v * entity_prepay_pct for k, v in sr_prepayments_raw.items()} if entity_prepay_pct > 0 else None
+    sr_periods = construction_period_labels()
+    sr_grant_accel_raw = sr_detail.get('prepayment_periods', {})
+    grant_alloc = sr_detail.get('prepayment_allocation', {})
+    entity_grant_pct = grant_alloc.get(entity_key, 0.0) if grant_alloc else 0.0
+    sr_grant_accel = {k: v * entity_grant_pct for k, v in sr_grant_accel_raw.items()} if entity_grant_pct > 0 else None
     _sr_detail_fac = financing['loan_detail']['senior']
     _sr_bal_fac = (_sr_detail_fac['loan_drawdown_total'] + _sr_detail_fac['rolled_up_interest_idc']
                    - _sr_detail_fac['grant_proceeds_to_early_repayment'] - _sr_detail_fac['gepf_bulk_proceeds'])
@@ -469,10 +426,10 @@ def build_sub_annual_model(entity_key):
     _sr_i_m24 = _sr_bal_fac * _sr_rate_fac / 2
     dsra_amount_total = 2 * (_sr_p_fac + _sr_i_m24)
     entity_dsra = dsra_amount_total * {'nwl': 1.0}.get(entity_key, 0.0)
-    sr_schedule = build_simple_ic_schedule(sr_principal, total_sr, sr_repayments, sr_rate, sr_drawdowns, sr_periods, sr_prepayments, dsra_amount=entity_dsra)
+    sr_schedule = build_simple_ic_schedule(sr_principal, total_sr, sr_repayments, sr_rate, sr_drawdowns, sr_periods, sr_grant_accel, dsra_amount=entity_dsra)
     mz_amount_eur = mezz_cfg['amount_eur']
     mz_drawdowns = [mz_amount_eur, 0, 0, 0]
-    mz_periods = [-4, -3, -2, -1]
+    mz_periods = construction_period_labels()
     mz_schedule = build_simple_ic_schedule(mz_principal, total_mz, mz_repayments, mz_rate, mz_drawdowns, mz_periods, dsra_drawdown=entity_dsra)
     assets_cfg = load_config("assets")["assets"]
     fees_cfg = load_config("fees")
@@ -489,11 +446,42 @@ def build_sub_annual_model(entity_key):
     _equity_map = {'nwl': EQUITY_NWL, 'lanred': EQUITY_LANRED, 'timberworx': EQUITY_TWX}
     entity_equity = _equity_map.get(entity_key, 0.0)
     ta_grant_total = financing.get('prepayments', {}).get('invest_int_ta', {}).get('amount_eur', 0)
-    ta_grant_entity = ta_grant_total * entity_prepay_pct
+    ta_grant_entity = ta_grant_total * entity_grant_pct
     dtic_grant_total = financing.get('prepayments', {}).get('dtic_grant', {}).get('amount_eur', 0)
-    dtic_grant_entity = dtic_grant_total * entity_prepay_pct
-    gepf_prepay_total = financing.get('prepayments', {}).get('gepf_bulk_services', {}).get('amount_eur', 0)
-    gepf_prepay_entity = gepf_prepay_total * entity_prepay_pct
+    dtic_grant_entity = dtic_grant_total * entity_grant_pct
+    gepf_grant_total = financing.get('prepayments', {}).get('gepf_bulk_services', {}).get('amount_eur', 0)
+    gepf_grant_entity = gepf_grant_total * entity_grant_pct
+
+    # S12C depreciation percentages (40/20/20/20)
+    s12c_pcts = {0: 0.40, 1: 0.20, 2: 0.20, 3: 0.20}
+
+    # TWX split depreciation: building (coe_001) -> straight-line 20yr, equipment -> S12C
+    if entity_key == "timberworx":
+        assets_cfg_raw = load_config("assets")["assets"]
+        coe_items = assets_cfg_raw.get("coe", {}).get("line_items", [])
+        building_budget = 0.0
+        equipment_budget = 0.0
+        for item in coe_items:
+            item_id = item.get("id", "")
+            delivery_lower = (item.get("delivery", "") or "").lower()
+            if item_id == "coe_001" or "centre" in delivery_lower or "center" in delivery_lower:
+                building_budget += float(item.get("budget", 0))
+            else:
+                equipment_budget += float(item.get("budget", 0))
+        total_asset_budget = building_budget + equipment_budget
+        if total_asset_budget > 0:
+            straight_line_base = depreciable_base_total * (building_budget / total_asset_budget)
+        else:
+            straight_line_base = 0.0
+        straight_line_life = 20
+        s12c_base = depreciable_base_total - straight_line_base
+        sl_annual = straight_line_base / straight_line_life if straight_line_life > 0 else 0.0
+    else:
+        # NWL and LanRED: all assets S12C
+        s12c_base = depreciable_base_total
+        straight_line_base = 0.0
+        straight_line_life = 20
+        sl_annual = 0.0
 
     annual = []
     accumulated_depr = 0.0
@@ -501,6 +489,7 @@ def build_sub_annual_model(entity_key):
     _cum_grants = 0.0
     _dsra_fd_bal = 0.0
     _cum_capex = 0.0
+    _tax_loss_pool = 0.0
     for yi in range(10):
         a = {'year': yi + 1}
         y_start = yi * 12
@@ -520,8 +509,11 @@ def build_sub_annual_model(entity_key):
             if r['Month'] < y_end:
                 mz_closing = r['Closing']
         a['ie_sr'] = sr_interest; a['ie_mz'] = mz_interest; a['ie'] = sr_interest + mz_interest
+        # Depreciation: S12C (+ straight-line for TWX building) starting Y2
         if yi >= 1:
-            a['depr'] = sum(x["annual_depr"] for x in depr_assets if yi <= x["life"])
+            depr_s12c = s12c_base * s12c_pcts.get(yi - 1, 0.0)
+            depr_sl = sl_annual if (yi - 1) < straight_line_life else 0.0
+            a['depr'] = depr_s12c + depr_sl
         else:
             a['depr'] = 0.0
         accumulated_depr += a['depr']
@@ -531,21 +523,32 @@ def build_sub_annual_model(entity_key):
         a['ebit'] = a['ebitda'] - a['depr']
         a['ii_dsra'] = _dsra_fd_bal * DSRA_RATE if _dsra_fd_bal > 0 else 0.0
         a['pbt'] = a['ebit'] - a['ie'] + a['ii_dsra']
-        a['tax'] = max(a['pbt'] * 0.27, 0.0)
+        # Tax with loss carry-forward
+        taxable = a['pbt'] + _tax_loss_pool
+        if taxable > 0:
+            a['tax'] = taxable * 0.27
+            _tax_loss_pool = 0.0
+        else:
+            a['tax'] = 0.0
+            _tax_loss_pool = taxable
         a['pat'] = a['pbt'] - a['tax']
         a['cf_draw_sr'] = sum(r['Draw Down'] for r in sr_schedule if y_start <= r['Month'] < y_end)
         a['cf_draw_mz'] = sum(r['Draw Down'] for r in mz_schedule if y_start <= r['Month'] < y_end)
         a['cf_draw'] = a['cf_draw_sr'] + a['cf_draw_mz']
-        a['cf_capex'] = a['cf_draw_sr'] + sum(r['Draw Down'] for r in mz_schedule if y_start <= r['Month'] < y_end and r['Period'] < 0)
+        a['cf_capex'] = a['cf_draw_sr'] + sum(r['Draw Down'] for r in mz_schedule if y_start <= r['Month'] < y_end and r['Period'] <= construction_end_index())
         _cum_capex += a['cf_capex']
-        a['cf_prepay_sr'] = sum(abs(r.get('Prepayment', 0)) for r in sr_schedule if y_start <= r['Month'] < y_end)
-        a['cf_prepay'] = a['cf_prepay_sr']
-        if a['cf_prepay'] > 0 and (dtic_grant_entity + gepf_prepay_entity) > 0:
-            _prepay_dtic_share = dtic_grant_entity / (dtic_grant_entity + gepf_prepay_entity)
-            a['cf_prepay_dtic'] = a['cf_prepay'] * _prepay_dtic_share
-            a['cf_prepay_gepf'] = a['cf_prepay'] * (1.0 - _prepay_dtic_share)
+        a['cf_grant_accel_sr'] = sum(abs(r.get('Acceleration', 0)) for r in sr_schedule if y_start <= r['Month'] < y_end)
+        a['cf_grant_accel'] = a['cf_grant_accel_sr']
+        a['cf_prepay_sr'] = a['cf_grant_accel_sr']  # backward compat
+        a['cf_prepay'] = a['cf_grant_accel']         # backward compat
+        if a['cf_grant_accel'] > 0 and (dtic_grant_entity + gepf_grant_entity) > 0:
+            _grant_dtic_share = dtic_grant_entity / (dtic_grant_entity + gepf_grant_entity)
+            a['cf_grant_accel_dtic'] = a['cf_grant_accel'] * _grant_dtic_share
+            a['cf_grant_accel_gepf'] = a['cf_grant_accel'] * (1.0 - _grant_dtic_share)
         else:
-            a['cf_prepay_dtic'] = 0.0; a['cf_prepay_gepf'] = 0.0
+            a['cf_grant_accel_dtic'] = 0.0; a['cf_grant_accel_gepf'] = 0.0
+        a['cf_prepay_dtic'] = a['cf_grant_accel_dtic']   # backward compat
+        a['cf_prepay_gepf'] = a['cf_grant_accel_gepf']   # backward compat
         a['cf_ie_sr'] = sum(r['Interest'] for r in sr_schedule if y_start <= r['Month'] < y_end and r['Month'] >= 24)
         a['cf_ie_mz'] = sum(r['Interest'] for r in mz_schedule if y_start <= r['Month'] < y_end and r['Month'] >= 24)
         a['cf_ie'] = a['cf_ie_sr'] + a['cf_ie_mz']
@@ -558,7 +561,7 @@ def build_sub_annual_model(entity_key):
         a['cf_grant_dtic'] = dtic_grant_entity if yi == 1 else 0.0
         a['cf_grant_iic'] = ta_grant_entity if yi == 1 else 0.0
         a['cf_grants'] = a['cf_grant_dtic'] + a['cf_grant_iic']
-        a['cf_net'] = (a['cf_equity'] + a['cf_draw'] - a['cf_capex'] + a['cf_grants'] - a['cf_prepay']
+        a['cf_net'] = (a['cf_equity'] + a['cf_draw'] - a['cf_capex'] + a['cf_grants'] - a['cf_grant_accel']
                        + a['cf_ops'] - a['cf_ie'] - a['cf_pr'])
         cumulative_pat += a['pat']
         _dsra_fd_bal = _dsra_fd_bal + a['cf_net']
@@ -599,8 +602,8 @@ for entity in ["nwl", "lanred", "timberworx"]:
             print(f"{a['year']:>3} {gap:>12,.0f} {a['bs_retained']:>14,.0f} {a['bs_retained_check']:>14,.0f} "
                   f"{a['bs_fixed_assets']:>14,.0f} {a['bs_dsra']:>14,.0f} {a['bs_sr']:>14,.0f} {a['bs_mz']:>14,.0f}{marker}")
 
-        total_idc_sr = sum(r['Interest'] for r in result['sr_schedule'] if r['Period'] < 0)
-        total_idc_mz = sum(r['Interest'] for r in result['mz_schedule'] if r['Period'] < 0)
+        total_idc_sr = sum(r['Interest'] for r in result['sr_schedule'] if r['Period'] <= construction_end_index())
+        total_idc_mz = sum(r['Interest'] for r in result['mz_schedule'] if r['Period'] <= construction_end_index())
         print(f"\n  Sr IC IDC: €{total_idc_sr:,.0f}  |  Mz IC IDC: €{total_idc_mz:,.0f}  |  Total IDC: €{total_idc_sr + total_idc_mz:,.0f}")
         print(f"  Depreciable base: €{result['depreciable_base']:,.0f}  |  Entity equity: €{result['entity_equity']:,.0f}")
 

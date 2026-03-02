@@ -446,7 +446,7 @@ The name reflects SCLCA's strategic purpose: **unlocking Smart City Lanseria dev
 ```
 Lanseria DevCo (Pty) Ltd
 └── Smart City Lanseria Catalytic Assets (SCLCA) - 100% owned
-    ├── New Water Lanseria (NWL) - 100% owned
+    ├── New Water Lanseria (NWL) - 93% owned (7% Crosspoint)
     │   └── IC Loan: {{nwl_ic_total}} (Senior {{nwl_ic_senior}} + Mezz {{nwl_ic_mezz}})
     │   └── Assets: 2 MLD MABR plant, sewer reticulation
     │
@@ -454,7 +454,7 @@ Lanseria DevCo (Pty) Ltd
     │   └── IC Loan: {{lanred_ic_total}} (Senior {{lanred_ic_senior}} + Mezz {{lanred_ic_mezz}})
     │   └── Assets: Solar PV + BESS
     │
-    └── Timberworx (Pty) Ltd - 100% owned
+    └── Timberworx (Pty) Ltd - 5% owned (95% VanSquared)
         └── IC Loan: {{twx_ic_total}} (Senior {{twx_ic_senior}} + Mezz {{twx_ic_mezz}})
         └── Assets: CoE + Panel Equipment
 ```
@@ -509,12 +509,9 @@ Frontier Funding is a **new financial instrument** that captures returns from **
 
 **Catalytic Development Capital:**
 
-This is **one enabler** of Frontier Funding, not the definition:
-- IIC grant (€50k)
-- Invest International mezzanine (€2.3M treated as quasi-equity)
-- DBSA/KfW co-lending on adjacent projects (NBI Youth Centres, Limbro Park)
+The **€3.5M revolving Development Fund** that finances project incubation — feasibility studies, engineering, permitting, legal structuring, demonstrations, and specialist retainers — all before a single euro of project finance is committed. The fund revolves: projects repay at financial close or pre-operations. Subsidy inflows (via MPA Clause 3.3) and vendor BD budgets replenish the fund indirectly, preventing pipeline death from capital drain.
 
-These instruments absorb early-stage risk to crowd in senior lenders, but **Frontier Funding** is the overarching arbitrage framework.
+Catalytic Development Capital is one pillar of the broader **Frontier Funding** arbitrage framework — it funds the incubation phase that makes projects bankable, enabling the risk arbitrage that Frontier Funding then executes through the Credit Stack (Layer A→B→C→D).
 
 ### Unlocking the Smart City
 

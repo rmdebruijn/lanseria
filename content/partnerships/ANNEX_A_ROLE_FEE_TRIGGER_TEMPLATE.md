@@ -22,18 +22,29 @@ Formulae are not restated here. Stacking rules are in the Agreement body (Clause
 
 The relevant Schedule B-n may override for a specific Designated Transaction.
 
+**Tech and Project:**
+
 | Code | Scope Item | Primary | Secondary |
 |------|-----------|---------|-----------|
 | S-01 | Project origination | `[__]` | `[__]` |
 | S-02 | Technology and Exporter Pre-Selection | `[__]` | `[__]` |
-| S-03 | First-loss / guarantee architecture | `[__]` | `[__]` |
+| S-03 | Subsidy access (vendor-linked) | `[__]` | `[__]` |
+
+**Equity and Senior Debt:**
+
+| Code | Scope Item | Primary | Secondary |
+|------|-----------|---------|-----------|
 | S-04 | Equity / mezzanine structuring | `[__]` | `[__]` |
-| S-05 | ECA packaging and credit conversion | `[__]` | `[__]` |
-| S-06 | Non-recourse debt structuring | `[__]` | `[__]` |
-| S-07 | Credit-enhanced development debt (DFI) | `[__]` | `[__]` |
-| S-08 | Underwriting / swap credit conversion | `[__]` | `[__]` |
-| S-09 | Subsidy access (vendor-linked) | `[__]` | `[__]` |
-| S-10 | Supplier credit related supplier working capital | `[__]` | `[__]` |
+| S-05 | Non-recourse debt structuring | `[__]` | `[__]` |
+
+**Layer Capital Structures:**
+
+| Code | Scope Item | Primary | Secondary |
+|------|-----------|---------|-----------|
+| S-06 | First-loss / guarantee architecture (Layer A) | `[__]` | `[__]` |
+| S-07 | Credit conversion (ECA / underwriting / swap) (Layer B) | `[__]` | `[__]` |
+| S-08 | Credit-enhanced development debt / DFI (Layer C) | `[__]` | `[__]` |
+| S-09 | Supplier credit working capital (Layer D) | `[__]` | `[__]` |
 
 ---
 
@@ -63,16 +74,16 @@ Decay is tracked per origination source (F-01) and per technology provider (F-02
 | 10 | 0.63% | 63,000 |
 | 20 | 0.45% | 45,000 |
 
-### Segment 2: Fixed-Rate Items (Equity, Mezzanine, Non-Recourse Debt, Subsidy)
+### Segment 2: Fixed-Rate Items (Subsidy, Equity, Mezzanine, Non-Recourse Debt)
 
 **Formula (Clause 7.4):** `Fee = R% x Base`
 
 | Fee Item | Scope | R% | Base Definition |
 |----------|-------|----|-----------------|
-| F-03: Equity structuring | S-04 | 5% | Equity amount raised/closed |
-| F-04: Mezzanine structuring | S-04 | 4% | Mezzanine amount raised/closed |
-| F-05: Non-recourse debt | S-06 | 3% | Debt facility amount closed |
-| F-06: Subsidy success fee | S-09 | 5% | Subsidy amount secured |
+| F-03: Subsidy success fee | S-03 | 5% | Subsidy amount secured |
+| F-04a: Equity structuring | S-04 | 5% | Equity amount raised/closed |
+| F-04b: Mezzanine structuring | S-04 | 4% | Mezzanine amount raised/closed |
+| F-05: Non-recourse debt | S-05 | 3% | Debt facility amount closed |
 
 ### Segment 3: Frontier Funding Layers (Root-Curve Items)
 
@@ -82,16 +93,16 @@ A is a fixed constant set per instrument. B_i is the Covered Amount per Designat
 
 | Fee Item | Scope | Layer | A | B_i Definition |
 |----------|-------|-------|---|----------------|
-| F-07: Corporate guarantee | S-03 | A | 63 | Guarantee Covered Amount |
-| F-08: PE cash-backed guarantee | S-03 | A | 63 | Cash-backed Covered Amount |
-| F-09: Captive cell insurance | S-03 | A | 16 | Insurance Covered Amount |
-| F-10: ECA packaging | S-05 | B | `[__]` | ECA Covered Amount |
-| F-11: Underwriting / insurance wrap | S-08 | B | `[__]` | Underwriting Covered Amount |
-| F-12: Currency swap | S-08 | B | `[__]` | Swap notional Covered Amount |
-| F-13: Credit-enhanced development debt (DFI) | S-07 | C | `[__]` | DFI facility Covered Amount |
-| F-14: Supplier credit related supplier working capital | S-10 | D | `[__]` | Working Capital line for supplier |
+| F-06a: Corporate guarantee | S-06 | A | 63 | Guarantee Covered Amount |
+| F-06b: PE cash-backed guarantee | S-06 | A | 63 | Cash-backed Covered Amount |
+| F-06c: Captive cell insurance | S-06 | A | 16 | Insurance Covered Amount |
+| F-07a: ECA packaging | S-07 | B | `[__]` | ECA Covered Amount |
+| F-07b: Underwriting / insurance wrap | S-07 | B | `[__]` | Underwriting Covered Amount |
+| F-07c: Currency swap | S-07 | B | `[__]` | Swap notional Covered Amount |
+| F-08: Credit-enhanced development debt (DFI) | S-08 | C | `[__]` | DFI facility Covered Amount |
+| F-09: Supplier credit related supplier working capital | S-09 | D | `[__]` | Working Capital line for supplier |
 
-**Example (F-07/F-08, A = 63):**
+**Example (F-06a/F-06b, A = 63):**
 
 | B_i (Covered Amount) | sqrt(B_i) | Fee_i | Effective % |
 |----------------------|-----------|-------|-------------|
@@ -101,7 +112,7 @@ A is a fixed constant set per instrument. B_i is the Covered Amount per Designat
 | 20,000,000 | 4,472 | 281,700 | 1.41% |
 | 50,000,000 | 7,071 | 445,500 | 0.89% |
 
-**Example (F-09, A = 16):**
+**Example (F-06c, A = 16):**
 
 | B_i (Covered Amount) | sqrt(B_i) | Fee_i | Effective % |
 |----------------------|-----------|-------|-------------|

@@ -1,0 +1,15 @@
+{
+  "_metadata": {
+    "entity": "lanred",
+    "description": "LanRED-specific formula overrides.",
+    "note": "LanRED revenue combines solar PPA, BESS arbitrage, and excess generation sales"
+  },
+  "formulas": {
+    "revenue": {
+      "expr": "ppa_revenue + bess_revenue + excess_revenue",
+      "depends_on": ["ppa_revenue", "bess_revenue", "excess_revenue"],
+      "unit": "EUR",
+      "description": "LanRED revenue: PPA + BESS arbitrage + excess generation market sales"
+    }
+  }
+}

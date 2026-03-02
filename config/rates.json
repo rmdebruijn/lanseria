@@ -1,0 +1,47 @@
+{
+  "senior_debt": {
+    "base_rate": 0.0275,
+    "bank_margin": 0.0195,
+    "facility_rate": 0.047,
+    "note": "Euribor + Bank Margin"
+  },
+  "mezzanine": {
+    "prime": 0.1025,
+    "margin": 0.04,
+    "total_rate": 0.1425,
+    "note": "SA Prime + Margin"
+  },
+  "intercompany_margin": 0.005,
+  "fixed_deposits": {
+    "eur": {
+      "rate": 0.035,
+      "applies_to": ["ops_reserve", "opco_dsra", "entity_fd"],
+      "note": "EUR money-market proxy"
+    },
+    "zar": {
+      "rate": 0.09,
+      "applies_to": ["mz_div_fd"],
+      "note": "ZAR fixed deposit rate (CC is ZAR-denominated)"
+    }
+  },
+  "ic_overdraft": {
+    "rate": 0.10,
+    "note": "NWL to LanRED lending rate"
+  },
+  "cc_irr": {
+    "target": 0.20,
+    "contractual": 0.1475,
+    "gap": 0.0525
+  },
+  "swap": {
+    "zar_rate": 0.0969,
+    "note": "Investec quoted 9.69% fixed (Oct 2025)"
+  },
+  "tax": {
+    "corporate_rate": 0.27,
+    "note": "SA corporate tax"
+  },
+  "fx": {
+    "eur_zar": 20.0
+  }
+}

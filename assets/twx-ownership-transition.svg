@@ -1,81 +1,110 @@
-<svg width="820" height="380" viewBox="0 0 820 380" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <rect width="820" height="380" rx="12" fill="white" stroke="#E5E7EB" stroke-width="1"/>
+<svg width="820" height="360" viewBox="0 0 820 360" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <style>text{font-family:'Inter','Segoe UI',Arial,sans-serif}</style>
+  </defs>
+  <rect width="820" height="360" fill="white"/>
 
-  <text x="410" y="30" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="#1F2937" font-weight="bold">Timberworx — Ownership Transition</text>
+  <!-- Title -->
+  <text x="410" y="24" text-anchor="middle" font-size="13" fill="#111827" font-weight="bold">Timberworx — Ownership Transition</text>
 
-  <!-- ==================== CURRENT (LEFT) ==================== -->
-  <text x="205" y="62" text-anchor="middle" font-family="Arial, sans-serif" font-size="13" fill="#6B7280" font-weight="bold">Current Structure</text>
-  <rect x="35" y="70" width="340" height="4" rx="2" fill="#E5E7EB"/>
+  <!-- ═══════════ CURRENT (LEFT) ═══════════ -->
 
-  <!-- VanSquare (current majority) -->
-  <rect x="50" y="90" width="145" height="60" rx="8" fill="#FFF7ED" stroke="#F97316" stroke-width="1.5"/>
-  <text x="122" y="117" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="#F97316" font-weight="bold">VanSquare</text>
-  <text x="122" y="137" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="#6B7280">Co-shareholder</text>
+  <text x="195" y="52" text-anchor="middle" font-size="11" fill="#6B7280" font-weight="bold">Current Structure</text>
+  <line x1="35" y1="60" x2="355" y2="60" stroke="#E5E7EB" stroke-width="1.5"/>
 
-  <!-- CA (current minority) -->
-  <rect x="215" y="90" width="145" height="60" rx="8" fill="#F0FDF4" stroke="#16A34A" stroke-width="1.5"/>
-  <text x="287" y="112" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="#6B7280">Smart City Lanseria</text>
-  <text x="287" y="128" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="#16A34A" font-weight="bold">Catalytic Assets</text>
+  <!-- VanSquared -->
+  <rect x="40" y="76" width="150" height="48" rx="5" fill="#FFF7ED" stroke="#F97316" stroke-width="1.5"/>
+  <text x="115" y="98" text-anchor="middle" font-size="10" fill="#F97316" font-weight="600">VanSquared</text>
+  <text x="115" y="114" text-anchor="middle" font-size="8" fill="#6B7280">Van2 (Pty) Ltd</text>
 
-  <!-- Arrows with percentages -->
-  <path d="M122,150 L122,195" stroke="#F97316" stroke-width="1.5" fill="none"/>
-  <polygon points="122,195 118,187 126,187" fill="#F97316"/>
-  <text x="140" y="178" text-anchor="start" font-family="Arial, sans-serif" font-size="11" fill="#F97316" font-weight="bold">95%</text>
+  <!-- CA current -->
+  <rect x="200" y="76" width="150" height="48" rx="5" fill="#ECFDF5" stroke="#6EE7B7" stroke-width="1.5"/>
+  <text x="275" y="94" text-anchor="middle" font-size="8" fill="#6B7280">Smart City Lanseria</text>
+  <text x="275" y="108" text-anchor="middle" font-size="10" fill="#065F46" font-weight="600">Catalytic Assets</text>
+  <text x="275" y="120" text-anchor="middle" font-size="7" fill="#9CA3AF">SCLCA</text>
 
-  <path d="M287,150 L287,195" stroke="#16A34A" stroke-width="1.5" fill="none"/>
-  <polygon points="287,195 283,187 291,187" fill="#16A34A"/>
-  <text x="295" y="178" text-anchor="start" font-family="Arial, sans-serif" font-size="11" fill="#16A34A" font-weight="bold">5%</text>
+  <!-- Arrows -->
+  <line x1="115" y1="124" x2="115" y2="172" stroke="#F97316" stroke-width="1.2"/>
+  <polygon points="115,172 111,165 119,165" fill="#F97316"/>
+  <rect x="97" y="142" width="36" height="16" rx="8" fill="#F97316"/>
+  <text x="115" y="153" text-anchor="middle" font-size="8" fill="#fff" font-weight="600">95%</text>
+
+  <line x1="275" y1="124" x2="275" y2="172" stroke="#065F46" stroke-width="1.2"/>
+  <polygon points="275,172 271,165 279,165" fill="#065F46"/>
+  <rect x="257" y="142" width="36" height="16" rx="8" fill="#065F46"/>
+  <text x="275" y="153" text-anchor="middle" font-size="8" fill="#fff" font-weight="600">5%</text>
 
   <!-- TWX current -->
-  <rect x="70" y="200" width="270" height="65" rx="8" fill="#FDF4E7" stroke="#8B4513" stroke-width="1.5"/>
-  <text x="205" y="227" text-anchor="middle" font-family="Arial, sans-serif" font-size="13" fill="#8B4513" font-weight="bold">Timberworx</text>
-  <text x="205" y="247" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="#6B7280">Timber Worx (Pty) Ltd</text>
+  <rect x="55" y="176" width="290" height="52" rx="5" fill="#FAF5FF" stroke="#C4B5FD" stroke-width="1.5"/>
+  <text x="200" y="198" text-anchor="middle" font-size="11" fill="#5B21B6" font-weight="700">Timberworx</text>
+  <text x="200" y="215" text-anchor="middle" font-size="8" fill="#6B7280">Timber Worx (Pty) Ltd | Reg. 2024/431134/07</text>
 
-  <!-- ==================== TRANSITION ARROW ==================== -->
-  <path d="M395,165 L425,165" stroke="#6B7280" stroke-width="2" fill="none"/>
-  <polygon points="425,165 417,161 417,169" fill="#6B7280"/>
-  <text x="410" y="155" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="#6B7280" font-style="italic">Future</text>
+  <!-- ═══════════ TRANSITION ARROW ═══════════ -->
 
-  <!-- ==================== FUTURE (RIGHT) ==================== -->
-  <text x="615" y="62" text-anchor="middle" font-family="Arial, sans-serif" font-size="13" fill="#6B7280" font-weight="bold">Future Structure</text>
-  <rect x="445" y="70" width="340" height="4" rx="2" fill="#2563EB" opacity="0.3"/>
+  <line x1="380" y1="148" x2="410" y2="148" stroke="#6B7280" stroke-width="2"/>
+  <polygon points="410,148 403,144 403,152" fill="#6B7280"/>
+  <text x="395" y="140" text-anchor="middle" font-size="8" fill="#6B7280" font-style="italic">Future</text>
 
-  <!-- NexusNovus (future) -->
-  <rect x="448" y="90" width="105" height="60" rx="8" fill="#F0FDF4" stroke="#16A34A" stroke-width="1.5"/>
-  <text x="500" y="117" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="#16A34A" font-weight="bold">NexusNovus</text>
-  <text x="500" y="137" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="#6B7280">Partner</text>
+  <!-- ═══════════ FUTURE (RIGHT) ═══════════ -->
 
-  <!-- Eckhardt, Werner (future) -->
-  <rect x="563" y="90" width="105" height="60" rx="8" fill="#FEF3C7" stroke="#D97706" stroke-width="1.5"/>
-  <text x="615" y="112" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="#D97706" font-weight="bold">Eckhardt</text>
-  <text x="615" y="128" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="#6B7280">Werner</text>
+  <text x="615" y="52" text-anchor="middle" font-size="11" fill="#6B7280" font-weight="bold">Future Structure</text>
+  <line x1="455" y1="60" x2="775" y2="60" stroke="#2563EB" stroke-width="1.5" opacity="0.3"/>
 
-  <!-- CA (future minority) -->
-  <rect x="678" y="90" width="105" height="60" rx="8" fill="#F0FDF4" stroke="#16A34A" stroke-width="1.5"/>
-  <text x="730" y="112" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="#6B7280">Catalytic</text>
-  <text x="730" y="128" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="#16A34A" font-weight="bold">Assets</text>
+  <!-- NexusNovus -->
+  <rect x="448" y="76" width="110" height="48" rx="5" fill="#F0FDF4" stroke="#16A34A" stroke-width="1.5"/>
+  <text x="503" y="98" text-anchor="middle" font-size="10" fill="#166534" font-weight="600">NexusNovus</text>
+  <text x="503" y="114" text-anchor="middle" font-size="8" fill="#6B7280">Partner</text>
 
-  <!-- Arrows down -->
-  <path d="M500,150 L500,195" stroke="#16A34A" stroke-width="1.5" fill="none"/>
-  <polygon points="500,195 496,187 504,187" fill="#16A34A"/>
+  <!-- Eckhardt -->
+  <rect x="568" y="76" width="110" height="48" rx="5" fill="#FEF3C7" stroke="#D97706" stroke-width="1.5"/>
+  <text x="623" y="94" text-anchor="middle" font-size="10" fill="#92400E" font-weight="600">Eckhardt</text>
+  <text x="623" y="108" text-anchor="middle" font-size="8" fill="#6B7280">Werner</text>
 
-  <path d="M615,150 L615,195" stroke="#D97706" stroke-width="1.5" fill="none"/>
-  <polygon points="615,195 611,187 619,187" fill="#D97706"/>
+  <!-- CA future -->
+  <rect x="688" y="76" width="90" height="48" rx="5" fill="#ECFDF5" stroke="#6EE7B7" stroke-width="1.5"/>
+  <text x="733" y="94" text-anchor="middle" font-size="8" fill="#6B7280">Catalytic</text>
+  <text x="733" y="108" text-anchor="middle" font-size="10" fill="#065F46" font-weight="600">Assets</text>
 
-  <path d="M730,150 L730,195" stroke="#16A34A" stroke-width="1.5" fill="none"/>
-  <polygon points="730,195 726,187 734,187" fill="#16A34A"/>
+  <!-- Arrows -->
+  <line x1="503" y1="124" x2="503" y2="172" stroke="#16A34A" stroke-width="1.2"/>
+  <polygon points="503,172 499,165 507,165" fill="#16A34A"/>
+  <rect x="485" y="142" width="36" height="16" rx="8" fill="#16A34A"/>
+  <text x="503" y="153" text-anchor="middle" font-size="8" fill="#fff" font-weight="600">TBD</text>
 
-  <text x="516" y="178" text-anchor="start" font-family="Arial, sans-serif" font-size="10" fill="#16A34A" font-weight="bold">TBD%</text>
-  <text x="631" y="178" text-anchor="start" font-family="Arial, sans-serif" font-size="10" fill="#D97706" font-weight="bold">TBD%</text>
-  <text x="746" y="178" text-anchor="start" font-family="Arial, sans-serif" font-size="10" fill="#16A34A" font-weight="bold">5%</text>
+  <line x1="623" y1="124" x2="623" y2="172" stroke="#D97706" stroke-width="1.2"/>
+  <polygon points="623,172 619,165 627,165" fill="#D97706"/>
+  <rect x="605" y="142" width="36" height="16" rx="8" fill="#D97706"/>
+  <text x="623" y="153" text-anchor="middle" font-size="8" fill="#fff" font-weight="600">TBD</text>
+
+  <line x1="733" y1="124" x2="733" y2="172" stroke="#065F46" stroke-width="1.2"/>
+  <polygon points="733,172 729,165 737,165" fill="#065F46"/>
+  <rect x="715" y="142" width="36" height="16" rx="8" fill="#065F46"/>
+  <text x="733" y="153" text-anchor="middle" font-size="8" fill="#fff" font-weight="600">5%</text>
 
   <!-- TWX future -->
-  <rect x="470" y="200" width="290" height="65" rx="8" fill="#FDF4E7" stroke="#8B4513" stroke-width="2"/>
-  <text x="615" y="227" text-anchor="middle" font-family="Arial, sans-serif" font-size="13" fill="#8B4513" font-weight="bold">Timberworx</text>
-  <text x="615" y="247" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="#6B7280">Timber Worx (Pty) Ltd</text>
+  <rect x="460" y="176" width="305" height="52" rx="5" fill="#FAF5FF" stroke="#C4B5FD" stroke-width="2"/>
+  <text x="612" y="198" text-anchor="middle" font-size="11" fill="#5B21B6" font-weight="700">Timberworx</text>
+  <text x="612" y="215" text-anchor="middle" font-size="8" fill="#6B7280">Timber Worx (Pty) Ltd | Reg. 2024/431134/07</text>
 
-  <!-- Footnote -->
-  <text x="410" y="305" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="#9CA3AF">VanSquare's 95% stake transitions to NexusNovus and Eckhardt, Werner. SCLCA retains 5% minority.</text>
-  <text x="410" y="325" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="#9CA3AF">Exact future percentages to be determined upon restructuring.</text>
-  <text x="410" y="355" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="#B0B0B0" font-style="italic">Reg: 2024/431134/07</text>
+  <!-- ═══════════ Footnotes ═══════════ -->
+
+  <text x="410" y="262" text-anchor="middle" font-size="8" fill="#9CA3AF">VanSquared (Van2 (Pty) Ltd) 95% stake transitions to NexusNovus and Eckhardt/Werner. SCLCA retains 5% minority.</text>
+  <text x="410" y="278" text-anchor="middle" font-size="8" fill="#9CA3AF">Exact future percentages TBD. See Inter-Company Structure for transaction sequence.</text>
+
+  <!-- ═══════════ LEGEND ═══════════ -->
+  <line x1="30" y1="298" x2="790" y2="298" stroke="#E5E7EB" stroke-width="0.8"/>
+  <rect x="40" y="307" width="10" height="10" rx="2" fill="#FFF7ED" stroke="#F97316" stroke-width="1"/>
+  <text x="56" y="316" font-size="7.5" fill="#6B7280">VanSquared</text>
+  <rect x="120" y="307" width="10" height="10" rx="2" fill="#ECFDF5" stroke="#6EE7B7" stroke-width="1"/>
+  <text x="136" y="316" font-size="7.5" fill="#6B7280">SCLCA</text>
+  <rect x="180" y="307" width="10" height="10" rx="2" fill="#F0FDF4" stroke="#16A34A" stroke-width="1"/>
+  <text x="196" y="316" font-size="7.5" fill="#6B7280">NexusNovus</text>
+  <rect x="265" y="307" width="10" height="10" rx="2" fill="#FEF3C7" stroke="#D97706" stroke-width="1"/>
+  <text x="281" y="316" font-size="7.5" fill="#6B7280">Eckhardt</text>
+  <rect x="335" y="307" width="10" height="10" rx="2" fill="#FAF5FF" stroke="#C4B5FD" stroke-width="1"/>
+  <text x="351" y="316" font-size="7.5" fill="#6B7280">Timberworx</text>
+  <rect x="415" y="308" width="28" height="12" rx="6" fill="#6B7280"/>
+  <text x="429" y="317" text-anchor="middle" font-size="7" fill="#fff" font-weight="600">%%</text>
+  <text x="451" y="316" font-size="7.5" fill="#6B7280">Ownership %</text>
+
 </svg>

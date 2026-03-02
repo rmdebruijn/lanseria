@@ -1,0 +1,67 @@
+{
+  "_metadata": {
+    "entity": "nwl",
+    "description": "NWL assumptions — all variables that feed the big loop. No formulas here.",
+    "note": "UI sliders override these defaults via ScenarioInputs"
+  },
+
+  "operations": {
+    "greenfield": {
+      "growth_pct": 7.7,
+      "brine_pct": 10.0,
+      "sewage_rate_2025_zar": 46.40,
+      "water_rate_2025_zar": 62.05,
+      "reuse_ratio": 0.80,
+      "capacity_anchor_points": [[6, 0.0], [12, 0.0]],
+      "demand_anchor_months": [18, 24, 30, 36, 42, 48, 54, 60, 66, 72]
+    },
+    "sewerage_revenue_sharing": {
+      "joburg_price_zar": 46.40,
+      "growth_pct": 7.70,
+      "transport_r_per_km": 28.0,
+      "truck_capacity_m3": 10.0,
+      "nwl_distance_km": 10.0,
+      "gov_distance_km": 100.0,
+      "saving_to_market_pct": 40.0
+    },
+    "power": {
+      "kwh_per_m3": 0.4,
+      "eskom_base_zar": 2.81,
+      "ic_discount_pct": 10.0,
+      "escalation_pct": 10.0
+    },
+    "coe_rent": {
+      "om_overhead_pct": 2.0
+    }
+  },
+
+  "financing": {
+    "wacc_weights": { "senior": 0.85, "mezzanine": 0.15 },
+    "sweep_pct": 100.0,
+    "swap": {
+      "enabled": true,
+      "lc_ceiling_eur": 3996392,
+      "hedge_type": "Cross-Currency Swap"
+    }
+  },
+
+  "grants": {
+    "timing_semi_index": 2,
+    "pre_revenue_hedge_semi_index": 4
+  },
+
+  "eca": {
+    "atradius": true,
+    "exporter": true
+  },
+
+  "tax": {
+    "depreciation_method": "s12c",
+    "s12c_schedule": { "0": 0.40, "1": 0.20, "2": 0.20, "3": 0.20 }
+  },
+
+  "constants": {
+    "days_per_month": 30.44,
+    "kl_per_mld_half_year": 182500
+  }
+}

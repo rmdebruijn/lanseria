@@ -1,0 +1,281 @@
+{
+  "_metadata": {
+    "description": "Canonical entity registry — single source of truth for all corporate entity names, codes, and metadata throughout the financial model and SVG diagrams.",
+    "last_updated": "2026-02-24"
+  },
+
+  "entities": {
+
+    "devco": {
+      "name": "Smart City Lanseria DevCo",
+      "legal_name": "Lanseria Smart City Development (Pty) Ltd",
+      "code": "DEVCO",
+      "registration": "2025/950567/07",
+      "type": "master_development_company",
+      "country": "ZA",
+      "description": "Master development company — land development, township establishment, bulk infrastructure",
+      "parent": null,
+      "logo_key": null,
+      "shareholders": {
+        "andzafusion": { "pct": null, "note": "DTIC requirement determines initial %" },
+        "vhit": { "pct": null, "note": "Balance after Andzafusion allocation" }
+      }
+    },
+
+    "sclca": {
+      "name": "Catalytic Assets",
+      "legal_name": "Catalytic Assets (Pty) Ltd",
+      "code": "SCLCA",
+      "registration": "CIPC application pending",
+      "type": "financial_holding",
+      "country": "ZA",
+      "description": "Financial holding company — borrower and onward lender to operating subsidiaries",
+      "parent": "devco",
+      "parent_pct": 1.00,
+      "logo_key": "sclca",
+      "aliases": ["CA", "Catalytic Assets", "SCLCA"]
+    },
+
+    "nwl": {
+      "name": "New Water Lanseria",
+      "legal_name": "New Water Lanseria (Pty) Ltd",
+      "code": "NWL",
+      "registration": "2020/882602/07",
+      "type": "operating_company",
+      "country": "ZA",
+      "description": "Water treatment + ESG management",
+      "parent": "sclca",
+      "parent_pct": 0.93,
+      "logo_key": "nwl",
+      "assets": ["water", "esg"],
+      "other_shareholders": {
+        "crosspoint": { "pct": 0.07, "note": "Crosspoint buys 7% from Andzafusion" }
+      }
+    },
+
+    "lanred": {
+      "name": "LanRED",
+      "legal_name": "LanRED (Pty) Ltd",
+      "code": "LANRED",
+      "registration": "2025/242125/07",
+      "type": "operating_company",
+      "country": "ZA",
+      "description": "Solar + battery storage",
+      "parent": "sclca",
+      "parent_pct": 1.00,
+      "logo_key": "lanred",
+      "assets": ["solar"],
+      "other_shareholders": {
+        "cala": { "pct": 0.05, "note": "FUTURE: Cala — 5% equity via JDA, focus on solar assets (greenfield + brownfield). Not yet executed." }
+      },
+      "note": "Currently 100% SCLCA. Cala 5% is a future JDA transaction (see INTER_COMPANY_STRUCTURE.md)"
+    },
+
+    "timberworx": {
+      "name": "Timberworx",
+      "legal_name": "Timber Worx (Pty) Ltd",
+      "code": "TWX",
+      "registration": "2024/431134/07",
+      "type": "operating_company",
+      "country": "ZA",
+      "description": "Centre of Excellence — modular timber panels",
+      "parent": "sclca",
+      "parent_pct": 0.05,
+      "logo_key": "timberworx",
+      "assets": ["coe"],
+      "other_shareholders": {
+        "vansquared": { "pct": 0.95, "note": "VanSquared — owned by VHIT" }
+      }
+    },
+
+    "llc": {
+      "name": "Lanseria Landowners Consortium",
+      "legal_name": "Lanseria Landowners Consortium (Pty) Ltd",
+      "code": "LLC",
+      "registration": "2024/557690/07",
+      "type": "land_consortium",
+      "country": "ZA",
+      "description": "Land holdings, servitudes, regulatory compliance",
+      "parent": "devco",
+      "parent_pct": null,
+      "logo_key": null,
+      "shareholders": {
+        "rutger": { "pct": 0.25, "note": "Current — collapses into DevCo post-close" },
+        "mark": { "pct": 0.25, "note": "Current — collapses into DevCo post-close" },
+        "siza": { "pct": 0.25, "note": "Current — collapses into DevCo post-close" },
+        "eckhardt": { "pct": 0.25, "note": "Stays direct — split from VanSquared 50%" }
+      },
+      "note": "VanSquared currently holds 50% (M+E). Must be split. R+M+S collapse into DevCo; E stays direct."
+    },
+
+    "infraco": {
+      "name": "InfraCo",
+      "legal_name": null,
+      "code": "INFRACO",
+      "registration": null,
+      "type": "infrastructure_company",
+      "country": "ZA",
+      "description": "Bulk services infrastructure — civil works and connections",
+      "parent": "devco",
+      "parent_pct": null,
+      "logo_key": null
+    },
+
+    "cradle_cloud": {
+      "name": "Cradle Cloud",
+      "legal_name": "Cradle Cloud (Pty) Ltd",
+      "code": "CC",
+      "registration": "CIPC application pending",
+      "type": "spv",
+      "country": "ZA",
+      "description": "Sovereign AI data centre",
+      "parent": "sclca",
+      "parent_pct": 0.80,
+      "logo_key": null,
+      "other_shareholders": {
+        "jan": { "pct": 0.20, "note": "Entity vehicle TBD" }
+      },
+      "ica_visible": false
+    },
+
+    "iwsa": {
+      "name": "IWSA",
+      "legal_name": "Integrated Waste Solutions Africa (Pty) Ltd",
+      "code": "IWSA",
+      "registration": "2025/559868/07",
+      "type": "spv",
+      "country": "ZA",
+      "description": "Integrated waste and sanitation — Nordic partnership",
+      "parent": "sclca",
+      "parent_pct": 0.95,
+      "logo_key": null,
+      "other_shareholders": {
+        "nordic_partners": { "pct": 0.05, "note": "Nordic partners — not in CA/top structure" }
+      },
+      "ica_visible": false
+    },
+
+    "andzafusion": {
+      "name": "Andzafusion Water",
+      "legal_name": "Andzafusion Water (Pty) Ltd",
+      "code": "ANDZA",
+      "registration": null,
+      "type": "shareholder",
+      "country": "ZA",
+      "description": "Water & sanitation — Sizakele Mabuza-Kekana's company",
+      "ubo": "Sizakele Mabuza-Kekana",
+      "role": "promoter",
+      "logo_key": null,
+      "holds": {
+        "devco": { "pct": null, "note": "DTIC determines initial %" }
+      }
+    },
+
+    "vhit": {
+      "name": "VH Investments Trust",
+      "legal_name": "VH Investments Trust",
+      "code": "VHIT",
+      "registration": null,
+      "type": "trust",
+      "country": "ZA",
+      "description": "Mark van Houten's investment trust — holds DevCo stake and VanSquared",
+      "ubo": "Mark van Houten",
+      "role": "co_investor",
+      "logo_key": null,
+      "holds": {
+        "devco": { "pct": null, "note": "Balance after Andzafusion allocation" },
+        "vansquared": { "pct": 1.00 },
+        "veracity": { "pct": 1.00 },
+        "vh_properties": { "pct": 0.40 }
+      }
+    },
+
+    "vansquared": {
+      "name": "VanSquared",
+      "legal_name": "Van2 (Pty) Ltd",
+      "code": "VS",
+      "registration": "2021/930820/07",
+      "type": "shareholder",
+      "country": "ZA",
+      "description": "Co-shareholder in Timberworx (95%) and LLC (50% — to be split)",
+      "parent": "vhit",
+      "logo_key": "vansquared",
+      "holds": {
+        "timberworx": { "pct": 0.95 },
+        "llc": { "pct": 0.50, "note": "To be split: 25% Mark + 25% Eckhardt" }
+      }
+    },
+
+    "crosspoint": {
+      "name": "Crosspoint",
+      "legal_name": "Crosspoint Property Investments (Pty) Ltd",
+      "code": "CP",
+      "registration": "2011/004713/07",
+      "type": "shareholder",
+      "country": "ZA",
+      "description": "Property investments — holds 25% GEPF land bank option",
+      "logo_key": "crosspoint",
+      "holds": {
+        "nwl": { "pct": 0.07, "note": "Via Crosspoint 2 — buys from Andzafusion. Alternative: no NWL shares if adequately compensated for property option." }
+      },
+      "note": "Crosspoint shown at IIC stage; Crosspoint 2 is a separate entity used for NWL share purchase. May accept compensation for property option instead of NWL equity."
+    },
+
+    "cala": {
+      "name": "Cala",
+      "legal_name": null,
+      "code": "CALA",
+      "registration": null,
+      "type": "partner",
+      "country": "ZA",
+      "description": "Solar energy partner — JDA for LanRED greenfield (EUR 3M) + brownfield (EUR 10M+) solar assets",
+      "role": "development_partner",
+      "logo_key": null,
+      "holds": {
+        "lanred": { "pct": 0.05, "note": "5% equity via JDA — 1% success fee on financial closure, ZAR 25k/m retainer (max 3 months)" }
+      }
+    },
+
+    "nexusnuvus": {
+      "name": "NexusNovus Holdings",
+      "legal_name": null,
+      "code": "NN",
+      "registration": null,
+      "type": "holding_company",
+      "country": "MU",
+      "description": "Mark + Rutger holding via Mauritius trusts — replaces VHIT post-close",
+      "ubos": ["Mark van Houten", "Rutger"],
+      "logo_key": null,
+      "ica_visible": false,
+      "note": "Introduced post-close via contractual substitution — Atradius reputational risk from name"
+    },
+
+    "veracity": {
+      "name": "Veracity Property Holdings",
+      "legal_name": "Veracity Property Holdings (Pty) Ltd",
+      "code": "VPH",
+      "registration": null,
+      "type": "guarantor",
+      "country": "ZA",
+      "description": "Guarantor for NWL — holding company with property portfolio",
+      "parent": "vhit",
+      "parent_pct": 1.00,
+      "logo_key": null,
+      "guarantees": ["nwl"]
+    },
+
+    "vh_properties": {
+      "name": "VH Properties",
+      "legal_name": "VH Properties (Pty) Ltd",
+      "code": "VHPROP",
+      "registration": null,
+      "type": "guarantor",
+      "country": "ZA",
+      "description": "Guarantor for Timberworx — Phoenix Group property fund umbrella",
+      "parent": "vhit",
+      "parent_pct": 0.40,
+      "logo_key": null,
+      "guarantees": ["timberworx"]
+    }
+  }
+}

@@ -1,0 +1,86 @@
+{
+  "_metadata": {
+    "entity": "lanred",
+    "description": "LanRED assumptions — solar + BESS operations.",
+    "note": "Greenfield and Brownfield+ scenarios share this config"
+  },
+
+  "operations": {
+    "scenario": "Brownfield+",
+    "solar": {
+      "default_total_budget_eur": 2908809,
+      "cost_per_kwp_eur": 850,
+      "capacity_factor_pct": 21.5,
+      "degradation_pct_pa": 0.5,
+      "cod_month": 18
+    },
+    "bess": {
+      "allocation_pct": 14.0,
+      "cost_per_kwh_eur": 364,
+      "usable_pct": 90.0,
+      "roundtrip_efficiency_pct": 85.0,
+      "degradation_pct_pa": 2.0,
+      "arbitrage": {
+        "high_demand": {
+          "peak_rate_zar": 7.04,
+          "offpeak_rate_zar": 1.02,
+          "months": 3
+        },
+        "low_demand": {
+          "peak_rate_zar": 2.00,
+          "offpeak_rate_zar": 1.59,
+          "months": 9
+        }
+      }
+    },
+    "ic_nwl_power": {
+      "eskom_base_zar": 2.81,
+      "discount_pct": 10.0,
+      "escalation_pct": 10.0,
+      "start_month": 18,
+      "kwh_per_m3": 0.4
+    },
+    "smart_city": {
+      "tariff_zar": 2.289,
+      "discount_pct": 10.0,
+      "escalation_pct": 10.0,
+      "start_month": 36,
+      "share_by_year_pct": [0, 0, 15, 25, 30, 35, 40, 45, 50, 50]
+    },
+    "market": {
+      "rate_zar_per_kwh": 1.50,
+      "escalation_pct": 8.0,
+      "solar_cost_zar_per_kwh": 0.10
+    },
+    "om": {
+      "fixed_annual_zar": 120000,
+      "variable_zar_per_kwh": 0.05,
+      "indexation_pct": 5.0,
+      "start_month": 18
+    },
+    "grid": {
+      "monthly_charge_zar": 5000,
+      "escalation_pct": 5.0,
+      "start_month": 18
+    }
+  },
+
+  "financing": {
+    "wacc_weights": { "senior": 0.85, "mezzanine": 0.15 },
+    "sweep_pct": 100.0,
+    "swap": {
+      "enabled": false,
+      "hedge_type": "No Hedging"
+    }
+  },
+
+  "eca": {
+    "atradius": false,
+    "exporter": false
+  },
+
+  "tax": {
+    "depreciation_method": "s12c",
+    "s12c_schedule": { "0": 0.40, "1": 0.20, "2": 0.20, "3": 0.20 }
+  }
+}

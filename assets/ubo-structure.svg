@@ -1,157 +1,208 @@
-<svg width="900" height="660" viewBox="0 0 900 660" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <!-- Background -->
-  <rect width="900" height="660" rx="12" fill="white" stroke="#E5E7EB" stroke-width="1"/>
+<svg width="940" height="660" viewBox="0 0 940 660" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <style>text{font-family:'Inter','Segoe UI',Arial,sans-serif}</style>
+  </defs>
+  <rect width="940" height="660" fill="white"/>
 
   <!-- Title -->
-  <text x="450" y="30" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="#1F2937" font-weight="bold">Ultimate Beneficial Owners &amp; Guarantee Structure</text>
+  <text x="470" y="26" text-anchor="middle" font-size="14" fill="#111827" font-weight="bold">Group Structure — Smart City Lanseria</text>
 
-  <!-- ═══════════════════════════════════════════ -->
-  <!-- ROW 1: UBOs (y=55) -->
-  <!-- ═══════════════════════════════════════════ -->
+  <!-- ═══════════  ROW 1 : UBOs (y=52) ═══════════ -->
 
-  <!-- Sizakele Mabuza-Kekana -->
-  <rect x="25" y="55" width="210" height="55" rx="8" fill="#EFF6FF" stroke="#2563EB" stroke-width="1.5"/>
-  <text x="130" y="78" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#2563EB" font-weight="bold">Sizakele Mabuza-Kekana</text>
-  <text x="130" y="97" text-anchor="middle" font-family="Arial, sans-serif" font-size="9" fill="#6B7280">UBO | Promoter</text>
+  <rect x="30" y="52" width="190" height="44" rx="5" fill="#1F2937"/>
+  <text x="125" y="73" text-anchor="middle" font-size="10.5" fill="#fff" font-weight="600">Sizakele Mabuza-Kekana</text>
+  <text x="125" y="87" text-anchor="middle" font-size="8" fill="#9CA3AF">UBO | Promoter</text>
 
-  <!-- Mark van Houten -->
-  <rect x="345" y="55" width="210" height="55" rx="8" fill="#F0FDF4" stroke="#16A34A" stroke-width="1.5"/>
-  <text x="450" y="78" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#16A34A" font-weight="bold">Mark van Houten</text>
-  <text x="450" y="97" text-anchor="middle" font-family="Arial, sans-serif" font-size="9" fill="#6B7280">UBO | Co-Investor</text>
+  <rect x="430" y="52" width="190" height="44" rx="5" fill="#1F2937"/>
+  <text x="525" y="73" text-anchor="middle" font-size="10.5" fill="#fff" font-weight="600">Mark van Houten</text>
+  <text x="525" y="87" text-anchor="middle" font-size="8" fill="#9CA3AF">UBO | Co-Investor</text>
 
-  <!-- Siza → Andzafusion -->
-  <path d="M130,110 L130,150" stroke="#2563EB" stroke-width="1.5" fill="none"/>
-  <polygon points="130,150 125,142 135,142" fill="#2563EB"/>
+  <!-- ═══════════  ROW 2 : Vehicles (y=140) ═══════════ -->
 
-  <!-- Mark → VHIT -->
-  <path d="M450,110 L450,150" stroke="#16A34A" stroke-width="1.5" fill="none"/>
-  <polygon points="450,150 445,142 455,142" fill="#16A34A"/>
+  <line x1="125" y1="96" x2="125" y2="140" stroke="#2563EB" stroke-width="1.5"/>
+  <polygon points="125,140 121,133 129,133" fill="#2563EB"/>
 
-  <!-- ═══════════════════════════════════════════ -->
-  <!-- ROW 2: Vehicles (y=155) -->
-  <!-- ═══════════════════════════════════════════ -->
+  <rect x="30" y="140" width="190" height="44" rx="5" fill="#EFF6FF" stroke="#2563EB" stroke-width="1.5"/>
+  <text x="125" y="162" text-anchor="middle" font-size="10.5" fill="#1E40AF" font-weight="600">Andzafusion Water</text>
+  <text x="125" y="175" text-anchor="middle" font-size="8" fill="#6B7280">(Pty) Ltd</text>
 
-  <!-- Andzafusion Water -->
-  <rect x="25" y="155" width="210" height="55" rx="8" fill="#EFF6FF" stroke="#2563EB" stroke-width="1.5"/>
-  <text x="130" y="178" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#2563EB" font-weight="bold">Andzafusion Water</text>
-  <text x="130" y="197" text-anchor="middle" font-family="Arial, sans-serif" font-size="9" fill="#6B7280">(Pty) Ltd</text>
+  <line x1="525" y1="96" x2="525" y2="140" stroke="#16A34A" stroke-width="1.5"/>
+  <polygon points="525,140 521,133 529,133" fill="#16A34A"/>
 
-  <!-- VH Investments Trust -->
-  <rect x="345" y="155" width="210" height="55" rx="8" fill="#F0FDF4" stroke="#16A34A" stroke-width="1.5"/>
-  <text x="450" y="178" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#16A34A" font-weight="bold">VH Investments Trust</text>
-  <text x="450" y="197" text-anchor="middle" font-family="Arial, sans-serif" font-size="9" fill="#6B7280">VHIT | Family Trust</text>
+  <rect x="430" y="140" width="190" height="44" rx="5" fill="#F0FDF4" stroke="#16A34A" stroke-width="1.5"/>
+  <text x="525" y="162" text-anchor="middle" font-size="10.5" fill="#166534" font-weight="600">VH Investments Trust</text>
+  <text x="525" y="175" text-anchor="middle" font-size="8" fill="#6B7280">VHIT | Family Trust</text>
 
-  <!-- Horizontal line: Andzafusion — VHIT (co-ownership) -->
-  <line x1="235" y1="182" x2="345" y2="182" stroke="#374151" stroke-width="1.5"/>
+  <!-- ═══════════  ROUTING (y=184→270) ═══════════ -->
+  <!--
+    Layout: DevCo at x=310 (w=140, so center=380)
+    Andzafusion (x=125) drops BLUE to y=235, goes right to x=345, down into DevCo left-of-center
+    VHIT (x=525) drops GREEN to y=210, horizontal bus goes left to x=415 (DevCo right-of-center)
+      and right to VanSquared(630), VH Props(760), Veracity(870)
+    Bus at y=210, Andzafusion corner at y=235 — no crossing
+  -->
 
-  <!-- ═══════════════════════════════════════════ -->
-  <!-- ROW 3: Holdings (y=305) -->
-  <!-- ═══════════════════════════════════════════ -->
+  <!-- ── VHIT green horizontal bus at y=210 ── -->
+  <line x1="525" y1="184" x2="525" y2="210" stroke="#16A34A" stroke-width="1.5"/>
+  <line x1="415" y1="210" x2="870" y2="210" stroke="#16A34A" stroke-width="1.5"/>
 
-  <!-- Arrow from horizontal line midpoint down to Smart City Devco -->
-  <path d="M290,182 L290,297" stroke="#374151" stroke-width="1.5" fill="none"/>
-  <polygon points="290,297 285,289 295,289" fill="#374151"/>
+  <!-- VHIT → DevCo (right-of-center entry at x=415) -->
+  <line x1="415" y1="210" x2="415" y2="270" stroke="#16A34A" stroke-width="1.5"/>
+  <polygon points="415,270 411,263 419,263" fill="#16A34A"/>
+  <rect x="397" y="236" width="36" height="16" rx="8" fill="#16A34A"/>
+  <text x="415" y="247" text-anchor="middle" font-size="8" fill="#fff" font-weight="600">y %</text>
 
-  <!-- VHIT → VanSquared (straight down) -->
-  <path d="M450,210 L450,297" stroke="#16A34A" stroke-width="1.5" fill="none"/>
-  <polygon points="450,297 445,289 455,289" fill="#16A34A"/>
+  <!-- VHIT → VanSquared (x=630) -->
+  <line x1="630" y1="210" x2="630" y2="270" stroke="#16A34A" stroke-width="1.5"/>
+  <polygon points="630,270 626,263 634,263" fill="#16A34A"/>
+  <rect x="612" y="236" width="36" height="16" rx="8" fill="#16A34A"/>
+  <text x="630" y="247" text-anchor="middle" font-size="8" fill="#fff" font-weight="600">50%</text>
 
-  <!-- VHIT → VH Properties (branch right) -->
-  <path d="M555,182 L640,182 L640,297" stroke="#16A34A" stroke-width="1.5" fill="none"/>
-  <polygon points="640,297 635,289 645,289" fill="#16A34A"/>
+  <!-- VHIT → VH Properties (x=760) -->
+  <line x1="760" y1="210" x2="760" y2="270" stroke="#16A34A" stroke-width="1.5"/>
+  <polygon points="760,270 756,263 764,263" fill="#16A34A"/>
+  <rect x="742" y="236" width="36" height="16" rx="8" fill="#16A34A"/>
+  <text x="760" y="247" text-anchor="middle" font-size="8" fill="#fff" font-weight="600">100%</text>
 
-  <!-- VHIT → Veracity (branch far right) -->
-  <path d="M640,182 L820,182 L820,297" stroke="#16A34A" stroke-width="1.5" fill="none"/>
-  <polygon points="820,297 815,289 825,289" fill="#16A34A"/>
+  <!-- VHIT → Veracity (x=870) -->
+  <line x1="870" y1="210" x2="870" y2="270" stroke="#16A34A" stroke-width="1.5"/>
+  <polygon points="870,270 866,263 874,263" fill="#16A34A"/>
+  <rect x="852" y="236" width="36" height="16" rx="8" fill="#16A34A"/>
+  <text x="870" y="247" text-anchor="middle" font-size="8" fill="#fff" font-weight="600">100%</text>
 
-  <!-- Smart City DevCo -->
-  <rect x="180" y="302" width="220" height="55" rx="8" fill="#F3F4F6" stroke="#6B7280" stroke-width="1.5"/>
-  <text x="290" y="325" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#374151" font-weight="bold">Smart City DevCo</text>
-  <text x="290" y="344" text-anchor="middle" font-family="Arial, sans-serif" font-size="9" fill="#6B7280">Master Development Company</text>
+  <!-- ── Andzafusion blue line to DevCo (left-of-center entry at x=345) ── -->
+  <line x1="125" y1="184" x2="125" y2="235" stroke="#2563EB" stroke-width="1.5"/>
+  <line x1="125" y1="235" x2="345" y2="235" stroke="#2563EB" stroke-width="1.5"/>
+  <line x1="345" y1="235" x2="345" y2="270" stroke="#2563EB" stroke-width="1.5"/>
+  <polygon points="345,270 341,263 349,263" fill="#2563EB"/>
+  <rect x="107" y="201" width="36" height="16" rx="8" fill="#2563EB"/>
+  <text x="125" y="212" text-anchor="middle" font-size="8" fill="#fff" font-weight="600">x %</text>
 
-  <!-- VanSquared -->
-  <rect x="410" y="302" width="160" height="55" rx="8" fill="#F3F4F6" stroke="#6B7280" stroke-width="1.5"/>
-  <text x="490" y="325" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#374151" font-weight="bold">VanSquared</text>
-  <text x="490" y="344" text-anchor="middle" font-family="Arial, sans-serif" font-size="9" fill="#6B7280">95% TWX Shareholder</text>
+  <!-- ═══════════  ROW 3 : Holdings (y=270) ═══════════ -->
 
-  <!-- VH Properties -->
-  <rect x="575" y="302" width="130" height="55" rx="8" fill="#FEF3C7" stroke="#D97706" stroke-width="1.5"/>
-  <text x="640" y="325" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="#92400E" font-weight="bold">VH Properties</text>
-  <text x="640" y="344" text-anchor="middle" font-family="Arial, sans-serif" font-size="9" fill="#D97706">TWX Guarantor</text>
+  <rect x="310" y="270" width="140" height="48" rx="5" fill="#F9FAFB" stroke="#D1D5DB" stroke-width="1.2"/>
+  <text x="380" y="291" text-anchor="middle" font-size="11" fill="#111827" font-weight="600">Smart City DevCo</text>
+  <text x="380" y="305" text-anchor="middle" font-size="7.5" fill="#6B7280">Master Development Company</text>
 
-  <!-- Veracity -->
-  <rect x="755" y="302" width="130" height="55" rx="8" fill="#FEF3C7" stroke="#D97706" stroke-width="1.5"/>
-  <text x="820" y="325" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="#92400E" font-weight="bold">Veracity (VPH)</text>
-  <text x="820" y="344" text-anchor="middle" font-family="Arial, sans-serif" font-size="9" fill="#D97706">NWL Guarantor</text>
+  <rect x="570" y="270" width="120" height="48" rx="5" fill="#F9FAFB" stroke="#D1D5DB" stroke-width="1.2"/>
+  <text x="630" y="291" text-anchor="middle" font-size="10" fill="#111827" font-weight="600">VanSquared</text>
+  <text x="630" y="305" text-anchor="middle" font-size="7.5" fill="#6B7280">95% TWX Shareholder</text>
 
-  <!-- ═══════════════════════════════════════════ -->
-  <!-- ROW 4: Catalytic Assets / SCLCA (y=430) -->
-  <!-- ═══════════════════════════════════════════ -->
+  <rect x="700" y="270" width="120" height="48" rx="5" fill="#FEF3C7" stroke="#F59E0B" stroke-width="1.2"/>
+  <text x="760" y="291" text-anchor="middle" font-size="10" fill="#92400E" font-weight="600">VH Properties</text>
+  <text x="760" y="305" text-anchor="middle" font-size="7.5" fill="#B45309">TWX Guarantor</text>
 
-  <!-- DevCo → Catalytic Assets -->
-  <path d="M290,357 L290,422" stroke="#374151" stroke-width="2" fill="none"/>
-  <polygon points="290,422 285,414 295,414" fill="#374151"/>
-  <text x="305" y="395" text-anchor="start" font-family="Arial, sans-serif" font-size="10" fill="#374151" font-weight="bold">100%</text>
+  <rect x="830" y="270" width="100" height="48" rx="5" fill="#FEF3C7" stroke="#F59E0B" stroke-width="1.2"/>
+  <text x="880" y="288" text-anchor="middle" font-size="10" fill="#92400E" font-weight="600">Veracity</text>
+  <text x="880" y="300" text-anchor="middle" font-size="8.5" fill="#92400E">(VPH)</text>
+  <text x="880" y="312" text-anchor="middle" font-size="7.5" fill="#B45309">NWL Guarantor</text>
 
-  <!-- Catalytic Assets -->
-  <rect x="180" y="427" width="220" height="60" rx="8" fill="#F0FDF4" stroke="#16A34A" stroke-width="2"/>
-  <text x="290" y="449" text-anchor="middle" font-family="Arial, sans-serif" font-size="9" fill="#6B7280">Smart City Lanseria</text>
-  <text x="290" y="467" text-anchor="middle" font-family="Arial, sans-serif" font-size="13" fill="#16A34A" font-weight="bold">Catalytic Assets</text>
-  <text x="290" y="481" text-anchor="middle" font-family="Arial, sans-serif" font-size="8" fill="#6B7280">SCLCA | Financial Holding</text>
+  <!-- ═══════════  ROW 4 : SCLCA (y=395) ═══════════ -->
 
-  <!-- ═══════════════════════════════════════════ -->
-  <!-- ROW 5: OpCos (y=560) -->
-  <!-- ═══════════════════════════════════════════ -->
+  <line x1="380" y1="318" x2="380" y2="395" stroke="#6B7280" stroke-width="1.2"/>
+  <polygon points="380,395 376,388 384,388" fill="#6B7280"/>
+  <rect x="362" y="350" width="36" height="16" rx="8" fill="#6B7280"/>
+  <text x="380" y="361" text-anchor="middle" font-size="8" fill="#fff" font-weight="600">100%</text>
 
-  <!-- SCLCA → NWL -->
-  <path d="M230,487 L130,552" stroke="#2563EB" stroke-width="1.5" fill="none"/>
-  <polygon points="130,552 128,543 136,545" fill="#2563EB"/>
-  <text x="162" y="520" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="#2563EB" font-weight="bold">93%</text>
+  <rect x="280" y="395" width="200" height="52" rx="5" fill="#ECFDF5" stroke="#6EE7B7" stroke-width="1.5"/>
+  <text x="380" y="413" text-anchor="middle" font-size="9" fill="#6B7280">Smart City Lanseria</text>
+  <text x="380" y="429" text-anchor="middle" font-size="12" fill="#065F46" font-weight="700">Catalytic Assets</text>
+  <text x="380" y="441" text-anchor="middle" font-size="8" fill="#6B7280">SCLCA | Financial Holding</text>
 
-  <!-- SCLCA → LanRED -->
-  <path d="M290,487 L290,552" stroke="#EAB308" stroke-width="1.5" fill="none"/>
-  <polygon points="290,552 285,544 295,544" fill="#EAB308"/>
-  <text x="305" y="525" text-anchor="start" font-family="Arial, sans-serif" font-size="10" fill="#EAB308" font-weight="bold">100%</text>
+  <!-- ═══════════  ROW 5 : OpCos (y=530) ═══════════ -->
 
-  <!-- SCLCA → TWX -->
-  <path d="M350,487 L450,552" stroke="#8B4513" stroke-width="1.5" fill="none"/>
-  <polygon points="450,552 443,547 447,540" fill="#8B4513"/>
-  <text x="415" y="520" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="#8B4513" font-weight="bold">5%</text>
+  <!-- SCLCA down to bus -->
+  <line x1="380" y1="447" x2="380" y2="490" stroke="#6B7280" stroke-width="1.2"/>
+  <!-- Horizontal bus -->
+  <line x1="150" y1="490" x2="540" y2="490" stroke="#6B7280" stroke-width="1.2"/>
 
-  <!-- NWL -->
-  <rect x="30" y="557" width="200" height="60" rx="8" fill="#EFF6FF" stroke="#2563EB" stroke-width="1.5"/>
-  <text x="130" y="582" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#2563EB" font-weight="bold">New Water Lanseria</text>
-  <text x="130" y="600" text-anchor="middle" font-family="Arial, sans-serif" font-size="9" fill="#6B7280">Water + ESG Management</text>
+  <!-- NWL branch -->
+  <line x1="150" y1="490" x2="150" y2="530" stroke="#6B7280" stroke-width="1.2"/>
+  <polygon points="150,530 146,523 154,523" fill="#6B7280"/>
+  <rect x="132" y="503" width="36" height="16" rx="8" fill="#1E40AF"/>
+  <text x="150" y="514" text-anchor="middle" font-size="8" fill="#fff" font-weight="600">93%</text>
 
-  <!-- LanRED -->
-  <rect x="245" y="557" width="200" height="60" rx="8" fill="#FEFCE8" stroke="#EAB308" stroke-width="1.5"/>
-  <text x="345" y="582" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#B45309" font-weight="bold">LanRED</text>
-  <text x="345" y="600" text-anchor="middle" font-family="Arial, sans-serif" font-size="9" fill="#6B7280">Solar Energy</text>
+  <!-- LanRED branch -->
+  <line x1="350" y1="490" x2="350" y2="530" stroke="#6B7280" stroke-width="1.2"/>
+  <polygon points="350,530 346,523 354,523" fill="#6B7280"/>
+  <rect x="332" y="503" width="36" height="16" rx="8" fill="#B45309"/>
+  <text x="350" y="514" text-anchor="middle" font-size="8" fill="#fff" font-weight="600">100%</text>
 
-  <!-- TWX -->
-  <rect x="460" y="557" width="200" height="60" rx="8" fill="#FDF2F8" stroke="#8B4513" stroke-width="1.5"/>
-  <text x="560" y="582" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#8B4513" font-weight="bold">Timberworx</text>
-  <text x="560" y="600" text-anchor="middle" font-family="Arial, sans-serif" font-size="9" fill="#6B7280">Timber Manufacturing</text>
+  <!-- TWX branch from SCLCA (5%) -->
+  <line x1="540" y1="490" x2="540" y2="530" stroke="#6B7280" stroke-width="1.2"/>
+  <polygon points="540,530 536,523 544,523" fill="#6B7280"/>
+  <rect x="522" y="503" width="36" height="16" rx="8" fill="#6B21A8"/>
+  <text x="540" y="514" text-anchor="middle" font-size="8" fill="#fff" font-weight="600">5%</text>
 
-  <!-- ═══════════════════════════════════════════ -->
-  <!-- SOLID LINE: VanSquared → TWX (shareholder) -->
-  <!-- ═══════════════════════════════════════════ -->
-  <path d="M490,357 L490,430 Q490,450 530,500 L555,552" stroke="#6B7280" stroke-width="1.5" fill="none"/>
-  <polygon points="555,552 549,545 556,543" fill="#6B7280"/>
-  <text x="508" y="435" text-anchor="start" font-family="Arial, sans-serif" font-size="9" fill="#6B7280">95%</text>
+  <!-- VanSquared → TWX (95%) — drops right of the 5% line -->
+  <line x1="630" y1="318" x2="630" y2="440" stroke="#6B7280" stroke-width="1.0" stroke-dasharray="none"/>
+  <!-- Route right of SCLCA box, then bend to TWX -->
+  <line x1="630" y1="440" x2="630" y2="490" stroke="#6B7280" stroke-width="1.0"/>
+  <line x1="630" y1="490" x2="580" y2="490" stroke="#6B7280" stroke-width="1.0"/>
+  <line x1="580" y1="490" x2="580" y2="530" stroke="#6B7280" stroke-width="1.2"/>
+  <polygon points="580,530 576,523 584,523" fill="#6B7280"/>
+  <rect x="562" y="503" width="36" height="16" rx="8" fill="#6B21A8"/>
+  <text x="580" y="514" text-anchor="middle" font-size="8" fill="#fff" font-weight="600">95%</text>
 
-  <!-- ═══════════════════════════════════════════ -->
-  <!-- GUARANTEE ARROWS (dashed, amber) -->
-  <!-- ═══════════════════════════════════════════ -->
+  <!-- NWL box -->
+  <rect x="55" y="530" width="190" height="48" rx="5" fill="#EFF6FF" stroke="#93C5FD" stroke-width="1.2"/>
+  <text x="150" y="552" text-anchor="middle" font-size="11" fill="#1E40AF" font-weight="700">New Water Lanseria</text>
+  <text x="150" y="566" text-anchor="middle" font-size="8" fill="#6B7280">Water + ESG Management</text>
 
-  <!-- VH Properties → TWX (dashed, down then left) -->
-  <path d="M640,357 L640,587 L660,587" stroke="#D97706" stroke-width="1.5" fill="none" stroke-dasharray="6,4"/>
-  <polygon points="660,587 652,582 652,592" fill="#D97706"/>
-  <text x="648" y="480" text-anchor="start" font-family="Arial, sans-serif" font-size="9" fill="#D97706" font-weight="bold">guarantee</text>
+  <!-- LanRED box -->
+  <rect x="255" y="530" width="190" height="48" rx="5" fill="#FFFBEB" stroke="#FCD34D" stroke-width="1.2"/>
+  <text x="350" y="552" text-anchor="middle" font-size="11" fill="#92400E" font-weight="700">LanRED</text>
+  <text x="350" y="566" text-anchor="middle" font-size="8" fill="#6B7280">Solar Energy</text>
 
-  <!-- Veracity → NWL (dashed, down then left across bottom) -->
-  <path d="M820,357 L820,635 L230,635 L230,617" stroke="#D97706" stroke-width="1.5" fill="none" stroke-dasharray="6,4"/>
-  <polygon points="230,617 225,625 235,625" fill="#D97706"/>
-  <text x="510" y="650" text-anchor="middle" font-family="Arial, sans-serif" font-size="9" fill="#D97706" font-weight="bold">guarantee</text>
+  <!-- TWX box — centered between the two entry lines (540 and 580 → center 560) -->
+  <rect x="475" y="530" width="170" height="48" rx="5" fill="#FAF5FF" stroke="#C4B5FD" stroke-width="1.2"/>
+  <text x="560" y="552" text-anchor="middle" font-size="11" fill="#5B21B6" font-weight="700">Timberworx</text>
+  <text x="560" y="566" text-anchor="middle" font-size="8" fill="#6B7280">Timber Manufacturing</text>
+
+  <!-- ═══════════  GUARANTEES (dashed amber) ═══════════ -->
+
+  <!-- Veracity → NWL: straight down from Veracity, along bottom, into NWL -->
+  <line x1="880" y1="318" x2="880" y2="600" stroke="#D97706" stroke-width="1.2" stroke-dasharray="6,4"/>
+  <line x1="880" y1="600" x2="150" y2="600" stroke="#D97706" stroke-width="1.2" stroke-dasharray="6,4"/>
+  <line x1="150" y1="600" x2="150" y2="578" stroke="#D97706" stroke-width="1.2" stroke-dasharray="6,4"/>
+  <polygon points="150,578 146,585 154,585" fill="#D97706"/>
+  <text x="520" y="614" text-anchor="middle" font-size="8" fill="#D97706" font-weight="600">guarantee</text>
+
+  <!-- VH Properties → TWX: straight down from VH Props, bend left into TWX right edge -->
+  <line x1="760" y1="318" x2="760" y2="554" stroke="#D97706" stroke-width="1.2" stroke-dasharray="6,4"/>
+  <line x1="760" y1="554" x2="645" y2="554" stroke="#D97706" stroke-width="1.2" stroke-dasharray="6,4"/>
+  <polygon points="645,554 652,550 652,558" fill="#D97706"/>
+  <text x="710" y="546" text-anchor="middle" font-size="8" fill="#D97706" font-weight="600">guarantee</text>
+
+  <!-- ═══════════  LEGEND (y=636) ═══════════ -->
+
+  <line x1="30" y1="630" x2="910" y2="630" stroke="#E5E7EB" stroke-width="0.8"/>
+
+  <line x1="40" y1="648" x2="65" y2="648" stroke="#6B7280" stroke-width="1.2"/>
+  <polygon points="65,648 61,645 61,651" fill="#6B7280"/>
+  <text x="72" y="652" font-size="8" fill="#6B7280">Ownership</text>
+
+  <line x1="140" y1="648" x2="165" y2="648" stroke="#D97706" stroke-width="1.2" stroke-dasharray="5,3"/>
+  <polygon points="165,648 161,645 161,651" fill="#D97706"/>
+  <text x="172" y="652" font-size="8" fill="#6B7280">Guarantee</text>
+
+  <rect x="240" y="642" width="10" height="10" rx="2" fill="#1F2937"/>
+  <text x="256" y="652" font-size="8" fill="#6B7280">UBO</text>
+
+  <rect x="295" y="642" width="10" height="10" rx="2" fill="#EFF6FF" stroke="#2563EB" stroke-width="1"/>
+  <text x="311" y="652" font-size="8" fill="#6B7280">Siza vehicle</text>
+
+  <rect x="375" y="642" width="10" height="10" rx="2" fill="#F0FDF4" stroke="#16A34A" stroke-width="1"/>
+  <text x="391" y="652" font-size="8" fill="#6B7280">Mark vehicle</text>
+
+  <rect x="460" y="642" width="10" height="10" rx="2" fill="#ECFDF5" stroke="#6EE7B7" stroke-width="1"/>
+  <text x="476" y="652" font-size="8" fill="#6B7280">Holding</text>
+
+  <rect x="525" y="642" width="10" height="10" rx="2" fill="#FEF3C7" stroke="#F59E0B" stroke-width="1"/>
+  <text x="541" y="652" font-size="8" fill="#6B7280">Guarantor</text>
+
+  <rect x="600" y="643" width="28" height="12" rx="6" fill="#16A34A"/>
+  <text x="614" y="652" text-anchor="middle" font-size="7" fill="#fff" font-weight="600">%%</text>
+  <text x="636" y="652" font-size="8" fill="#6B7280">Ownership %</text>
 
 </svg>

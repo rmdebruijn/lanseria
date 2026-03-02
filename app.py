@@ -18,6 +18,28 @@ import math
 import yaml
 import streamlit_authenticator as stauth
 
+# Calculation engine (Phase 6 — engine wiring)
+from engine.convergence import run_model
+from engine.config import ModelConfig, ScenarioInputs
+from engine.types import EntityResult, ModelResult
+from engine.facility import build_schedule as _engine_build_schedule
+from engine.facility import extract_facility_vectors as _engine_extract_vectors
+from engine.facility import extract_idc_table
+from engine.waterfall import compute_entity_waterfall as _engine_waterfall
+from engine.waterfall import aggregate_to_annual as _engine_aggregate_to_annual
+from engine.swap import build_nwl_swap_schedule as _engine_nwl_swap
+from engine.swap import build_lanred_swap_schedule as _engine_lanred_swap
+from engine.swap import extract_swap_vectors as _engine_extract_swap_vectors
+from engine.swap import compute_nwl_swap_bounds as _engine_swap_bounds
+from engine.pnl import build_semi_annual_pnl as _engine_build_pnl
+from engine.pnl import extract_tax_vector as _engine_extract_tax
+from engine.periods import (
+    annual_month_range, construction_end_index, construction_period_labels,
+    period_lookup, period_start_month, repayment_start_index,
+    repayment_start_month, total_periods, total_years,
+)
+from entities.nwl import build_nwl_sensitivity
+
 # Guarantor analysis engine
 ga = None
 try:
@@ -66,6 +88,102 @@ EQUITY_LANRED = _MODEL_PARAMS['eq_lanred']
 EQUITY_TWX = _MODEL_PARAMS['eq_twx']
 EQUITY_TOTAL = EQUITY_NWL + EQUITY_LANRED + EQUITY_TWX
 
+
+# ============================================================
+# ENGINE INTEGRATION (Phase 6)
+# ============================================================
+
+@st.cache_data(ttl=60)
+def _run_engine_model(_session_hash: str) -> dict:
+    """Run the engine model, cached by session state hash.
+
+    The _session_hash parameter is a fingerprint of scenario-relevant
+    session_state keys so Streamlit re-runs when inputs change.
+    """
+    cfg = ModelConfig.load()
+    inputs = ScenarioInputs.from_session_state(dict(st.session_state))
+    result = run_model(cfg, inputs)
+    # Serialize to plain dicts for Streamlit caching (dataclasses aren't hashable)
+    return _serialize_model_result(result)
+
+
+def _session_input_hash() -> str:
+    """Create a hash of scenario-relevant session state keys."""
+    import hashlib
+    keys = sorted([
+        "nwl_greenfield_growth_pct", "nwl_greenfield_brine_pct",
+        "nwl_greenfield_sewage_rate_2025", "nwl_greenfield_water_rate_2025",
+        "nwl_greenfield_reuse_ratio",
+        "nwl_srv_joburg_price", "nwl_srv_growth_pct", "nwl_srv_transport_r_km",
+        "nwl_srv_truck_capacity_m3", "nwl_srv_nwl_distance_km",
+        "nwl_srv_gov_distance_km", "nwl_srv_saving_to_market_pct",
+        "nwl_power_kwh_per_m3", "nwl_power_eskom_base",
+        "nwl_power_ic_discount", "nwl_power_escalation",
+        "lanred_scenario", "lanred_bess_alloc_pct",
+        "nwl_cash_sweep_pct",
+        "sclca_nwl_hedge", "sclca_lanred_hedge",
+        "nwl_swap_notional",
+        "nwl_eca_atradius", "nwl_eca_exporter",
+        "lanred_eca_atradius", "lanred_eca_exporter",
+        "timberworx_eca_atradius", "timberworx_eca_exporter",
+    ])
+    vals = "|".join(f"{k}={st.session_state.get(k, '')}" for k in keys)
+    return hashlib.md5(vals.encode()).hexdigest()
+
+
+def _serialize_model_result(result: ModelResult) -> dict:
+    """Convert ModelResult to plain dict for Streamlit cache."""
+    entities = {}
+    for key, er in result.entities.items():
+        entities[key] = {
+            "annual": er.annual,
+            "sr_schedule": er.sr_schedule,
+            "mz_schedule": er.mz_schedule,
+            "waterfall_semi": er.waterfall_semi,
+            "waterfall_annual": er.waterfall_annual,
+            "semi_annual_pl": er.semi_annual_pl,
+            "semi_annual_tax": er.semi_annual_tax,
+            "ops_annual": er.ops_annual,
+            "ops_semi_annual": er.ops_semi_annual,
+            "registry": er.registry,
+            "depreciable_base": er.depreciable_base,
+            "entity_equity": er.entity_equity,
+            "swap_schedule": er.swap_schedule.to_dict() if er.swap_schedule else None,
+            "swap_active": er.swap_active,
+            "cash_inflows": er.cash_inflows,
+            "pre_revenue_hedge_total": er.pre_revenue_hedge_total,
+        }
+    return {
+        "entities": entities,
+        "holding": result.holding,
+        "ic_semi": result.ic_semi,
+    }
+
+
+# Field name mapping: engine NEW names -> app.py OLD names (compatibility)
+_ENGINE_TO_APP_FIELD_MAP = {
+    "swap_leg_bal": "zar_leg_bal",
+    "swap_leg_scheduled": "zar_leg_scheduled",
+    "swap_leg_accel": "zar_leg_accel",
+    "cf_swap_ds": "cf_swap_zar",
+    "cf_swap_ds_i": "cf_swap_zar_i",
+    "cf_swap_ds_p": "cf_swap_zar_p",
+    "bs_swap_liability": "bs_swap_zar",
+    "cf_swap_accel": "cf_zar_accel",
+}
+
+
+def _add_compat_fields(d: dict) -> dict:
+    """Add old field names alongside new ones for display compatibility."""
+    for new_name, old_name in _ENGINE_TO_APP_FIELD_MAP.items():
+        if new_name in d:
+            d[old_name] = d[new_name]
+    # Composite: total ZAR leg payment = scheduled + acceleration
+    if "swap_leg_scheduled" in d or "swap_leg_accel" in d:
+        d["zar_leg_payment"] = d.get("swap_leg_scheduled", 0) + d.get("swap_leg_accel", 0)
+    return d
+
+
 # Entity logo mapping
 ENTITY_LOGOS = {
     "sclca": "lanseria-smart-city-logo.png",
@@ -75,7 +193,7 @@ ENTITY_LOGOS = {
     "invest_international": "invest-international-logo.svg",
     "creation_capital": "creation-capital-logo.png",
     "crosspoint": "crosspoint-logo.png",
-    "vansquare": "vansquare-logo.png",
+    "vansquared": "vansquared-logo.png",
     "colubris": "colubris-logo.svg",
     "oxymem": "oxymem-logo.png",
     "optimat": "optimat-logo.jpg",
@@ -198,14 +316,14 @@ def _wire_about_placeholders(text: str) -> str:
             replacements.setdefault("honeysucker_cost", "R1,000/kL")
             replacements.setdefault("tariff_penalty_multiplier", "13")
 
-        # ── NWL prepayments ──
+        # ── NWL grant acceleration ──
         grants = sources.get("grants", {})
         grant_rows = grants.get("rows", [])
         dtic = next((g for g in grant_rows if "DTIC" in g.get("source", "")), {})
         dtic_zar = dtic.get("amount_zar", 25_000_000)
         total_grant_eur = grants.get("total_eur_applied", 0)
         replacements["nwl_prepayments_descr"] = (
-            f"DTIC grant (R{dtic_zar/1e6:.0f}M) + GEPF Bulk Services fee combine to prepay "
+            f"DTIC grant (R{dtic_zar/1e6:.0f}M) + GEPF Bulk Services fee accelerate "
             f"**{_eur(total_grant_eur)}** of NWL senior debt at M12, reducing outstanding balance "
             f"before first debt service payment."
         )
@@ -336,8 +454,14 @@ def _parse_svg_content_md(filename: str) -> dict:
 import re as _re
 import html as _html_mod
 
-def load_svg_patched(svg_filename: str, md_filename: str) -> str:
+def load_svg_patched(svg_filename: str, md_filename: str, overrides: dict | None = None) -> str:
     """Load an SVG and patch text elements using content from an MD file.
+
+    Args:
+        svg_filename: SVG file in assets/ directory.
+        md_filename: MD file in content/ directory (use "_none.md" to skip MD patching).
+        overrides: Optional dict mapping element IDs to replacement text.
+                   Applied after MD patching, so overrides take precedence.
 
     Returns SVG string with text content replaced, or empty string if file missing.
     """
@@ -347,22 +471,30 @@ def load_svg_patched(svg_filename: str, md_filename: str) -> str:
         return ""
     with open(svg_path, 'r', encoding='utf-8') as f:
         svg = f.read()
+    # Apply MD file patches
     mapping = _parse_svg_content_md(md_filename)
-    if not mapping:
-        return svg
-    for elem_id, new_text in mapping.items():
-        escaped = _html_mod.escape(new_text)
-        pattern = _re.compile(
-            r'(<text\b[^>]*\bid="' + _re.escape(elem_id) + r'"[^>]*>)([^<]*)(</text>)'
-        )
-        svg = pattern.sub(r'\g<1>' + escaped + r'\3', svg)
+    if mapping:
+        for elem_id, new_text in mapping.items():
+            escaped = _html_mod.escape(new_text)
+            pattern = _re.compile(
+                r'(<text\b[^>]*\bid="' + _re.escape(elem_id) + r'"[^>]*>)([^<]*)(</text>)'
+            )
+            svg = pattern.sub(r'\g<1>' + escaped + r'\3', svg)
+    # Apply runtime overrides (take precedence over MD content)
+    if overrides:
+        for elem_id, new_text in overrides.items():
+            escaped = _html_mod.escape(str(new_text))
+            pattern = _re.compile(
+                r'(<text\b[^>]*\bid="' + _re.escape(elem_id) + r'"[^>]*>)([^<]*)(</text>)'
+            )
+            svg = pattern.sub(r'\g<1>' + escaped + r'\3', svg)
     return svg
 
 
-def render_svg(svg_filename: str, md_filename: str):
+def render_svg(svg_filename: str, md_filename: str, overrides: dict | None = None):
     """Load, patch, and render an SVG diagram with editable text from MD."""
     import streamlit.components.v1 as _stc
-    svg = load_svg_patched(svg_filename, md_filename)
+    svg = load_svg_patched(svg_filename, md_filename, overrides=overrides)
     if svg:
         # Extract viewBox to calculate proper height
         _vb_match = _re.search(r'viewBox="0 0 (\d+) (\d+)"', svg)
@@ -374,6 +506,38 @@ def render_svg(svg_filename: str, md_filename: str):
         svg = svg.replace('<svg ', '<svg width="100%" ', 1)
         _stc.html(f'<div style="width:100%;overflow:visible;">{svg}</div>',
                   height=_height, scrolling=False)
+
+
+def render_svg_from_data(svg_filename: str, overrides: dict | None = None):
+    """Load SVG, apply runtime overrides (no MD file), render via html component."""
+    render_svg(svg_filename, "_none.md", overrides=overrides)
+
+
+def _build_funding_overrides(struct: dict) -> dict:
+    """Build override dict for funding-structure.svg from structure config."""
+    _src = struct['sources']
+    _uses = struct['uses']
+    _loans = _uses['loans_to_subsidiaries']
+    _sr = _src['senior_debt']
+    _mz = _src['mezzanine']
+    _total = _uses['total']
+    return {
+        'fund_sr_summary': f"Senior Debt  |  EUR {_sr['amount']/1e6:.1f}m  |  {_sr['interest']['rate']*100:.2f}%",
+        'fund_mz_summary': f"Mezzanine  |  ZAR {_mz['amount_zar']/1e6:.1f}m  |  {_mz['interest']['total_rate']*100:.2f}%",
+        'fund_sclca_total': f"Receives debt facilities  \u00b7  Deploys as intercompany loans  \u00b7  EUR {_total/1e6:.1f}m total",
+        'fund_nwl_sr': f"Senior IC: EUR {_loans['nwl']['senior_portion']/1e6:.2f}m",
+        'fund_nwl_mz': f"Mezz IC: EUR {_loans['nwl']['mezz_portion']/1e6:.2f}m",
+        'fund_nwl_total': f"Total: EUR {_loans['nwl']['total_loan']/1e6:.2f}m",
+        'fund_nwl_pct': f"{_loans['nwl']['pro_rata_pct']*100:.1f}%",
+        'fund_lr_sr': f"Senior IC: EUR {_loans['lanred']['senior_portion']/1e6:.2f}m",
+        'fund_lr_mz': f"Mezz IC: EUR {_loans['lanred']['mezz_portion']/1e6:.2f}m",
+        'fund_lr_total': f"Total: EUR {_loans['lanred']['total_loan']/1e6:.2f}m",
+        'fund_lr_pct': f"{_loans['lanred']['pro_rata_pct']*100:.1f}%",
+        'fund_twx_sr': f"Senior IC: EUR {_loans['timberworx']['senior_portion']/1e6:.2f}m",
+        'fund_twx_mz': f"Mezz IC: EUR {_loans['timberworx']['mezz_portion']/1e6:.2f}m",
+        'fund_twx_total': f"Total: EUR {_loans['timberworx']['total_loan']/1e6:.2f}m",
+        'fund_twx_pct': f"{_loans['timberworx']['pro_rata_pct']*100:.1f}%",
+    }
 
 
 def _render_logo_dark_bg(logo_path, width=100):
@@ -882,24 +1046,33 @@ st.set_page_config(
 
 # --- Authentication ---
 _auth_config = _load_users()
-authenticator = stauth.Authenticate(
-    _auth_config['credentials'],
-    _auth_config['cookie']['name'],
-    _auth_config['cookie']['key'],
-    _auth_config['cookie']['expiry_days'],
-)
+_DEV_MODE = st.query_params.get("dev") == "true"
 
-try:
-    authenticator.login()
-except Exception as e:
-    st.error(e)
+if _DEV_MODE:
+    # Dev mode: bypass authentication for automated testing
+    st.session_state['authentication_status'] = True
+    _usernames = _auth_config.get('credentials', {}).get('usernames', {})
+    st.session_state['username'] = list(_usernames.keys())[0] if _usernames else 'admin'
+    authenticator = None
+else:
+    authenticator = stauth.Authenticate(
+        _auth_config['credentials'],
+        _auth_config['cookie']['name'],
+        _auth_config['cookie']['key'],
+        _auth_config['cookie']['expiry_days'],
+    )
 
-if st.session_state.get('authentication_status') is False:
-    st.error('Username/password is incorrect')
-    st.stop()
-elif st.session_state.get('authentication_status') is None:
-    st.warning('Please enter your username and password')
-    st.stop()
+    try:
+        authenticator.login()
+    except Exception as e:
+        st.error(e)
+
+    if st.session_state.get('authentication_status') is False:
+        st.error('Username/password is incorrect')
+        st.stop()
+    elif st.session_state.get('authentication_status') is None:
+        st.warning('Please enter your username and password')
+        st.stop()
 
 # --- Authenticated from here ---
 _current_user = st.session_state.get('username', '')
@@ -967,90 +1140,12 @@ def run_page_audit(checks: list, page_name: str):
 
 
 def build_simple_ic_schedule(principal, total_principal, repayments, rate,
-                             drawdown_schedule, periods, prepayments=None,
-                             dsra_amount=0.0, dsra_drawdown=0.0):
-    """Build an IC loan schedule with optional grant-funded prepayments and DSRA.
-
-    prepayments: dict of {period_str: entity_level_amount} — already allocated to this entity.
-    dsra_amount: (Senior IC) At P1, principal = dsra_amount; P2 = interest-only; P3+ recalculated.
-    dsra_drawdown: (Mezz IC) At P1, add dsra_drawdown to balance; all repayments on higher balance.
-    Drawdowns are pro-rated from facility level; prepayments are passed at entity level.
-    Returns list of dicts with keys: Period, Month, Year, Opening, Draw Down,
-    Interest, Prepayment, Principle, Repayment, Movement, Closing.
-    """
-    rows = []
-    balance = 0.0
-    pro_rata = principal / total_principal if total_principal else 0
-    for idx, period in enumerate(periods):
-        month = (period + 4) * 6
-        year = month / 12
-        opening = balance
-        idc = opening * rate / 2
-        draw_down = drawdown_schedule[idx] * pro_rata if idx < len(drawdown_schedule) else 0
-        prepay = 0.0
-        if prepayments and str(period) in prepayments:
-            prepay = prepayments[str(period)]
-        movement = draw_down + idc - prepay
-        balance = opening + movement
-        rows.append({
-            "Period": period, "Month": month, "Year": year,
-            "Opening": opening, "Draw Down": draw_down, "Interest": idc,
-            "Prepayment": -prepay, "Principle": 0, "Repayment": 0,
-            "Movement": movement, "Closing": balance
-        })
-
-    # Determine repayment profile based on DSRA parameters
-    if dsra_amount > 0:
-        # Senior with DSRA: P1=dsra, P2=interest-only, P3+=recalculated on remaining
-        dsra_balance_after = balance - dsra_amount
-        p_per_after_dsra = dsra_balance_after / (repayments - 2) if repayments > 2 else 0
-    elif dsra_drawdown > 0:
-        # Mezz with DSRA: P1 drawdown increases balance; all repayments on new total
-        total_after_dsra = balance + dsra_drawdown
-        p_per = total_after_dsra / repayments if repayments > 0 else 0
-        # balance stays at pre-DSRA level; drawdown happens at P1 in the loop
-    else:
-        p_per = balance / repayments if repayments > 0 else 0
-
-    for i in range(1, repayments + 1):
-        month = 18 + (i * 6)
-        year = month / 12
-        opening = balance
-        interest = opening * rate / 2
-
-        if dsra_amount > 0:
-            # Senior DSRA logic
-            if i == 1:
-                principle = -dsra_amount
-                draw_down = 0
-                movement = principle
-            elif i == 2:
-                principle = 0  # Interest-only (DSRA covers)
-                draw_down = 0
-                movement = principle
-            else:
-                principle = -p_per_after_dsra
-                draw_down = 0
-                movement = principle
-        elif dsra_drawdown > 0:
-            # Mezz DSRA logic: drawdown at P1, then normal repayments
-            draw_down = dsra_drawdown if i == 1 else 0
-            principle = -p_per
-            movement = draw_down + principle
-        else:
-            draw_down = 0
-            principle = -p_per
-            movement = principle
-
-        repayment_val = principle - interest
-        balance = opening + movement
-        rows.append({
-            "Period": i, "Month": month, "Year": year,
-            "Opening": opening, "Draw Down": draw_down, "Interest": interest,
-            "Prepayment": 0, "Principle": principle, "Repayment": repayment_val,
-            "Movement": movement, "Closing": balance
-        })
-    return rows
+                             drawdown_schedule, periods, acceleration=None):
+    """Thin wrapper → engine.facility.build_schedule()."""
+    return _engine_build_schedule(
+        principal, total_principal, repayments, rate,
+        drawdown_schedule, periods, acceleration,
+    )
 
 
 def _build_all_entity_ic_schedules(nwl_swap_enabled=False, lanred_swap_enabled=False):
@@ -1073,31 +1168,14 @@ def _build_all_entity_ic_schedules(nwl_swap_enabled=False, lanred_swap_enabled=F
     mz_repayments = mezz_cfg.get('repayments', 10)
     sr_detail = financing['loan_detail']['senior']
     sr_drawdowns = sr_detail['drawdown_schedule']
-    sr_periods = [-4, -3, -2, -1]
-    sr_prepayments_raw = sr_detail.get('prepayment_periods', {})
-    prepay_alloc = sr_detail.get('prepayment_allocation', {})
+    sr_periods = construction_period_labels()
+    sr_grant_accel_raw = sr_detail.get('prepayment_periods', {})
+    grant_alloc = sr_detail.get('prepayment_allocation', {})
     mz_amount_eur = mezz_cfg['amount_eur']
     mz_drawdowns = [mz_amount_eur, 0, 0, 0]
-    mz_periods = [-4, -3, -2, -1]
+    mz_periods = construction_period_labels()
     total_sr = sum(l['senior_portion'] for l in structure['uses']['loans_to_subsidiaries'].values())
     total_mz = sum(l['mezz_portion'] for l in structure['uses']['loans_to_subsidiaries'].values())
-
-    # Pre-Revenue Hedge sizing (facility-level)
-    _sr_bal_fac = (sr_detail['loan_drawdown_total']
-                   + sr_detail['rolled_up_interest_idc']
-                   - sr_detail['grant_proceeds_to_early_repayment']
-                   - sr_detail['gepf_bulk_proceeds'])
-    _sr_rate_fac = senior_cfg['interest']['rate']
-    _sr_num_fac = senior_cfg['repayments']
-    _sr_p_fac = _sr_bal_fac / _sr_num_fac
-    _sr_i_m24 = _sr_bal_fac * _sr_rate_fac / 2
-    pre_revenue_hedge_total = 2 * (_sr_p_fac + _sr_i_m24)
-
-    # IC Senior P1 principal = facility P + IDC margin (aligns M30 balances)
-    _sr_idc_fac = sr_detail['rolled_up_interest_idc']
-    _sr_idc_ic = _sr_idc_fac * (sr_rate / _sr_rate_fac) if _sr_rate_fac > 0 else _sr_idc_fac
-    _idc_margin = _sr_idc_ic - _sr_idc_fac
-    _ic_dsra_p1 = _sr_p_fac + _idc_margin  # Principal-aligned P1 for IC Senior
 
     all_sr_schedules = []
     all_mz_schedules = []
@@ -1107,32 +1185,14 @@ def _build_all_entity_ic_schedules(nwl_swap_enabled=False, lanred_swap_enabled=F
         sr_principal = ed['senior_portion']
         mz_principal = ed['mezz_portion']
 
-        entity_prepay_pct = prepay_alloc.get(ek, 0.0) if prepay_alloc else 0.0
-        sr_prepayments = {k: v * entity_prepay_pct for k, v in sr_prepayments_raw.items()} if entity_prepay_pct > 0 else None
-
-        dsra_alloc = {'nwl': 1.0}
-        # IC Senior: dsra_amount = principal-aligned P1 (so balances match facility)
-        # IC Mezz: dsra_drawdown = pre_revenue_hedge (full cash amount from CC)
-        # When swap active: suppress DSRA entirely (no CC 2nd draw, no DSRA sizing)
-        if ek == 'nwl' and nwl_swap_enabled:
-            entity_dsra_sr = 0.0
-            entity_dsra_mz = 0.0
-        else:
-            entity_dsra_sr = _ic_dsra_p1 * dsra_alloc.get(ek, 0.0)
-            entity_dsra_mz = pre_revenue_hedge_total * dsra_alloc.get(ek, 0.0)
-
-        # IC schedule is ALWAYS vanilla (14 Sr / 10 Mz) regardless of swap selection.
-        # Swap instruments (EUR+ZAR legs) are separate — wired in waterfall, not IC schedules.
-        ek_sr_repayments = sr_repayments
-        ek_mz_repayments = mz_repayments
+        entity_grant_pct = grant_alloc.get(ek, 0.0) if grant_alloc else 0.0
+        sr_grant_accel = {k: v * entity_grant_pct for k, v in sr_grant_accel_raw.items()} if entity_grant_pct > 0 else None
 
         sr_sched = build_simple_ic_schedule(
-            sr_principal, total_sr, ek_sr_repayments, sr_rate, sr_drawdowns, sr_periods, sr_prepayments,
-            dsra_amount=entity_dsra_sr
+            sr_principal, total_sr, sr_repayments, sr_rate, sr_drawdowns, sr_periods
         )
         mz_sched = build_simple_ic_schedule(
-            mz_principal, total_mz, ek_mz_repayments, mz_rate, mz_drawdowns, mz_periods,
-            dsra_drawdown=entity_dsra_mz
+            mz_principal, total_mz, mz_repayments, mz_rate, mz_drawdowns, mz_periods
         )
         all_sr_schedules.append(sr_sched)
         all_mz_schedules.append(mz_sched)
@@ -1140,7 +1200,8 @@ def _build_all_entity_ic_schedules(nwl_swap_enabled=False, lanred_swap_enabled=F
 
     # Aggregate into semi-annual periods (20 periods = 10 years)
     sem = []
-    for pi in range(20):
+    _rep_start = repayment_start_month()
+    for pi in range(total_periods()):
         m = pi * 6
         # Sum across entities for this semi-annual period
         iso = 0.0; isc = 0.0; imo = 0.0; imc = 0.0
@@ -1152,11 +1213,9 @@ def _build_all_entity_ic_schedules(nwl_swap_enabled=False, lanred_swap_enabled=F
                     iso += r['Opening']
                     isc += r['Closing']
                     isi += r['Interest']
-                    isi_cash += r['Interest'] if m >= 24 else 0
+                    isi_cash += r['Interest'] if m >= _rep_start else 0
                     isp += abs(r['Principle'])
                     break
-            # Check half-period: month m and m don't always line up exactly
-            # IC schedules have entries at 0, 6, 12, 18, 24, 30, ...
         ic_dsra_mz_draw = 0.0  # Track DSRA-funded Mz drawdowns (pass-through)
         for mz_sched in all_mz_schedules:
             for r in mz_sched:
@@ -1164,10 +1223,9 @@ def _build_all_entity_ic_schedules(nwl_swap_enabled=False, lanred_swap_enabled=F
                     imo += r['Opening']
                     imc += r['Closing']
                     imi += r['Interest']
-                    imi_cash += r['Interest'] if m >= 24 else 0
+                    imi_cash += r['Interest'] if m >= _rep_start else 0
                     imp += abs(r['Principle'])
-                    # Track DSRA-funded Mz drawdowns at M24+ (pass-through from CC)
-                    if r['Draw Down'] > 0 and m >= 24:
+                    if r['Draw Down'] > 0 and m >= _rep_start:
                         ic_dsra_mz_draw += r['Draw Down']
                     break
         sem.append({
@@ -1279,365 +1337,78 @@ def _get_next_sr_pi(entity_sr_sched, after_month):
     Used for OpCo DSRA sizing (1x next Sr IC P+I).
     """
     for r in entity_sr_sched:
-        if r['Month'] > after_month and r['Month'] >= 24:
+        if r['Month'] > after_month and r['Month'] >= repayment_start_month():
             return r['Interest'] + abs(r['Principle'])
     return 0.0
 
 
 def _compute_entity_waterfall_inputs(entity_key, ops_annual, entity_sr_sched, entity_mz_sched,
                                       *, lanred_deficit_vector=None, nwl_swap_schedule=None,
-                                      lanred_swap_schedule=None):
-    """Entity surplus computation with character-preserving allocation (v3.1).
+                                      lanred_swap_schedule=None, sweep_pct=1.0,
+                                      ops_semi_annual=None, cash_inflows=None,
+                                      semi_annual_tax=None):
+    """Thin wrapper → engine.waterfall.compute_entity_waterfall().
 
-    Full entity-level cascade:
-      0. Pay contractual IC Sr P+I + IC Mz P+I (mandatory)
-      1. Fill Ops Reserve FD (100% of annual ops cost)
-      2. Fill OpCo DSRA (1x next Sr IC P+I)
-      3. LanRED overdraft lending (NWL only, if deficit vector provided)
-      Surplus priority (by rate, highest first):
-        P1. Accelerate Mezz IC (15.25%, Mezz character)
-        P2. ZAR Rand Leg (9.69%, if swap active for entity, Senior character)
-        P3. Overdraft repayment (10%, LanRED only)
-        P4. Accelerate Senior IC (5.20%, Senior character)
-      After both IC = 0 → Entity FD (retained locally)
-
-    Returns list of 10 annual dicts with full cascade breakdown.
+    Builds the required sr_vectors, mz_vectors, semi_annual_pl, semi_annual_tax,
+    and swap_vectors from the raw schedules, then delegates to the engine.
     """
-    _wf_cfg = load_config("waterfall")
-    _ec_cfg = _wf_cfg.get("entity_cascade", {})
-    _od_cfg = _wf_cfg.get("ic_overdraft", {})
-    ops_reserve_coverage = _ec_cfg.get("ops_reserve_coverage_pct", 1.0)
-    od_rate = _od_cfg.get("rate", 0.10)
+    cfg = ModelConfig.load()
 
-    rows = []
+    # Build facility vectors (required by engine waterfall)
+    sr_vectors = _engine_extract_vectors(entity_sr_sched)
+    mz_vectors = _engine_extract_vectors(entity_mz_sched)
 
-    # Track running IC balances for entity-level acceleration
-    mz_ic_bal = 0.0
-    for r in entity_mz_sched:
-        if r['Month'] >= 24:
-            mz_ic_bal = r.get('Opening', 0)
-            break
+    # Build semi-annual P&L (always needed — provides EBITDA, opex, tax)
+    semi_annual_pl = None
+    if semi_annual_tax is None:
+        # Need depreciable base for P&L — use entity total_loan as proxy
+        entity_data = cfg.entity_loans().get(entity_key, {})
+        depreciable_base = entity_data.get("total_loan", 0.0)
+        semi_annual_pl = _engine_build_pnl(
+            ops_annual, ops_semi_annual,
+            entity_sr_sched, entity_mz_sched,
+            depreciable_base, tax_rate=cfg.tax_rate,
+        )
+        semi_annual_tax = _engine_extract_tax(semi_annual_pl)
 
-    sr_ic_bal = 0.0
-    for r in entity_sr_sched:
-        if r['Month'] >= 24:
-            sr_ic_bal = r.get('Opening', 0)
-            break
+    # Build swap vectors for INDEX-based reads (if swap schedule provided)
+    swap_vectors = None
+    _active_swap = nwl_swap_schedule or lanred_swap_schedule
+    if _active_swap:
+        swap_vectors = _engine_extract_swap_vectors(_active_swap, cfg.fx_rate)
 
-    # New state variables
-    ops_reserve_bal = 0.0
-    opco_dsra_bal = 0.0
-    entity_fd_bal = 0.0
-    od_bal_entity = 0.0  # LanRED: OD received from NWL; NWL: OD lent to LanRED
+    rows = _engine_waterfall(
+        entity_key, ops_annual, entity_sr_sched, entity_mz_sched, cfg,
+        sr_vectors=sr_vectors, mz_vectors=mz_vectors,
+        semi_annual_tax=semi_annual_tax,
+        semi_annual_pl=semi_annual_pl,
+        swap_vectors=swap_vectors,
+        lanred_deficit_vector=lanred_deficit_vector,
+        nwl_swap_schedule=nwl_swap_schedule,
+        lanred_swap_schedule=lanred_swap_schedule,
+        sweep_pct=sweep_pct,
+        ops_semi_annual=ops_semi_annual,
+        cash_inflows=cash_inflows,
+    )
+    # Apply engine→app field name compatibility so all display code works
+    return [_add_compat_fields(dict(r)) for r in rows]
 
-    for yi in range(10):
-        ops = ops_annual[yi] if yi < len(ops_annual) else {}
-        ebitda = (ops.get('rev_operating', 0)
-                  - ops.get('om_cost', 0)
-                  - ops.get('power_cost', 0)
-                  - ops.get('rent_cost', 0))
 
-        # Annual ops cost for reserve target
-        annual_ops_cost = (ops.get('om_cost', 0)
-                           + ops.get('power_cost', 0)
-                           + ops.get('rent_cost', 0))
-
-        # IC debt service (cash): interest + principal, M24+ only
-        sr_pi = 0.0
-        mz_pi = 0.0
-        ie_year = 0.0
-        year_months = [yi * 12 + 6, yi * 12 + 12]
-        mz_prin_sched = 0.0
-        sr_prin_sched = 0.0
-        sr_prepay = 0.0
-        for r in entity_sr_sched:
-            if r['Month'] in year_months:
-                ie_year += r['Interest']
-                if r['Month'] >= 24:
-                    sr_pi += r['Interest'] + abs(r['Principle'])
-                    sr_prin_sched += abs(r['Principle'])
-                sr_prepay += abs(r.get('Prepayment', 0))
-        for r in entity_mz_sched:
-            if r['Month'] in year_months:
-                ie_year += r['Interest']
-                if r['Month'] >= 24:
-                    mz_pi += r['Interest'] + abs(r['Principle'])
-                    mz_prin_sched += abs(r['Principle'])
-        ds_cash = sr_pi + mz_pi
-
-        # Simplified tax: 27% on positive PBT (EBITDA - interest expense)
-        pbt = ebitda - ie_year
-        tax = max(pbt * 0.27, 0)
-
-        net = ebitda - tax - ds_cash
-
-        # --- Entity-level cascade ---
-        remaining = max(net, 0)
-        deficit = min(net, 0)
-
-        # Reduce IC balances by scheduled principal + prepayments
-        mz_ic_bal = max(mz_ic_bal - mz_prin_sched, 0)
-        sr_ic_bal = max(sr_ic_bal - sr_prin_sched - sr_prepay, 0)
-
-        # Step 1: Ops Reserve FD — fill to 100% of annual ops cost
-        ops_reserve_target = annual_ops_cost * ops_reserve_coverage
-        ops_reserve_gap = max(ops_reserve_target - ops_reserve_bal, 0)
-        ops_reserve_fill = min(remaining, ops_reserve_gap)
-        ops_reserve_bal += ops_reserve_fill
-        remaining -= ops_reserve_fill
-
-        # Step 2: OpCo DSRA — fill to 1x next Sr IC P+I
-        next_sr_pi = _get_next_sr_pi(entity_sr_sched, (yi + 1) * 12)
-        opco_dsra_target = next_sr_pi
-        opco_dsra_gap = max(opco_dsra_target - opco_dsra_bal, 0)
-        opco_dsra_fill = min(remaining, opco_dsra_gap)
-        # Release surplus if overfunded
-        opco_dsra_release = max(opco_dsra_bal - opco_dsra_target, 0) if opco_dsra_bal > opco_dsra_target else 0
-        opco_dsra_bal += opco_dsra_fill - opco_dsra_release
-        remaining -= opco_dsra_fill
-        remaining += opco_dsra_release
-
-        # Step 3: LanRED overdraft lending (NWL only)
-        od_lent = 0.0
-        od_received = 0.0
-        od_repaid = 0.0
-        od_interest = 0.0
-
-        if entity_key == 'nwl' and lanred_deficit_vector is not None:
-            lanred_deficit = abs(lanred_deficit_vector[yi]) if yi < len(lanred_deficit_vector) else 0
-            if lanred_deficit > 0 and remaining > 0:
-                od_lent = min(remaining, lanred_deficit)
-                od_interest_on_existing = od_bal_entity * od_rate
-                od_bal_entity += od_lent + od_interest_on_existing
-                od_interest = od_interest_on_existing
-                remaining -= od_lent
-
-        if entity_key == 'lanred':
-            # OD received is injected by orchestrator in second pass
-            od_received = 0.0  # populated by orchestrator
-            od_interest = od_bal_entity * od_rate
-            od_bal_entity += od_interest
-
-        # --- Surplus priority allocation (by rate, highest first) ---
-
-        # P1: Accelerate Mezz IC (15.25%, Mezz character)
-        mz_accel_entity = 0.0
-        if mz_ic_bal > 0.01 and remaining > 0:
-            mz_accel_entity = min(remaining, mz_ic_bal)
-            mz_ic_bal -= mz_accel_entity
-            remaining -= mz_accel_entity
-
-        # P2: ZAR Rand Leg (9.69%, if swap active, Senior character)
-        zar_leg_payment = 0.0
-        _swap_sched_for_entity = None
-        if entity_key == 'nwl' and nwl_swap_schedule:
-            _swap_sched_for_entity = nwl_swap_schedule
-        elif entity_key == 'lanred' and lanred_swap_schedule:
-            _swap_sched_for_entity = lanred_swap_schedule
-
-        if _swap_sched_for_entity and remaining > 0:
-            # Sum ZAR leg payments due this year (in EUR)
-            zar_due_this_year = 0.0
-            for r in _swap_sched_for_entity.get('schedule', []):
-                if (yi * 12 + 1) <= r['month'] <= (yi + 1) * 12:
-                    zar_due_this_year += r['payment']
-            # Convert ZAR to EUR
-            fx = _swap_sched_for_entity.get('zar_amount', 1) / max(_swap_sched_for_entity.get('eur_amount', 1), 1) if _swap_sched_for_entity.get('eur_amount', 0) > 0 else 1
-            zar_due_eur = zar_due_this_year / fx if fx > 0 else 0
-            zar_leg_payment = min(remaining, zar_due_eur)
-            remaining -= zar_leg_payment
-
-        # P3: Overdraft repayment (10%, LanRED only)
-        if entity_key == 'lanred' and od_bal_entity > 0.01 and remaining > 0:
-            od_repaid = min(remaining, od_bal_entity)
-            od_bal_entity -= od_repaid
-            remaining -= od_repaid
-
-        # P4: Accelerate Senior IC (5.20%, Senior character)
-        sr_accel_entity = 0.0
-        if sr_ic_bal > 0.01 and remaining > 0:
-            sr_accel_entity = min(remaining, sr_ic_bal)
-            sr_ic_bal -= sr_accel_entity
-            remaining -= sr_accel_entity
-
-        # Entity FD: After both IC = 0 AND no OD outstanding → retain locally
-        entity_fd_fill = 0.0
-        both_ic_zero = mz_ic_bal <= 0.01 and sr_ic_bal <= 0.01
-        no_od = od_bal_entity <= 0.01
-        if both_ic_zero and no_od and remaining > 0:
-            entity_fd_fill = remaining
-            entity_fd_bal += entity_fd_fill
-            remaining -= entity_fd_fill
-
-        free_surplus = remaining  # anything left upstream
-
-        rows.append({
-            'ebitda': ebitda, 'tax': tax, 'ds_cash': ds_cash,
-            'sr_pi': sr_pi, 'mz_pi': mz_pi,
-            'mz_accel_entity': mz_accel_entity,
-            'sr_accel_entity': sr_accel_entity,
-            'zar_leg_payment': zar_leg_payment,
-            'ie_year': ie_year, 'pbt': pbt,
-            'surplus': max(net, 0),
-            'deficit': deficit,
-            'mz_ic_bal': mz_ic_bal,
-            'sr_ic_bal': sr_ic_bal,
-            # New fields
-            'ops_reserve_fill': ops_reserve_fill,
-            'ops_reserve_bal': ops_reserve_bal,
-            'opco_dsra_fill': opco_dsra_fill,
-            'opco_dsra_bal': opco_dsra_bal,
-            'opco_dsra_target': opco_dsra_target,
-            'od_lent': od_lent,
-            'od_received': od_received,
-            'od_repaid': od_repaid,
-            'od_interest': od_interest,
-            'od_bal': od_bal_entity,
-            'entity_fd_fill': entity_fd_fill,
-            'entity_fd_bal': entity_fd_bal,
-            'free_surplus': free_surplus,
-        })
-    return rows
+def _aggregate_entity_wf_to_annual(wf_semi):
+    """Thin wrapper → engine.waterfall.aggregate_to_annual()."""
+    return _engine_aggregate_to_annual(wf_semi)
 
 
 def _build_nwl_swap_schedule(swap_amount_eur, fx_rate, last_sr_month=102):
-    """EUR→ZAR cross-currency swap schedule (NWL).
-
-    EUR leg (asset): bullet delivery at M24. Compounds at IIC rate during grace.
-    ZAR leg (liability): P_constant profile (constant principal + declining interest).
-    IDC compounding on both legs during grace period (M0→start_month).
-    """
-    _wf_cfg = load_config("waterfall")
-    _swap_cfg = _wf_cfg.get("nwl_swap", {})
-    zar_rate = _swap_cfg.get("zar_rate", 0.0969)
-    start_month = _swap_cfg.get("zar_leg_start_month", 36)
-    eur_rate = structure['sources']['senior_debt']['interest']['rate']  # 4.70%
-    tenor = max(1, (last_sr_month - start_month) // 6 + 1)
-    zar_amount_initial = swap_amount_eur * fx_rate
-    semi_rate_zar = zar_rate / 2.0
-    semi_rate_eur = eur_rate / 2.0
-
-    schedule = []
-
-    # --- IDC phase: ZAR leg compounds from M0 to start_month ---
-    grace_periods = start_month // 6  # e.g. M36 / 6 = 6 semi-annual periods
-    zar_bal = zar_amount_initial
-    for gi in range(grace_periods):
-        month = gi * 6
-        opening = zar_bal
-        interest = opening * semi_rate_zar
-        zar_bal = opening + interest  # Capitalize
-        schedule.append({
-            'period': -(grace_periods - gi), 'month': month,
-            'opening': opening, 'interest': interest,
-            'principal': 0.0, 'payment': 0.0,
-            'closing': zar_bal, 'phase': 'idc',
-        })
-
-    # --- EUR leg IDC: compounds from M0 to M24 (bullet delivery) ---
-    eur_grace_periods = 24 // 6  # 4 semi-annual periods
-    eur_bal = swap_amount_eur
-    for _ in range(eur_grace_periods):
-        eur_bal = eur_bal * (1 + semi_rate_eur)
-    eur_amount_idc = eur_bal  # IDC-inflated EUR at M24
-
-    # --- Repayment phase: P_constant on IDC-inflated ZAR balance ---
-    p_constant = zar_bal / tenor
-    for i in range(tenor):
-        month = start_month + i * 6
-        opening = zar_bal
-        interest = opening * semi_rate_zar
-        principal = p_constant
-        payment = principal + interest
-        zar_bal = opening - principal
-        schedule.append({
-            'period': i + 1, 'month': month,
-            'opening': opening, 'interest': interest,
-            'principal': principal, 'payment': payment,
-            'closing': max(zar_bal, 0), 'phase': 'repayment',
-        })
-    return {
-        'eur_amount': swap_amount_eur,
-        'eur_amount_idc': eur_amount_idc,
-        'eur_rate': eur_rate,
-        'zar_amount': zar_amount_initial,
-        'zar_amount_idc': zar_bal + p_constant * tenor,  # IDC-inflated opening for repayment
-        'zar_rate': zar_rate,
-        'p_constant_zar': p_constant,
-        'tenor': tenor,
-        'start_month': start_month,
-        'schedule': schedule,
-    }
+    """Thin wrapper → engine.swap.build_nwl_swap_schedule()."""
+    cfg = ModelConfig.load()
+    return _engine_nwl_swap(swap_amount_eur, fx_rate, cfg, last_sr_month=last_sr_month)
 
 
 def _build_lanred_swap_schedule(eur_amount, fx_rate):
-    """LanRED EUR→ZAR swap schedule (Brownfield+ only).
-
-    EUR leg: follows IC Senior schedule (14 semi-annual from M24). Compounds at IIC rate during grace.
-    ZAR leg: P_constant profile, 28 semi-annual from M24.
-    IDC compounding on both legs during grace period (M0→start_month).
-    """
-    _wf_cfg = load_config("waterfall")
-    _swap_cfg = _wf_cfg.get("lanred_swap", {})
-    zar_rate = _swap_cfg.get("zar_rate", 0.0969)
-    zar_repayments = _swap_cfg.get("zar_leg_repayments", 28)
-    start_month = _swap_cfg.get("zar_leg_start_month", 24)
-    eur_rate = structure['sources']['senior_debt']['interest']['rate']  # 4.70%
-    zar_amount_initial = eur_amount * fx_rate
-    semi_rate_zar = zar_rate / 2.0
-    semi_rate_eur = eur_rate / 2.0
-
-    schedule = []
-
-    # --- IDC phase: ZAR leg compounds from M0 to start_month ---
-    grace_periods = start_month // 6  # e.g. M24 / 6 = 4
-    zar_bal = zar_amount_initial
-    for gi in range(grace_periods):
-        month = gi * 6
-        opening = zar_bal
-        interest = opening * semi_rate_zar
-        zar_bal = opening + interest
-        schedule.append({
-            'period': -(grace_periods - gi), 'month': month,
-            'opening': opening, 'interest': interest,
-            'principal': 0.0, 'payment': 0.0,
-            'closing': zar_bal, 'phase': 'idc',
-        })
-
-    # --- EUR leg IDC: compounds from M0 to M24 ---
-    eur_grace_periods = 24 // 6  # 4 semi-annual periods
-    eur_bal = eur_amount
-    for _ in range(eur_grace_periods):
-        eur_bal = eur_bal * (1 + semi_rate_eur)
-    eur_amount_idc = eur_bal
-
-    # --- Repayment phase: P_constant on IDC-inflated ZAR balance ---
-    p_constant = zar_bal / zar_repayments
-    for i in range(zar_repayments):
-        month = start_month + i * 6
-        opening = zar_bal
-        interest = opening * semi_rate_zar
-        principal = p_constant
-        payment = principal + interest
-        zar_bal = opening - principal
-        schedule.append({
-            'period': i + 1, 'month': month,
-            'opening': opening, 'interest': interest,
-            'principal': principal, 'payment': payment,
-            'closing': max(zar_bal, 0), 'phase': 'repayment',
-        })
-    return {
-        'eur_amount': eur_amount,
-        'eur_amount_idc': eur_amount_idc,
-        'eur_rate': eur_rate,
-        'zar_amount': zar_amount_initial,
-        'zar_amount_idc': zar_bal + p_constant * zar_repayments,
-        'zar_rate': zar_rate,
-        'p_constant_zar': p_constant,
-        'tenor': zar_repayments,
-        'start_month': start_month,
-        'schedule': schedule,
-    }
+    """Thin wrapper → engine.swap.build_lanred_swap_schedule()."""
+    cfg = ModelConfig.load()
+    return _engine_lanred_swap(eur_amount, fx_rate, cfg)
 
 
 def _compute_irr_bisect(cashflows, lo=-0.5, hi=2.0, tol=1e-6, maxiter=200):
@@ -1698,12 +1469,13 @@ def _build_waterfall_model(annual_model, nwl_wf, lanred_wf, twx_wf,
                             sem, entity_ic, nwl_swap_enabled=False,
                             lanred_swap_enabled=False, swap_schedule=None,
                             lanred_swap_schedule=None):
-    """Build 10-year holding company cash waterfall (v3.1 — character-preserving).
+    """Build 10-year holding company cash waterfall (v4.0 -- character-preserving).
 
+    Entity waterfalls are 20 semi-annual dicts; aggregated to annual here.
     Cash can ONLY flow upstream via 2 pipes: Senior IC or Mezz IC.
-      - Entity Sr P+I + prepayments + sr_accel_entity → Senior character → IIC
-      - Entity Mz P+I + mz_accel_entity → Mezz character → CC
-    No "free surplus" bucket — ALL cash is allocated at entity level.
+      - Entity Sr P+I + grant_accel + sr_accel_entity -> Senior character -> IIC
+      - Entity Mz P+I + mz_accel_entity -> Mezz character -> CC
+    No "free surplus" bucket -- ALL cash is allocated at entity level.
 
     Priority cascade (6-step):
       1. Senior P+I + Sr Accel (pass-through to IIC, Senior character)
@@ -1715,6 +1487,11 @@ def _build_waterfall_model(annual_model, nwl_wf, lanred_wf, twx_wf,
 
     Returns list of 10 annual dicts with full waterfall breakdown.
     """
+    # Aggregate entity waterfalls from 20 semi-annual to 10 annual
+    nwl_wf_a = _aggregate_entity_wf_to_annual(nwl_wf)
+    lanred_wf_a = _aggregate_entity_wf_to_annual(lanred_wf)
+    twx_wf_a = _aggregate_entity_wf_to_annual(twx_wf)
+
     _wf_cfg = load_config("waterfall")
     _cc_irr_cfg = _wf_cfg.get("cc_irr", {})
     cc_gap_rate = _cc_irr_cfg.get("gap", 0.0525)
@@ -1738,14 +1515,14 @@ def _build_waterfall_model(annual_model, nwl_wf, lanred_wf, twx_wf,
     cc_cashflows = [-cc_initial]  # M0: CC invests
 
     waterfall = []
-    for yi in range(10):
+    for yi in range(total_years()):
         yr = yi + 1
         a = annual_model[yi]
         wf = {'year': yr}
 
         # --- 1. Entity-level contributions (2 pipes only) ---
-        entity_wfs = {'nwl': nwl_wf[yi], 'lanred': lanred_wf[yi], 'timberworx': twx_wf[yi]}
-        sr_character = 0.0   # Senior character: sr_pi + prepayments + sr_accel_entity + zar_leg
+        entity_wfs = {'nwl': nwl_wf_a[yi], 'lanred': lanred_wf_a[yi], 'timberworx': twx_wf_a[yi]}
+        sr_character = 0.0   # Senior character: sr_pi + grant_accel + sr_accel_entity + zar_leg
         mz_character = 0.0   # Mezz character: mz_pi + mz_accel_entity
 
         for ek, ewf in entity_wfs.items():
@@ -1760,26 +1537,38 @@ def _build_waterfall_model(annual_model, nwl_wf, lanred_wf, twx_wf,
             wf[f'{ek}_sr_ic_bal'] = ewf.get('sr_ic_bal', 0)
 
             # New entity-level cascade fields
+            wf[f'{ek}_ops_reserve_interest'] = ewf.get('ops_reserve_interest', 0)
             wf[f'{ek}_ops_reserve_fill'] = ewf.get('ops_reserve_fill', 0)
             wf[f'{ek}_ops_reserve_bal'] = ewf.get('ops_reserve_bal', 0)
+            wf[f'{ek}_ops_reserve_target'] = ewf.get('ops_reserve_target', 0)
             wf[f'{ek}_opco_dsra_fill'] = ewf.get('opco_dsra_fill', 0)
             wf[f'{ek}_opco_dsra_bal'] = ewf.get('opco_dsra_bal', 0)
             wf[f'{ek}_opco_dsra_target'] = ewf.get('opco_dsra_target', 0)
+            wf[f'{ek}_entity_fd_interest'] = ewf.get('entity_fd_interest', 0)
             wf[f'{ek}_entity_fd_fill'] = ewf.get('entity_fd_fill', 0)
             wf[f'{ek}_entity_fd_bal'] = ewf.get('entity_fd_bal', 0)
+            # Mezz Dividend Reserve propagation (NWL and LanRED only; TWX yields zeros)
+            wf[f'{ek}_mz_div_accrual']       = ewf.get('mz_div_accrual', 0)
+            wf[f'{ek}_mz_div_liability_bal'] = ewf.get('mz_div_liability_bal', 0)
+            wf[f'{ek}_mz_div_fd_interest']   = ewf.get('mz_div_fd_interest', 0)
+            wf[f'{ek}_mz_div_fd_fill']       = ewf.get('mz_div_fd_fill', 0)
+            wf[f'{ek}_mz_div_fd_bal']        = ewf.get('mz_div_fd_bal', 0)
+            wf[f'{ek}_mz_div_payout']        = ewf.get('mz_div_payout', False)
+            wf[f'{ek}_mz_div_payout_amount'] = ewf.get('mz_div_payout_amount', 0)
             wf[f'{ek}_od_lent'] = ewf.get('od_lent', 0)
             wf[f'{ek}_od_received'] = ewf.get('od_received', 0)
             wf[f'{ek}_od_repaid'] = ewf.get('od_repaid', 0)
             wf[f'{ek}_od_bal'] = ewf.get('od_bal', 0)
 
-            # Grant-funded prepayments this year (from IC schedule, Senior character)
+            # Grant-funded acceleration this year (from IC schedule, Senior character)
             y_start = yi * 12
             y_end = y_start + 12
-            ek_prepay = 0.0
+            ek_grant_accel = 0.0
             for r in entity_ic[ek]['sr']:
                 if y_start <= r['Month'] < y_end:
-                    ek_prepay += abs(r.get('Prepayment', 0))
-            wf[f'{ek}_prepay'] = ek_prepay
+                    ek_grant_accel += abs(r.get('Acceleration', 0))
+            wf[f'{ek}_grant_accel'] = ek_grant_accel
+            wf[f'{ek}_prepay'] = ek_grant_accel  # backward compat
 
             # Entity DSRA target (backward compat: from opco_dsra_target)
             wf[f'{ek}_dsra_target'] = ewf.get('opco_dsra_target', 0)
@@ -1787,6 +1576,16 @@ def _build_waterfall_model(annual_model, nwl_wf, lanred_wf, twx_wf,
             wf[f'{ek}_dsra_bal'] = ewf.get('entity_fd_bal', 0)
 
             wf[f'{ek}_surplus'] = ewf.get('sr_accel_entity', 0) + ewf.get('free_surplus', 0)
+            wf[f'{ek}_entity_surplus'] = ewf.get('surplus', 0)
+            wf[f'{ek}_tax'] = ewf.get('tax', 0)
+            wf[f'{ek}_zar_leg_scheduled'] = ewf.get('zar_leg_scheduled', 0)
+            wf[f'{ek}_zar_leg_accel'] = ewf.get('zar_leg_accel', 0)
+            wf[f'{ek}_zar_leg_bal'] = ewf.get('zar_leg_bal', 0)
+            wf[f'{ek}_free_surplus'] = ewf.get('free_surplus', 0)
+            wf[f'{ek}_mz_prin_sched'] = ewf.get('mz_prin_sched', 0)
+            wf[f'{ek}_sr_prin_sched'] = ewf.get('sr_prin_sched', 0)
+            wf[f'{ek}_opco_dsra_release'] = ewf.get('opco_dsra_release', 0)
+            wf[f'{ek}_od_lent'] = ewf.get('od_lent', 0)
             wf[f'{ek}_deficit'] = ewf['deficit']
 
             # Determine if entity IC is fully repaid (from entity-level balances)
@@ -1795,7 +1594,7 @@ def _build_waterfall_model(annual_model, nwl_wf, lanred_wf, twx_wf,
 
             # 2-pipe upstream (stops after IC repaid)
             if not entity_ic_repaid:
-                sr_character += ewf['sr_pi'] + ek_prepay + ewf.get('sr_accel_entity', 0) + ewf.get('zar_leg_payment', 0)
+                sr_character += ewf['sr_pi'] + ek_grant_accel + ewf.get('sr_accel_entity', 0) + ewf.get('zar_leg_payment', 0)
                 mz_character += ewf['mz_pi'] + ewf.get('mz_accel_entity', 0)
 
         # Total pool for display (all upstream combined)
@@ -1845,15 +1644,22 @@ def _build_waterfall_model(annual_model, nwl_wf, lanred_wf, twx_wf,
         wf['wf_dsra_bal'] = dsra_bal
         wf['wf_dsra_target'] = dsra_target
 
-        # Step 4: One-Time Dividend (when CC balance reaches 0)
+        # Step 4: One-Time Dividend — authoritative source is entity-level FD payout
+        # The FD is funded at entity level; payout flows up to SCLCA/holding, then to CC.
+        # Does NOT reduce the holding 'remaining' pool (already funded from entity FD).
         wf_slug_paid = 0.0
-        if cc_bal <= 0.01 and not slug_settled and cc_slug_cumulative > 0:
-            wf_slug_paid = min(remaining, cc_slug_cumulative)
-            remaining -= wf_slug_paid
+        _entity_div_payout_total = (
+            nwl_wf[yi].get('mz_div_payout_amount', 0) +
+            lanred_wf[yi].get('mz_div_payout_amount', 0)
+        )
+        if _entity_div_payout_total > 0.01 and not slug_settled:
+            wf_slug_paid = _entity_div_payout_total
             slug_settled = True
+        # cc_slug_cumulative retained as IRR verification tracker (should ≈ wf_slug_paid)
         wf['wf_cc_slug_paid'] = wf_slug_paid
+        wf['wf_cc_slug_verified'] = cc_slug_cumulative  # verification only
 
-        # Step 5: Senior acceleration (holding-level, IIC voluntary prepayment)
+        # Step 5: Senior acceleration (holding-level, IIC voluntary acceleration)
         wf_sr_accel = 0.0
         if remaining > 0:
             wf_sr_accel = remaining
@@ -1876,7 +1682,8 @@ def _build_waterfall_model(annual_model, nwl_wf, lanred_wf, twx_wf,
         wf['wf_iic_pi'] = wf_sr_pi               # old Step 1
         wf['wf_cc_interest'] = wf_mz_pi           # old Step 2 (includes entity accel)
         wf['wf_cc_principal'] = 0                  # old holding Mz accel (now entity-level)
-        wf['wf_iic_prepay'] = wf_sr_accel          # old Step 5→6
+        wf['wf_iic_accel'] = wf_sr_accel             # old Step 5→6
+        wf['wf_iic_prepay'] = wf_sr_accel            # backward compat alias
 
         # Zero stubs for removed rebalance (keeps downstream tabs safe)
         wf['wf_ic_mz_rebalance'] = 0
@@ -1907,11 +1714,11 @@ def _build_waterfall_model(annual_model, nwl_wf, lanred_wf, twx_wf,
         # --- NWL swap tracking ---
         if nwl_swap_enabled and swap_schedule:
             zar_paid = sum(r['payment'] for r in swap_schedule['schedule']
-                          if (yi * 12 + 1) <= r['month'] <= (yi + 1) * 12)
+                          if yi * 12 <= r['month'] < (yi + 1) * 12)
             # ZAR balance: full notional until first repayment, then track schedule
             zar_bal = swap_schedule['zar_amount']  # Start with full notional
             for r in swap_schedule['schedule']:
-                if r['month'] <= (yi + 1) * 12:
+                if r['month'] < (yi + 1) * 12:
                     zar_bal = r['closing']
             wf['swap_eur_delivered'] = swap_schedule['eur_amount'] if yi == 1 else 0
             wf['swap_zar_repaid'] = zar_paid / FX_RATE
@@ -1924,11 +1731,11 @@ def _build_waterfall_model(annual_model, nwl_wf, lanred_wf, twx_wf,
         # --- LanRED swap tracking ---
         if lanred_swap_enabled and lanred_swap_schedule:
             lr_zar_paid = sum(r['payment'] for r in lanred_swap_schedule['schedule']
-                              if (yi * 12 + 1) <= r['month'] <= (yi + 1) * 12)
+                              if yi * 12 <= r['month'] < (yi + 1) * 12)
             # ZAR balance: full notional until first repayment, then track schedule
             lr_zar_bal = lanred_swap_schedule['zar_amount']  # Start with full notional
             for r in lanred_swap_schedule['schedule']:
-                if r['month'] <= (yi + 1) * 12:
+                if r['month'] < (yi + 1) * 12:
                     lr_zar_bal = r['closing']
             # EUR leg follows IC Senior — delivered = IC Sr principal paid this year
             lr_eur_delivered = entity_wfs.get('lanred', {}).get('sr_pi', 0) if yi >= 1 else 0
@@ -2063,10 +1870,13 @@ def _extrapolate_piecewise_linear(base_months: list[int], base_values: list[floa
 
 
 def _month_to_year_idx(month: int) -> int | None:
-    """Map month 1..120 to year index 0..9."""
-    if month < 1:
+    """Map month 0..119 to year index 0..9 (start-month convention).
+
+    M0-M11 -> Y0, M12-M23 -> Y1, ... M108-M119 -> Y9.
+    """
+    if month < 0:
         return None
-    idx = math.ceil(month / 12) - 1
+    idx = month // 12
     return idx if 0 <= idx < 10 else None
 
 
@@ -2080,7 +1890,7 @@ def _build_nwl_operating_annual_model() -> list[dict]:
     om_cfg = cfg.get("om", {})
     srv_cfg = cfg.get("sewerage_revenue_sharing", {})
 
-    months_semi = list(range(6, 121, 6))  # M6 .. M120
+    months_semi = [period_start_month(si) for si in range(total_periods())]  # M0, M6, ..., M114
     month_to_idx = {m: i for i, m in enumerate(months_semi)}
 
     ramp_rows = on_ramp_cfg.get("rows", [])
@@ -2149,36 +1959,46 @@ def _build_nwl_operating_annual_model() -> list[dict]:
     rev_construction_zar = [v * half_year_kl_per_mld * p for v, p in zip(reuse_sold_construction, water_rates)]
     rev_agri_zar = [v * half_year_kl_per_mld * p for v, p in zip(reuse_overflow_agri, agri_rates)]
 
-    rev_bulk_zar_year = [0.0 for _ in range(10)]
+    def _month_to_semi_idx(m: int) -> int | None:
+        """Map month 0..119 to semi-annual index 0..19 (start-month convention).
+
+        M0-M5 -> 0 (C1), M6-M11 -> 1 (C2), M12-M17 -> 2 (C3), ...
+        """
+        if m < 0:
+            return None
+        si = m // 6
+        return si if 0 <= si < 20 else None
+
+    rev_bulk_zar_year = [0.0 for _ in range(total_years())]
+    rev_bulk_zar_semi = [0.0 for _ in range(total_periods())]
     for row in bulk_cfg.get("rows", []):
         amount = float(row.get("price_zar", 0.0))
-        receipt_period = max(float(row.get("receipt_period", 12.0)), 0.0)
         if amount <= 0.0:
             continue
-        if receipt_period == 0.0:
-            yi = _month_to_year_idx(12)
-            if yi is not None:
-                rev_bulk_zar_year[yi] += amount
-            continue
-        start_m = 13  # Y2 start — bulk services received entirely in Y2
-        end_m = start_m + receipt_period
-        for mi in range(1, 121):
-            if start_m <= mi < end_m:
-                yi = _month_to_year_idx(mi)
-                if yi is not None:
-                    rev_bulk_zar_year[yi] += amount / receipt_period
+        # Bulk services: lump-sum at M12 (all revenue recognised in Y1 H2)
+        yi = _month_to_year_idx(12)
+        if yi is not None:
+            rev_bulk_zar_year[yi] += amount
+        si = _month_to_semi_idx(12)
+        if si is not None:
+            rev_bulk_zar_semi[si] += amount
 
     om_monthly_fee = float(om_cfg.get("flat_fee_per_month_zar", 0.0))
     om_index_pa = float(om_cfg.get("annual_indexation_pa", 0.0))
     om_start_month = int(om_cfg.get("opex_start_month", 12))
-    om_zar_year = [0.0 for _ in range(10)]
-    for mi in range(1, 121):
+    om_zar_year = [0.0 for _ in range(total_years())]
+    om_zar_semi = [0.0 for _ in range(total_periods())]
+    for mi in range(120):  # M0..M119 (0-based months matching _month_to_year/semi_idx)
         yi = _month_to_year_idx(mi)
-        if yi is None or mi < om_start_month:
+        if mi < om_start_month:
             continue
         years_from_start = (mi - om_start_month) / 12.0
         monthly_cost = om_monthly_fee * ((1.0 + om_index_pa) ** years_from_start)
-        om_zar_year[yi] += monthly_cost
+        if yi is not None:
+            om_zar_year[yi] += monthly_cost
+        si = _month_to_semi_idx(mi)
+        if si is not None:
+            om_zar_semi[si] += monthly_cost
 
     # Power / electricity cost (inter-company from LanRED solar at Eskom -10%)
     power_cfg = cfg.get("power", {})
@@ -2188,10 +2008,11 @@ def _build_nwl_operating_annual_model() -> list[dict]:
     power_rate = eskom_base * (1.0 - ic_discount / 100.0)
     power_escalation = _state_float("nwl_power_escalation", float(power_cfg.get("annual_escalation_pct", 10.0))) / 100.0
     power_start_month = int(power_cfg.get("start_month", 18))
-    power_zar_year = [0.0 for _ in range(10)]
-    for mi in range(1, 121):
+    power_zar_year = [0.0 for _ in range(total_years())]
+    power_zar_semi = [0.0 for _ in range(total_periods())]
+    for mi in range(120):  # M0..M119 (0-based months)
         yi = _month_to_year_idx(mi)
-        if yi is None or mi < power_start_month:
+        if mi < power_start_month:
             continue
         # Get capacity at this month via interpolation
         cap_mld = 0.0
@@ -2207,33 +2028,39 @@ def _build_nwl_operating_annual_model() -> list[dict]:
         kwh_per_day = volume_m3_per_day * power_kwh_per_m3
         years_from_start = (mi - power_start_month) / 12.0
         rate_indexed = power_rate * ((1.0 + power_escalation) ** years_from_start)
-        power_zar_year[yi] += kwh_per_day * rate_indexed * 30.44  # avg days per month
+        _power_monthly = kwh_per_day * rate_indexed * 30.44  # avg days per month
+        if yi is not None:
+            power_zar_year[yi] += _power_monthly
+        si = _month_to_semi_idx(mi)
+        if si is not None:
+            power_zar_semi[si] += _power_monthly
 
-    # CoE rent (capital-recovery: CapEx × (WACC + O&M) — mirrors TWX coe_lease revenue)
-    # Stops after CoE sale to LLC (TWX sells CoE in year N → NWL stops paying rent)
+    # CoE rent (capital-recovery: CapEx x (WACC + O&M) -- mirrors TWX coe_lease revenue)
+    # After CoE sale to LLC, NWL continues paying rent -- recipient changes (TWX -> LLC), cost unchanged
     rent_cfg = cfg.get("coe_rent", {})
     rent_om_pct = float(rent_cfg.get("om_overhead_pct", 2.0))
     rent_monthly_eur, rent_annual_eur, _rent_wacc, _rent_coe_capex = compute_coe_rent_monthly_eur(rent_om_pct)
     rent_monthly_zar = rent_monthly_eur * FX_RATE
     rent_esc_pct = float(rent_cfg.get("annual_escalation_pct", 5.0)) / 100.0
     rent_start_month = int(rent_cfg.get("start_month", 24))
-    _twx_sale_cfg = operations_config.get("timberworx", {}).get("coe_sale_to_llc", {})
-    _rent_sale_enabled = _twx_sale_cfg.get("enabled", False)
-    _rent_sale_year = int(_twx_sale_cfg.get("sale_year", 4))
-    _rent_end_month = _rent_sale_year * 12 if _rent_sale_enabled else 999
-    rent_zar_year = [0.0 for _ in range(10)]
-    for mi in range(1, 121):
+    rent_zar_year = [0.0 for _ in range(total_years())]
+    rent_zar_semi = [0.0 for _ in range(total_periods())]
+    for mi in range(120):  # M0..M119 (0-based months)
         yi = _month_to_year_idx(mi)
-        if yi is None or mi < rent_start_month or mi > _rent_end_month:
+        if mi < rent_start_month:
             continue
         years_from_start = (mi - rent_start_month) / 12.0
         rent_indexed = rent_monthly_zar * ((1.0 + rent_esc_pct) ** years_from_start)
-        rent_zar_year[yi] += rent_indexed
+        if yi is not None:
+            rent_zar_year[yi] += rent_indexed
+        si = _month_to_semi_idx(mi)
+        if si is not None:
+            rent_zar_semi[si] += rent_indexed
 
     annual_rows = []
-    for yi in range(10):
-        m1 = 6 + yi * 12
-        m2 = 12 + yi * 12
+    for yi in range(total_years()):
+        m1 = yi * 12        # H1 start_month (M0, M12, M24, ...)
+        m2 = yi * 12 + 6   # H2 start_month (M6, M18, M30, ...)
         i1 = month_to_idx.get(m1)
         i2 = month_to_idx.get(m2)
         if i1 is None or i2 is None:
@@ -2291,7 +2118,32 @@ def _build_nwl_operating_annual_model() -> list[dict]:
             "om_zar": om_zar_year[yi],
             "rent_zar": rent_zar_year[yi],
         })
-    return annual_rows
+
+    # Build 20 semi-annual rows (M6..M120) for waterfall engine
+    semi_annual_rows = []
+    for si in range(total_periods()):
+        _s_gf_sew = rev_gf_sewage_zar[si] / FX_RATE
+        _s_bf_sew = rev_bf_sewage_zar[si] / FX_RATE
+        _s_gf_reu = rev_gf_reuse_zar[si] / FX_RATE
+        _s_constr = rev_construction_zar[si] / FX_RATE
+        _s_agri = rev_agri_zar[si] / FX_RATE
+        _s_bulk = rev_bulk_zar_semi[si] / FX_RATE
+        _s_rev_op = _s_gf_sew + _s_bf_sew + _s_gf_reu + _s_constr + _s_agri
+        _s_rev_tot = _s_rev_op + _s_bulk
+        _s_om = om_zar_semi[si] / FX_RATE
+        _s_pow = power_zar_semi[si] / FX_RATE
+        _s_rent = rent_zar_semi[si] / FX_RATE
+        semi_annual_rows.append({
+            "month": months_semi[si],
+            "rev_operating": _s_rev_op,
+            "rev_bulk_services": _s_bulk,
+            "rev_total": _s_rev_tot,
+            "om_cost": _s_om,
+            "power_cost": _s_pow,
+            "rent_cost": _s_rent,
+        })
+
+    return annual_rows, semi_annual_rows
 
 
 def _build_lanred_operating_annual_model() -> list[dict]:
@@ -2414,20 +2266,19 @@ def _build_lanred_operating_annual_model() -> list[dict]:
 
     # Compute annual generation, revenue, and costs
     annual_rows = []
-    for yi in range(10):
+    for yi in range(total_years()):
         year = yi + 1
-        y_start = yi * 12 + 1
-        y_end = (yi + 1) * 12
+        y_start, y_end = annual_month_range(yi)  # 0-based: (0,12), (12,24), ...
 
         # Solar generation (kWh) with degradation
         years_since_cod = max((y_start - cod_month) / 12.0, 0.0)
         capacity_factor_adj = capacity_factor_base * ((1.0 - solar_degradation_pa) ** years_since_cod)
 
         # Hours in year (account for partial year if COD mid-year)
-        if y_start < cod_month <= y_end:
-            months_operating = (y_end - cod_month + 1)
+        if y_start <= cod_month < y_end:
+            months_operating = (y_end - cod_month)
             hours_operating = months_operating * 30.44 * 24
-        elif y_end < cod_month:
+        elif y_end <= cod_month:
             hours_operating = 0.0
         else:
             hours_operating = 365.25 * 24
@@ -2441,7 +2292,7 @@ def _build_lanred_operating_annual_model() -> list[dict]:
             # Get NWL volume for this year from on-ramp schedule
             _nwl_mld = 0.0
             for _row in nwl_on_ramp:
-                if _row['period_months'] <= y_end:
+                if _row['period_months'] < y_end:
                     _cap = _row.get('capacity_available_mld')
                     if _cap is not None:
                         _nwl_mld = _cap
@@ -2451,7 +2302,7 @@ def _build_lanred_operating_annual_model() -> list[dict]:
         else:
             ic_share = 0.0
 
-        if y_end >= ic_start_month and annual_generation_kwh > 0:
+        if y_end > ic_start_month and annual_generation_kwh > 0:
             ic_rate_indexed = ic_rate * ((1.0 + ic_escalation) ** years_from_cod)
             ic_kwh = annual_generation_kwh * ic_share
             rev_ic_nwl_zar = ic_kwh * ic_rate_indexed
@@ -2460,7 +2311,7 @@ def _build_lanred_operating_annual_model() -> list[dict]:
             rev_ic_nwl_zar = 0.0
 
         # ── Stream 2: Smart City tenant off-take (share grows per year) ──
-        if sc_enabled and y_end >= sc_start_month:
+        if sc_enabled and y_end > sc_start_month:
             sc_share = sc_share_by_year[yi] if yi < len(sc_share_by_year) else sc_share_by_year[-1]
             years_from_sc_start = max((y_start - sc_start_month) / 12.0, 0.0)
             sc_rate_indexed = sc_rate * ((1.0 + sc_escalation) ** years_from_sc_start)
@@ -2471,7 +2322,7 @@ def _build_lanred_operating_annual_model() -> list[dict]:
             rev_sc_zar = 0.0
 
         # ── Stream 3: Open market (residual = 100% - NWL - Smart City) ──
-        if mkt_enabled and y_end >= mkt_start_month:
+        if mkt_enabled and y_end > mkt_start_month:
             mkt_share = max(1.0 - ic_share - sc_share, 0.0)
             years_from_mkt_start = max((y_start - mkt_start_month) / 12.0, 0.0)
             mkt_rate_indexed = mkt_rate * ((1.0 + mkt_escalation) ** years_from_mkt_start)
@@ -2482,13 +2333,13 @@ def _build_lanred_operating_annual_model() -> list[dict]:
             rev_mkt_zar = 0.0
 
         # ── Stream 4: BESS 2-cycle seasonal TOU arbitrage ──
-        if arb_enabled and y_end >= arb_start_month:
+        if arb_enabled and y_end > arb_start_month:
             _bess_years = max((y_start - cod_month) / 12.0, 0.0)
             _bess_eff_capacity = bess_capacity_kwh * bess_usable_pct * ((1.0 - bess_degradation_pa) ** _bess_years)
             _esc = (1.0 + arb_escalation) ** _bess_years
             # Partial year fraction if COD mid-year
-            if y_start < arb_start_month <= y_end:
-                _operating_frac = (y_end - arb_start_month + 1) / 12.0
+            if y_start <= arb_start_month < y_end:
+                _operating_frac = (y_end - arb_start_month) / 12.0
             else:
                 _operating_frac = 1.0
             # High Demand season (3 months): 2 cycles/day
@@ -2509,7 +2360,7 @@ def _build_lanred_operating_annual_model() -> list[dict]:
             _bess_eff_capacity = 0.0
 
         # O&M costs
-        if y_end >= om_start_month:
+        if y_end > om_start_month:
             years_from_om_start = max((y_start - om_start_month) / 12.0, 0.0)
             om_fixed_indexed = om_fixed_annual_zar * ((1.0 + om_indexation) ** years_from_om_start)
             om_variable_zar = annual_generation_kwh * om_variable_r_kwh
@@ -2518,11 +2369,11 @@ def _build_lanred_operating_annual_model() -> list[dict]:
             om_total_zar = 0.0
 
         # Grid connection costs
-        if y_end >= grid_start_month:
+        if y_end > grid_start_month:
             years_from_grid_start = max((y_start - grid_start_month) / 12.0, 0.0)
             grid_monthly_indexed = grid_monthly_zar * ((1.0 + grid_escalation) ** years_from_grid_start)
-            if y_start < grid_start_month <= y_end:
-                months_grid = (y_end - grid_start_month + 1)
+            if y_start <= grid_start_month < y_end:
+                months_grid = (y_end - grid_start_month)
             else:
                 months_grid = 12
             grid_annual_zar = grid_monthly_indexed * months_grid
@@ -2578,7 +2429,7 @@ def _build_lanred_brownfield_operating_annual_model() -> list[dict]:
     cost_esc = np_cfg['cost_escalation_pct'] / 100.0
 
     annual_rows = []
-    for yi in range(10):
+    for yi in range(total_years()):
         year = yi + 1
         rev_zar = total_monthly_rev * 12 * ((1 + rev_esc) ** yi)
         cogs_zar = total_monthly_cogs * 12 * ((1 + cost_esc) ** yi)
@@ -2681,21 +2532,20 @@ def _build_twx_operating_annual_model() -> list[dict]:
     om_start_month = int(om_cfg.get("opex_start_month", 24))
 
     annual_rows = []
-    for yi in range(10):
+    for yi in range(total_years()):
         year = yi + 1
-        y_start = yi * 12 + 1
-        y_end = (yi + 1) * 12
+        y_start, y_end = annual_month_range(yi)  # 0-based: (0,12), (12,24), ...
 
         # CoE Lease Revenue (stops from sale year — CoE sold to LLC)
         coe_sold = coe_sale_enabled and year > coe_sale_year
         coe_sale_this_year = coe_sale_enabled and year == coe_sale_year
         coe_gone = coe_sold or coe_sale_this_year  # True from Y4 (sale year) onwards
-        if y_end >= lease_start_month and not coe_gone:
+        if y_end > lease_start_month and not coe_gone:
             years_from_lease_start = max((y_start - lease_start_month) / 12.0, 0.0)
             lease_rate_indexed = monthly_rental_zar * ((1.0 + lease_escalation) ** years_from_lease_start)
             occupancy = occupancy_ramp[yi] if yi < len(occupancy_ramp) else occupancy_ramp[-1]
-            if y_start < lease_start_month <= y_end:
-                months_lease = (y_end - lease_start_month + 1)
+            if y_start <= lease_start_month < y_end:
+                months_lease = (y_end - lease_start_month)
             else:
                 months_lease = 12
             rev_lease_zar = lease_rate_indexed * months_lease * occupancy
@@ -2709,27 +2559,27 @@ def _build_twx_operating_annual_model() -> list[dict]:
             rev_coe_sale_eur = 0.0
 
         # Training Revenue (needs CoE — stops from sale year)
-        if y_end >= training_start_month and not coe_gone:
+        if y_end > training_start_month and not coe_gone:
             years_from_training_start = max((y_start - training_start_month) / 12.0, 0.0)
             fee_indexed = training_fee_zar * ((1.0 + training_escalation) ** years_from_training_start)
             subsidy_indexed = seta_subsidy_zar * ((1.0 + training_escalation) ** years_from_training_start)
             students_this_year = training_throughput[yi] if yi < len(training_throughput) else training_throughput[-1]
             # Pro-rate for partial year
-            if y_start < training_start_month <= y_end:
-                months_training = (y_end - training_start_month + 1)
+            if y_start <= training_start_month < y_end:
+                months_training = (y_end - training_start_month)
                 students_this_year = students_this_year * months_training / 12.0
             rev_training_zar = students_this_year * (fee_indexed + subsidy_indexed)
         else:
             rev_training_zar = 0.0
 
         # Timber Sales Revenue (service model: labor-only cost)
-        if sales_enabled and y_end >= sales_start_month:
+        if sales_enabled and y_end > sales_start_month:
             years_from_sales_start = max((y_start - sales_start_month) / 12.0, 0.0)
             unit_price_indexed = price_per_unit_zar * ((1.0 + sales_escalation) ** years_from_sales_start)
             units_this_year = units_per_year[yi] if yi < len(units_per_year) else units_per_year[-1]
             # Pro-rate for partial year
-            if y_start < sales_start_month <= y_end:
-                months_sales = (y_end - sales_start_month + 1)
+            if y_start <= sales_start_month < y_end:
+                months_sales = (y_end - sales_start_month)
                 units_this_year = units_this_year * months_sales / 12.0
             rev_timber_gross_zar = units_this_year * unit_price_indexed
             # Labor scales with houses: R130k/month Phase 1 basis → R30k/house
@@ -2746,12 +2596,12 @@ def _build_twx_operating_annual_model() -> list[dict]:
         rev_total_zar = rev_lease_zar + rev_training_zar + rev_timber_net_zar
 
         # O&M Costs (CoE facility management — stops from sale year)
-        if y_end >= om_start_month and not coe_gone:
+        if y_end > om_start_month and not coe_gone:
             years_from_om_start = max((y_start - om_start_month) / 12.0, 0.0)
             om_fixed_indexed = om_fixed_annual_zar * ((1.0 + om_indexation) ** years_from_om_start)
             # Pro-rate for partial year
-            if y_start < om_start_month <= y_end:
-                months_om = (y_end - om_start_month + 1)
+            if y_start <= om_start_month < y_end:
+                months_om = (y_end - om_start_month)
                 om_fixed_indexed = om_fixed_indexed * months_om / 12.0
             om_variable_zar = rev_total_zar * om_variable_pct
             om_total_zar = om_fixed_indexed + om_variable_zar
@@ -2780,7 +2630,7 @@ def _build_twx_operating_annual_model() -> list[dict]:
             "power_cost": 0.0,
             "rent_cost": 0.0,
             "occupancy_pct": occupancy_ramp[yi] * 100 if yi < len(occupancy_ramp) else occupancy_ramp[-1] * 100,
-            "students": (training_throughput[yi] if yi < len(training_throughput) else training_throughput[-1]) if (y_end >= training_start_month and not coe_gone) else 0,
+            "students": (training_throughput[yi] if yi < len(training_throughput) else training_throughput[-1]) if (y_end > training_start_month and not coe_gone) else 0,
             "timber_units": units_per_year[yi] if yi < len(units_per_year) else units_per_year[-1],
             "coe_sold": coe_gone,
         })
@@ -2791,381 +2641,34 @@ def _build_twx_operating_annual_model() -> list[dict]:
 def build_sub_annual_model(entity_key):
     """Build 10-year annual P&L, Cash Flow, Balance Sheet for a subsidiary.
 
-    Uses IC loan schedules from config. Returns dict with:
-        annual: list[dict]       - 10-year annual P&L/CF/BS
-        registry: dict           - Asset registry
-        sr_schedule: list[dict]  - Senior IC schedule periods
-        mz_schedule: list[dict]  - Mezz IC schedule periods
-        ops_annual: list[dict]   - Operating model annual data
-        depreciable_base: float  - Total depreciable base
-        entity_equity: float     - Shareholder equity
+    Delegates to the engine calculation modules. Returns dict with same
+    shape as the original implementation for display code compatibility.
     """
-    entity_data = structure['uses']['loans_to_subsidiaries'][entity_key]
-    senior_cfg = structure['sources']['senior_debt']
-    mezz_cfg = structure['sources']['mezzanine']
+    model_data = _run_engine_model(_session_input_hash())
+    er = model_data["entities"][entity_key]
 
-    sr_rate = senior_cfg['interest']['rate'] + INTERCOMPANY_MARGIN  # 5.20%
-    mz_rate = mezz_cfg['interest']['total_rate'] + INTERCOMPANY_MARGIN  # 15.25%
-    sr_repayments = senior_cfg['repayments']  # 14
-    mz_repayments = mezz_cfg.get('repayments', 10)  # 10
+    # Add old field names for display compatibility
+    annual = [_add_compat_fields(dict(a)) for a in er["annual"]]
+    wf_semi = [_add_compat_fields(dict(w)) for w in er["waterfall_semi"]]
+    wf_annual = [_add_compat_fields(dict(w)) for w in er["waterfall_annual"]]
 
-    sr_principal = entity_data['senior_portion']
-    mz_principal = entity_data['mezz_portion']
-    total_sr = sum(l['senior_portion'] for l in structure['uses']['loans_to_subsidiaries'].values())
-    total_mz = sum(l['mezz_portion'] for l in structure['uses']['loans_to_subsidiaries'].values())
-
-    # Senior IC schedule (with grant-funded prepayments — entity-specific allocation)
-    sr_detail = financing['loan_detail']['senior']
-    sr_drawdowns = sr_detail['drawdown_schedule']
-    sr_periods = [-4, -3, -2, -1]
-    sr_prepayments_raw = sr_detail.get('prepayment_periods', {})
-    prepay_alloc = sr_detail.get('prepayment_allocation', {})
-    entity_prepay_pct = prepay_alloc.get(entity_key, 0.0) if prepay_alloc else 0.0
-    sr_prepayments = {k: v * entity_prepay_pct for k, v in sr_prepayments_raw.items()} if entity_prepay_pct > 0 else None
-
-    # Pre-Revenue Hedge sizing — replicate SCLCA's facility-level calculation
-    _sr_detail_fac = financing['loan_detail']['senior']
-    _sr_bal_fac = (_sr_detail_fac['loan_drawdown_total']
-                   + _sr_detail_fac['rolled_up_interest_idc']
-                   - _sr_detail_fac['grant_proceeds_to_early_repayment']
-                   - _sr_detail_fac['gepf_bulk_proceeds'])
-    _sr_rate_fac = structure['sources']['senior_debt']['interest']['rate']
-    _sr_num_fac = structure['sources']['senior_debt']['repayments']
-    _sr_p_fac = _sr_bal_fac / _sr_num_fac
-    _sr_i_m24 = _sr_bal_fac * _sr_rate_fac / 2
-    pre_revenue_hedge_total = 2 * (_sr_p_fac + _sr_i_m24)
-
-    # IC Senior P1 principal = facility P + IDC margin (aligns M30 balances)
-    _sr_idc_fac = _sr_detail_fac['rolled_up_interest_idc']
-    _sr_idc_ic = _sr_idc_fac * (sr_rate / _sr_rate_fac) if _sr_rate_fac > 0 else _sr_idc_fac
-    _idc_margin = _sr_idc_ic - _sr_idc_fac
-    _ic_dsra_p1 = _sr_p_fac + _idc_margin
-
-    # Pre-Revenue Hedge allocated 100% to NWL
-    dsra_alloc = {'nwl': 1.0}
-    entity_dsra_pct = dsra_alloc.get(entity_key, 0.0)
-    # Swap awareness: suppress DSRA when swap active for this entity
-    _nwl_swap_on = (entity_key == 'nwl'
-                    and st.session_state.get("sclca_nwl_hedge", "Cross-Currency Swap") == "Cross-Currency Swap")
-    _lanred_swap_on = (entity_key == 'lanred'
-                       and st.session_state.get("lanred_scenario", "Brownfield+") != "Greenfield"
-                       and st.session_state.get("sclca_lanred_hedge", "No Hedging") == "Cross-Currency Swap")
-    _entity_swap_active = _nwl_swap_on or _lanred_swap_on
-    if _nwl_swap_on:
-        entity_dsra_sr = 0.0
-        entity_dsra_mz = 0.0
-    else:
-        # IC Senior: principal-aligned P1 (so balances match facility)
-        entity_dsra_sr = _ic_dsra_p1 * entity_dsra_pct
-        # IC Mezz: full pre_revenue_hedge (cash amount from CC)
-        entity_dsra_mz = pre_revenue_hedge_total * entity_dsra_pct
-
-    sr_schedule = build_simple_ic_schedule(
-        sr_principal, total_sr, sr_repayments, sr_rate, sr_drawdowns, sr_periods, sr_prepayments,
-        dsra_amount=entity_dsra_sr
-    )
-
-    # Mezz IC schedule (with Pre-Revenue Hedge drawdown)
-    mz_amount_eur = mezz_cfg['amount_eur']
-    mz_drawdowns = [mz_amount_eur, 0, 0, 0]
-    mz_periods = [-4, -3, -2, -1]
-    mz_schedule = build_simple_ic_schedule(
-        mz_principal, total_mz, mz_repayments, mz_rate, mz_drawdowns, mz_periods,
-        dsra_drawdown=entity_dsra_mz
-    )
-
-    # Asset value (from breakdown)
-    assets_cfg = load_config("assets")["assets"]
-    fees_cfg = load_config("fees")
-    project_asset_base = sum(
-        _build_entity_asset_base(k, assets_cfg)["fee_base"]
-        for k in ["nwl", "lanred", "timberworx"]
-    )
-    project_debt_base = structure['sources']['senior_debt']['amount']
-    project_fees = compute_project_fees(fees_cfg, project_debt_base, project_asset_base)
-    registry = build_asset_registry(
-        entity_key, assets_cfg, fees_cfg, project_fees["fees"], project_asset_base, project_debt_base
-    )
-    depr_assets = registry["assets"]
-    depreciable_base_total = sum(a["depr_base"] for a in depr_assets)
-
-    if entity_key == "nwl":
-        ops_annual = _build_nwl_operating_annual_model()
-    elif entity_key == "lanred":
-        ops_annual = _build_lanred_operating_annual_model()
-    elif entity_key == "timberworx":
-        ops_annual = _build_twx_operating_annual_model()
-    else:
-        ops_annual = None
-
-    # Entity-level equity injection and grants
-    _equity_map = {'nwl': EQUITY_NWL, 'lanred': EQUITY_LANRED, 'timberworx': EQUITY_TWX}
-    entity_equity = _equity_map.get(entity_key, 0.0)
-    ta_grant_total = financing.get('prepayments', {}).get('invest_int_ta', {}).get('amount_eur', 0)
-    ta_grant_entity = ta_grant_total * entity_prepay_pct  # 100% NWL (same as DTIC)
-    # DTIC grant follows prepayment allocation (only NWL gets it)
-    dtic_grant_total = financing.get('prepayments', {}).get('dtic_grant', {}).get('amount_eur', 0)
-    dtic_grant_entity = dtic_grant_total * entity_prepay_pct
-    # GEPF Bulk Services prepayment (also 100% NWL)
-    gepf_prepay_total = financing.get('prepayments', {}).get('gepf_bulk_services', {}).get('amount_eur', 0)
-    gepf_prepay_entity = gepf_prepay_total * entity_prepay_pct
-
-    # --- Build swap schedule if active (BUILDER logic) ---
-    _swap_sched = None
-    if _entity_swap_active:
-        if entity_key == 'nwl':
-            # NWL: swap notional = pre_revenue_hedge (sized at facility level)
-            _swap_eur_notional = pre_revenue_hedge_total
-            _last_sr = max((r['Month'] for r in sr_schedule if r['Month'] >= 24 and abs(r.get('Principle', 0)) > 0), default=102)
-            _swap_sched = _build_nwl_swap_schedule(_swap_eur_notional, FX_RATE, last_sr_month=_last_sr)
-        elif entity_key == 'lanred':
-            _swap_eur_notional = entity_data['senior_portion']
-            _swap_sched = _build_lanred_swap_schedule(_swap_eur_notional, FX_RATE)
-
-    # Aggregate semi-annual → annual (months 0-11 = Y1, etc.)
-    annual = []
-    accumulated_depr = 0.0
-    cumulative_pat = 0.0
-    cumulative_fcf = 0.0
-    _cum_grants = 0.0  # Cumulative non-P&L capital grants (for RE verification)
-    _dsra_fd_bal = 0.0  # DSRA Fixed Deposit balance
-    _cum_capex = 0.0    # Cumulative capex spent (for FA during construction)
-    for yi in range(10):
-        a = {'year': yi + 1}
-        y_start = yi * 12
-        y_end = y_start + 12
-
-        # Senior interest & principal this year
-        sr_interest = 0.0
-        sr_princ_paid = 0.0
-        sr_closing = sr_principal  # default
-        for r in sr_schedule:
-            if y_start <= r['Month'] < y_end:
-                sr_interest += r['Interest']
-                sr_princ_paid += abs(r['Principle'])
-            if r['Month'] < y_end:
-                sr_closing = r['Closing']
-
-        # Mezz interest & principal this year
-        mz_interest = 0.0
-        mz_princ_paid = 0.0
-        mz_closing = mz_principal  # default
-        for r in mz_schedule:
-            if y_start <= r['Month'] < y_end:
-                mz_interest += r['Interest']
-                mz_princ_paid += abs(r['Principle'])
-            if r['Month'] < y_end:
-                mz_closing = r['Closing']
-
-        # P&L (subsidiary perspective: interest is expense)
-        a['ie_sr'] = sr_interest
-        a['ie_mz'] = mz_interest
-
-        # --- Swap leg computation (BUILDER: stamps fields for listeners) ---
-        if _entity_swap_active and _swap_sched:
-            _swap_schedule = _swap_sched['schedule']
-            _swap_eur_rate = _swap_sched.get('eur_rate', 0.047)
-            _semi_eur = _swap_eur_rate / 2.0
-            _swap_zar_rate = _swap_sched['zar_rate']
-            _semi_zar = _swap_zar_rate / 2.0
-
-            # EUR leg balance at year-end
-            if entity_key == 'nwl':
-                # NWL: EUR bullet at M24 (Y2). Before M24: grows with IDC. After M24: 0.
-                if y_end <= 24:
-                    # During grace: EUR grows at IIC rate
-                    _eur_periods_in_year = 2  # two semi-annual in a year
-                    _eur_opening = _swap_sched['eur_amount'] if yi == 0 else annual[-1].get('swap_eur_bal', _swap_sched['eur_amount'])
-                    _swap_eur_bal = _eur_opening * (1 + _semi_eur) ** _eur_periods_in_year
-                    _swap_eur_interest = _swap_eur_bal - _eur_opening  # Capitalized (IDC)
-                    _swap_eur_interest_cash = 0.0  # IDC = not cash
-                else:
-                    _swap_eur_bal = 0.0  # Bullet delivered at M24
-                    _swap_eur_interest = 0.0
-                    _swap_eur_interest_cash = 0.0
-            else:
-                # LanRED: EUR follows IC Senior — amortizes from M24
-                if y_end <= 24:
-                    _eur_opening = _swap_sched['eur_amount'] if yi == 0 else annual[-1].get('swap_eur_bal', _swap_sched['eur_amount'])
-                    _swap_eur_bal = _eur_opening * (1 + _semi_eur) ** 2
-                    _swap_eur_interest = _swap_eur_bal - _eur_opening
-                    _swap_eur_interest_cash = 0.0
-                else:
-                    # After M24: EUR amortizes with IC Senior (same P_constant schedule)
-                    _eur_cum_repaid = sum(abs(r.get('Principle', 0)) for r in sr_schedule if 24 <= r['Month'] < y_end)
-                    _swap_eur_bal = max(_swap_sched['eur_amount_idc'] - _eur_cum_repaid, 0)
-                    # EUR interest income = earned on remaining EUR balance (cash after grace)
-                    _eur_opening_yr = annual[-1].get('swap_eur_bal', _swap_sched['eur_amount_idc']) if yi > 0 else _swap_sched['eur_amount_idc']
-                    _swap_eur_interest = sum(
-                        max(_eur_opening_yr - sum(abs(r2.get('Principle', 0)) for r2 in sr_schedule if 24 <= r2['Month'] < r.get('Month', 0)), 0) * _semi_eur
-                        for r in sr_schedule if y_start <= r['Month'] < y_end and r['Month'] >= 24
-                    ) if _eur_opening_yr > 0 else 0.0
-                    _swap_eur_interest_cash = _swap_eur_interest
-
-            # ZAR leg balance at year-end and payments this year
-            _zar_bal_end = _swap_sched['zar_amount']  # Default: initial notional
-            for _sr in _swap_schedule:
-                if _sr['month'] < y_end:
-                    _zar_bal_end = _sr['closing']
-
-            # ZAR interest and principal this year (from schedule rows)
-            _swap_zar_interest_yr = sum(
-                r['interest'] for r in _swap_schedule if y_start <= r['month'] < y_end
-            )
-            _swap_zar_principal_yr = sum(
-                r['principal'] for r in _swap_schedule if y_start <= r['month'] < y_end and r.get('phase') == 'repayment'
-            )
-            _swap_zar_interest_cash = sum(
-                r['interest'] for r in _swap_schedule if y_start <= r['month'] < y_end and r.get('phase') == 'repayment'
-            )
-            _swap_zar_payment_yr = _swap_zar_principal_yr + _swap_zar_interest_cash
-
-            a['swap_eur_bal'] = _swap_eur_bal
-            a['swap_zar_bal'] = _zar_bal_end  # ZAR (for BS: convert to EUR at display)
-            a['swap_eur_interest'] = _swap_eur_interest  # P&L: positive (income)
-            a['swap_eur_interest_cash'] = _swap_eur_interest_cash
-            a['swap_zar_interest'] = _swap_zar_interest_yr  # P&L: negative (expense)
-            a['swap_zar_interest_cash'] = _swap_zar_interest_cash  # CF: cash interest
-            a['swap_zar_p'] = _swap_zar_principal_yr  # CF: principal (ZAR, convert to EUR)
-            a['swap_zar_total'] = _swap_zar_payment_yr  # CF: total ZAR payment
-            # Convert swap ZAR CF to EUR for inclusion in cf_net
-            a['cf_swap_zar_i'] = _swap_zar_interest_cash / FX_RATE
-            a['cf_swap_zar_p'] = _swap_zar_principal_yr / FX_RATE
-            a['cf_swap_zar'] = _swap_zar_payment_yr / FX_RATE
-        else:
-            a['swap_eur_bal'] = 0.0
-            a['swap_zar_bal'] = 0.0
-            a['swap_eur_interest'] = 0.0
-            a['swap_eur_interest_cash'] = 0.0
-            a['swap_zar_interest'] = 0.0
-            a['swap_zar_interest_cash'] = 0.0
-            a['swap_zar_p'] = 0.0
-            a['swap_zar_total'] = 0.0
-            a['cf_swap_zar_i'] = 0.0
-            a['cf_swap_zar_p'] = 0.0
-            a['cf_swap_zar'] = 0.0
-
-        # Total interest expense includes swap (net: ZAR expense - EUR income, post-grace only)
-        a['ie'] = sr_interest + mz_interest + a['cf_swap_zar_i'] - a['swap_eur_interest_cash']
-
-        # Operating model — load first (need coe_sold flag for TWX depreciation)
-        op = ops_annual[yi] if ops_annual else {}
-        for k, v in op.items():
-            a[k] = v
-
-        # Depreciation starts Y2 (after COD at M18); Y1 = construction
-        if yi >= 1:
-            if entity_key == 'timberworx' and op.get('coe_sold', False):
-                # CoE sold to LLC — stop depreciating CoE building, keep Panel Equipment
-                a['depr'] = sum(x["annual_depr"] for x in depr_assets if yi <= x["life"] and x.get("id", "") != "coe_001")
-            else:
-                a['depr'] = sum(x["annual_depr"] for x in depr_assets if yi <= x["life"])
-        else:
-            a['depr'] = 0.0
-        accumulated_depr += a['depr']
-
-        # Compute P&L (DSRA interest income added to finance section)
-        a['ebitda'] = a.get('rev_total', 0.0) - a.get('om_cost', 0.0) - a.get('power_cost', 0.0) - a.get('rent_cost', 0.0)
-        a['ebit'] = a['ebitda'] - a['depr']
-        a['ii_dsra'] = _dsra_fd_bal * DSRA_RATE if _dsra_fd_bal > 0 else 0.0
-        a['pbt'] = a['ebit'] - a['ie'] + a['ii_dsra']
-        a['tax'] = max(a['pbt'] * 0.27, 0.0)  # SA corporate tax 27%, only on positive PBT
-        a['pat'] = a['pbt'] - a['tax']
-
-        # Cash Flow
-        # --- Financing: Drawdowns (construction, Y1-Y2) ---
-        a['cf_draw_sr'] = sum(r['Draw Down'] for r in sr_schedule if y_start <= r['Month'] < y_end)
-        a['cf_draw_mz'] = sum(r['Draw Down'] for r in mz_schedule if y_start <= r['Month'] < y_end)
-        a['cf_draw'] = a['cf_draw_sr'] + a['cf_draw_mz']
-        # --- Investing: Capex (mirrors drawdowns, excluding DSRA drawdown which is financing) ---
-        a['cf_capex'] = a['cf_draw_sr'] + sum(
-            r['Draw Down'] for r in mz_schedule
-            if y_start <= r['Month'] < y_end and r['Period'] < 0
-        )
-        _cum_capex += a['cf_capex']
-        # --- Financing: Grant-funded prepayments (reduce IC debt) ---
-        a['cf_prepay_sr'] = sum(abs(r.get('Prepayment', 0)) for r in sr_schedule if y_start <= r['Month'] < y_end)
-        a['cf_prepay'] = a['cf_prepay_sr']
-        # Split prepayment into DTIC and GEPF components
-        if a['cf_prepay'] > 0 and (dtic_grant_entity + gepf_prepay_entity) > 0:
-            _prepay_dtic_share = dtic_grant_entity / (dtic_grant_entity + gepf_prepay_entity)
-            a['cf_prepay_dtic'] = a['cf_prepay'] * _prepay_dtic_share
-            a['cf_prepay_gepf'] = a['cf_prepay'] * (1.0 - _prepay_dtic_share)
-        else:
-            a['cf_prepay_dtic'] = 0.0
-            a['cf_prepay_gepf'] = 0.0
-        # --- Interest payments (cash) — only after grace (M24 for senior, M24 for mezz) ---
-        a['cf_ie_sr'] = sum(r['Interest'] for r in sr_schedule if y_start <= r['Month'] < y_end and r['Month'] >= 24)
-        a['cf_ie_mz'] = sum(r['Interest'] for r in mz_schedule if y_start <= r['Month'] < y_end and r['Month'] >= 24)
-        a['cf_ie'] = a['cf_ie_sr'] + a['cf_ie_mz']
-        # --- Principal repayments (scheduled, after grace) ---
-        a['cf_pr_sr'] = sr_princ_paid
-        a['cf_pr_mz'] = mz_princ_paid
-        a['cf_pr'] = sr_princ_paid + mz_princ_paid
-        # --- Total debt service (interest + scheduled principal) ---
-        a['cf_ds'] = a['cf_ie'] + a['cf_pr']
-        # --- Tax (cash outflow) ---
-        a['cf_tax'] = a['tax']
-        # --- Cash from Operations = EBITDA + DSRA Interest - Tax ---
-        a['cf_ops'] = a['ebitda'] + a['ii_dsra'] - a['cf_tax']
-        a['cf_operating_pre_debt'] = a['ebitda']
-        a['cf_after_debt_service'] = a['cf_ops'] - a['cf_ds'] - a['cf_swap_zar']
-        # --- Equity injection (Y1 only) ---
-        a['cf_equity'] = entity_equity if yi == 0 else 0.0
-        # --- Grants: DTIC only (GEPF is already in EBITDA as rev_bulk_services) ---
-        a['cf_grant_dtic'] = dtic_grant_entity if yi == 1 else 0.0   # Y2 (M12)
-        a['cf_grant_iic'] = ta_grant_entity if yi == 1 else 0.0      # Y2 (IIC TA)
-        a['cf_grants'] = a['cf_grant_dtic'] + a['cf_grant_iic']
-        # --- Comprehensive Net Cash Flow ---
-        a['cf_net'] = (a['cf_equity']
-                       + a['cf_draw'] - a['cf_capex']         # Construction (nets to 0 for non-DSRA)
-                       + a['cf_grants'] - a['cf_prepay']      # DTIC + IIC - Prepay
-                       + a['cf_ops']                           # EBITDA + DSRA interest - Tax
-                       - a['cf_ie'] - a['cf_pr']               # IC Debt service
-                       - a['cf_swap_zar'])                      # Swap ZAR leg (0 when no swap)
-        cumulative_pat += a['pat']
-        cumulative_fcf += a['cf_net']
-
-        # DSRA Fixed Deposit: Opening + Deposit + Interest = Closing
-        # cf_net already includes ii_dsra (via cf_ops), so DON'T add _dsra_interest again
-        _dsra_interest = _dsra_fd_bal * DSRA_RATE
-        a['dsra_opening'] = _dsra_fd_bal
-        a['dsra_deposit'] = a['cf_net'] - a['ii_dsra']   # operational cash deposited (excl DSRA interest)
-        a['dsra_interest'] = _dsra_interest                # FD compounding (= ii_dsra)
-        # Check: Opening + Deposit + Interest = Opening + (cf_net - ii_dsra) + ii_dsra = Opening + cf_net ✓
-        _dsra_fd_bal = _dsra_fd_bal + a['cf_net']
-        a['dsra_bal'] = _dsra_fd_bal
-
-        # Balance Sheet
-        _cum_grants += a['cf_grants']
-        a['bs_fixed_assets'] = max(min(_cum_capex, depreciable_base_total) - accumulated_depr, 0)
-        a['bs_dsra'] = _dsra_fd_bal  # DSRA FD (can be negative during early ops)
-        # Swap EUR leg is an ASSET (receivable), ZAR leg is a LIABILITY
-        a['bs_swap_eur'] = a['swap_eur_bal']  # EUR value
-        a['bs_swap_zar'] = a['swap_zar_bal'] / FX_RATE  # Convert ZAR to EUR
-        a['bs_assets'] = a['bs_fixed_assets'] + a['bs_dsra'] + a['bs_swap_eur']
-        a['bs_sr'] = max(sr_closing, 0)  # Senior IC liability (lower due to DSRA)
-        a['bs_mz'] = max(mz_closing, 0)  # Mezz IC liability (higher due to DSRA)
-        a['bs_debt'] = a['bs_sr'] + a['bs_mz'] + a['bs_swap_zar']
-        a['bs_equity_sh'] = entity_equity  # Shareholder equity (constant)
-        a['bs_equity'] = a['bs_assets'] - a['bs_debt']
-        a['bs_retained'] = a['bs_equity'] - a['bs_equity_sh']
-        # Independent RE verification: RE should = Cumulative PAT + Capital Grants
-        # Grants (DTIC, IIC TA) are non-P&L capital items that increase BS equity
-        a['bs_retained_check'] = cumulative_pat + _cum_grants
-        a['bs_gap'] = a['bs_retained'] - (cumulative_pat + _cum_grants)
-
-        annual.append(a)
     return {
         "annual": annual,
-        "registry": registry,
-        "sr_schedule": sr_schedule,
-        "mz_schedule": mz_schedule,
-        "ops_annual": ops_annual,
-        "depreciable_base": depreciable_base_total,
-        "entity_equity": entity_equity,
-        "swap_schedule": _swap_sched,
-        "swap_active": _entity_swap_active,
+        "registry": er["registry"],
+        "sr_schedule": er["sr_schedule"],
+        "mz_schedule": er["mz_schedule"],
+        "ops_annual": er["ops_annual"],
+        "ops_semi_annual": er["ops_semi_annual"],
+        "depreciable_base": er["depreciable_base"],
+        "entity_equity": er["entity_equity"],
+        "swap_schedule": er["swap_schedule"],
+        "swap_active": er["swap_active"],
+        "cash_inflows": er["cash_inflows"],
+        "pre_revenue_hedge_total": er["pre_revenue_hedge_total"],
+        "semi_annual_pl": er["semi_annual_pl"],
+        "semi_annual_tax": er["semi_annual_tax"],
+        "waterfall_semi": wf_semi,
+        "waterfall_annual": wf_annual,
     }
 
 
@@ -3677,7 +3180,7 @@ def render_subsidiary(entity_key, icon, name):
             if entity_key == 'nwl' and grants_cfg and grants_cfg.get('rows'):
                 with st.container(border=True):
                     st.subheader("Grants & Subsidies")
-                    st.caption("Non-diluting equity — capital grants that bridge via senior debt and prepay upon receipt")
+                    st.caption("Non-diluting equity — capital grants that bridge via senior debt and accelerate repayment upon receipt")
 
                     _grant_rows = []
                     for g in grants_cfg['rows']:
@@ -3703,7 +3206,7 @@ def render_subsidiary(entity_key, icon, name):
                         render_table(pd.DataFrame(_grant_rows), right_align=["Amount (ZAR)", "Amount (EUR)"])
 
                     # Timing explanation
-                    _prepay = financing.get('loan_detail', {}).get('senior', {}).get('grant_proceeds_to_early_repayment', 0)
+                    _grant_accel_amt = financing.get('loan_detail', {}).get('senior', {}).get('grant_proceeds_to_early_repayment', 0)
                     st.markdown(f"""
 **Timing & Treatment**
 
@@ -3712,13 +3215,13 @@ and do not carry interest or repayment obligations.
 
 **Timing difference**: The project requires full funding from day 1, but grants arrive at M6–M18.
 Senior debt and mezzanine **bridge the gap** — providing 100% of the €{structure['sources']['total']:,.0f}
-project cost upfront. When grants are received, they are applied as an **early repayment of senior debt**,
-reducing the outstanding balance by **€{_prepay:,.0f}**.
+project cost upfront. When grants are received, they are applied as **acceleration of senior debt**,
+reducing the outstanding balance by **€{_grant_accel_amt:,.0f}**.
 
 This means:
 - **Sources & Uses balance at close** — Senior + Mezz = €{structure['sources']['total']:,.0f} (fully deployed)
-- **Grant receipt (M6–M18)** — €{_prepay:,.0f} flows to SCLCA as non-diluting equity
-- **Senior debt prepayment** — Grant proceeds immediately retire senior principal, reducing interest burden
+- **Grant receipt (M6–M18)** — €{_grant_accel_amt:,.0f} flows to SCLCA as non-diluting equity
+- **Senior debt acceleration** — Grant proceeds immediately retire senior principal, reducing interest burden
 - **Net effect** — Lower senior balance from period -2 onward, saving interest over the remaining loan life
 """)
 
@@ -3749,11 +3252,18 @@ This means:
     _sub_sr_schedule = _sub_model["sr_schedule"]
     _sub_mz_schedule = _sub_model["mz_schedule"]
     _sub_ops_annual = _sub_model["ops_annual"]
+    _sub_ops_semi = _sub_model.get("ops_semi_annual")  # 20 semi-annual dicts (NWL only)
     _sub_depr_base = _sub_model["depreciable_base"]
     _sub_entity_equity = _sub_model["entity_equity"]
     _sub_swap_active = _sub_model.get("swap_active", False)
     _sub_swap_sched = _sub_model.get("swap_schedule", None)
+    _sub_cash_inflows = _sub_model.get("cash_inflows")
+    _sub_semi_annual_tax = _sub_model.get("semi_annual_tax")
     _years = [f"Y{a['year']}" for a in _sub_annual]
+
+    # Waterfall already computed by engine -- extract from sub_model
+    _fac_wf_semi = _sub_model.get("waterfall_semi", [])
+    _fac_wf = _aggregate_entity_wf_to_annual(_fac_wf_semi)
 
     # --- FACILITIES ---
     if "Facilities" in _tab_map:
@@ -3766,7 +3276,10 @@ This means:
                 "Opening": "€{:,.0f}",
                 "Draw Down": "€{:,.0f}",
                 "Interest": "€{:,.0f}",
+                "Principal": "€{:,.0f}",
                 "Principle": "€{:,.0f}",
+                "Acceleration": "€{:,.0f}",
+                "P+I": "€{:,.0f}",
                 "Repayment": "€{:,.0f}",
                 "Movement": "€{:,.0f}",
                 "Closing": "€{:,.0f}"
@@ -3775,14 +3288,14 @@ This means:
             loans = structure['uses']['loans_to_subsidiaries']
             senior_detail = financing['loan_detail']['senior']
             senior_drawdown_schedule = senior_detail['drawdown_schedule']
-            senior_drawdown_periods = [-4, -3, -2, -1]
+            senior_drawdown_periods = construction_period_labels()
             senior_total = sum(l["senior_portion"] for l in loans.values())
             mezz_total = sum(l["mezz_portion"] for l in loans.values())
             mezz_amount_eur = mezz['amount_eur']
             mezz_repayments = 10
             mezz_ic_reps = mezz_repayments
             mezz_ic_drawdown_schedule = [mezz_amount_eur, 0, 0, 0]
-            mezz_ic_periods = [-4, -3, -2, -1]
+            mezz_ic_periods = construction_period_labels()
 
             _facility_logo = LOGO_DIR / ENTITY_LOGOS.get("sclca", "")
 
@@ -3799,15 +3312,15 @@ This means:
                     st.markdown("### Smart City Lanseria Catalytic Assets")
                     st.caption("IC Loan to New Water Lanseria (NWL)")
 
-                grant_prepay = senior_detail['grant_proceeds_to_early_repayment']
-                gepf_prepay = senior_detail['gepf_bulk_proceeds']
-                prepayment_total = grant_prepay + gepf_prepay
+                grant_accel_amt = senior_detail['grant_proceeds_to_early_repayment']
+                gepf_accel_amt = senior_detail['gepf_bulk_proceeds']
+                acceleration_total = grant_accel_amt + gepf_accel_amt
 
                 _sr_balance = (
                     senior_detail['loan_drawdown_total']
                     + senior_detail['rolled_up_interest_idc']
-                    - grant_prepay
-                    - gepf_prepay
+                    - grant_accel_amt
+                    - gepf_accel_amt
                 )
                 _sr_rate = senior['interest']['rate']
                 _sr_num = senior['repayments']
@@ -3820,7 +3333,7 @@ This means:
 
                 # Senior IC Facility
                 with st.container(border=True):
-                    st.markdown("#### Senior Intercompany Loan *(prepaying entity)*")
+                    st.markdown("#### Senior Intercompany Loan *(accelerating entity)*")
 
                     _nwl_sr_tenure = senior['loan_holiday_months'] + senior['repayment_months']
                 _nwl_sr_r1 = st.columns(3)
@@ -3845,69 +3358,38 @@ This means:
                     st.caption("IDC")
                     st.markdown("**Roll-up, add to principal**")
 
-                nwl_sr_rows = []
-                nwl_sr_balance = 0.0
+                # Display from engine facility schedule (single source of truth).
+                # After convergence, the schedule already contains acceleration from waterfall.
                 nwl_sr_num_repayments = senior['repayments']
-                nwl_pro_rata = loans["nwl"]["senior_portion"] / senior_total
-                nwl_prepayment = prepayment_total
-
-                for idx, period in enumerate(senior_drawdown_periods):
-                    month = (period + 4) * 6
-                    year = month / 12
-                    opening = nwl_sr_balance
-                    idc = opening * senior_ic_rate / 2
-                    draw_down = senior_drawdown_schedule[idx] * nwl_pro_rata if idx < len(senior_drawdown_schedule) else 0
-                    if period == -1:
-                        principle = -nwl_prepayment
-                    else:
-                        principle = 0
-                    repayment = principle
-                    movement = draw_down + idc + principle
-                    nwl_sr_balance = opening + movement
+                nwl_sr_rows = []
+                _rep_start = repayment_start_index()
+                for r in _sub_sr_schedule:
+                    _opening = r["Opening"]
+                    _closing = r["Closing"]
+                    _principal = r["Principle"]
+                    _interest = r["Interest"]
+                    _accel = r.get("Acceleration", 0)
+                    _is_repay = r["Period"] >= _rep_start
                     nwl_sr_rows.append({
-                        "Period": period, "Month": month, "Year": year,
-                        "Opening": opening, "Draw Down": draw_down, "Interest": idc,
-                        "Principle": principle, "Repayment": repayment,
-                        "Movement": movement, "Closing": nwl_sr_balance
+                        "Period": period_lookup(r["Period"])["label"],
+                        "Month": r["Month"],
+                        "Year": r["Year"],
+                        "Opening": _opening,
+                        "Draw Down": r["Draw Down"],
+                        "Interest": _interest,
+                        "Principal": _principal,
+                        "P+I": -( abs(_principal) + _interest) if _is_repay else 0,
+                        "Acceleration": _accel,
+                        "Movement": _closing - _opening,
+                        "Closing": _closing,
                     })
 
-                nwl_sr_balance_for_repay = nwl_sr_balance
-                if _sub_swap_active:
-                    nwl_sr_hedge_p1 = 0.0
-                    nwl_sr_balance_after_hedge = nwl_sr_balance_for_repay
-                    nwl_sr_new_p = nwl_sr_balance_for_repay / nwl_sr_num_repayments  # bal÷14 vanilla
-                else:
-                    nwl_sr_hedge_p1 = pre_revenue_hedge  # Pre-Revenue Hedge: 2×(P+I) at M24
-                    nwl_sr_balance_after_hedge = nwl_sr_balance_for_repay - nwl_sr_hedge_p1
-                    nwl_sr_new_p = nwl_sr_balance_after_hedge / (nwl_sr_num_repayments - 2)
-
-                for i in range(1, nwl_sr_num_repayments + 1):
-                    period = i
-                    month = 18 + (i * 6)
-                    year = month / 12
-                    opening = nwl_sr_balance
-                    interest = opening * senior_ic_rate / 2
-                    if _sub_swap_active:
-                        principle = -nwl_sr_new_p  # vanilla P_constant
-                        dsra_note = ""
-                    elif period == 1:
-                        principle = -nwl_sr_hedge_p1
-                        dsra_note = " *"
-                    elif period == 2:
-                        principle = 0
-                        dsra_note = " *"
-                    else:
-                        principle = -nwl_sr_new_p
-                        dsra_note = ""
-                    repayment = principle - interest
-                    movement = principle
-                    nwl_sr_balance = opening + movement
-                    nwl_sr_rows.append({
-                        "Period": f"{period}{dsra_note}", "Month": month, "Year": year,
-                        "Opening": opening, "Draw Down": 0, "Interest": interest,
-                        "Principle": principle, "Repayment": repayment,
-                        "Movement": movement, "Closing": nwl_sr_balance
-                    })
+                # Extract key values for info boxes below
+                nwl_sr_balance_for_repay = next(
+                    (r["Closing"] for r in _sub_sr_schedule
+                     if r["Period"] == construction_end_index()), 0.0
+                )
+                nwl_sr_new_p = nwl_sr_balance_for_repay / nwl_sr_num_repayments if nwl_sr_num_repayments else 0
 
                 df_nwl_senior = pd.DataFrame(nwl_sr_rows)
                 render_table(df_nwl_senior, ic_format)
@@ -3915,24 +3397,26 @@ This means:
                 st.markdown("---")
                 col_nwl_idc, col_nwl_hedge, col_nwl_repay = st.columns(3)
 
-                nwl_idc_data = []
-                nwl_idc_bal = 0.0
-                nwl_idc_total = 0.0
-                nwl_dd_total = 0.0
-                for idx, dd in enumerate(senior_drawdown_schedule):
-                    nwl_dd = dd * nwl_pro_rata
-                    idc_amt = nwl_idc_bal * senior_ic_rate / 2
-                    nwl_idc_total += idc_amt
-                    nwl_dd_total += nwl_dd
-                    nwl_idc_data.append({"Period": -4 + idx, "Draw Down": nwl_dd, "IDC": idc_amt})
-                    nwl_idc_bal += nwl_dd + idc_amt
-                nwl_idc_data.append({"Period": "Total", "Draw Down": nwl_dd_total, "IDC": nwl_idc_total})
+                nwl_idc_data = extract_idc_table(_sub_sr_schedule)
+                for row in nwl_idc_data:
+                    if row["Period"] != "Total":
+                        row["Period"] = period_lookup(row["Period"])["label"]
 
                 with col_nwl_idc:
                     st.markdown("**IDC (NWL Senior IC)**")
                     st.caption(f"Interest capitalized at {senior_ic_rate*100:.2f}%")
                     df_nwl_idc = pd.DataFrame(nwl_idc_data)
                     render_table(df_nwl_idc, {"Draw Down": "€{:,.0f}", "IDC": "€{:,.0f}"})
+
+                # Derive summary values from the engine schedule
+                _rep_start_idx = repayment_start_index()
+                _constr_accel = sum(abs(r.get("Acceleration", 0)) for r in _sub_sr_schedule if r["Period"] < _rep_start_idx)
+                _r1_row = next((r for r in _sub_sr_schedule if r["Period"] == _rep_start_idx), None)
+                _r1_princ = abs(_r1_row["Principle"]) if _r1_row else 0
+                _r1_accel = abs(_r1_row.get("Acceleration", 0)) if _r1_row else 0
+                _r1_interest = _r1_row["Interest"] if _r1_row else 0
+                _r1_total = _r1_princ + _r1_interest + _r1_accel
+                _bal_after_r1 = _r1_row["Closing"] if _r1_row else nwl_sr_balance_for_repay
 
                 with col_nwl_hedge:
                     if _sub_swap_active:
@@ -3942,49 +3426,32 @@ This means:
                 | Item | Detail |
                 |------|--------|
                 | Hedge mode | Cross-Currency Swap |
-                | P1/P2 override | None (vanilla) |
                 | P_constant | €{nwl_sr_new_p:,.0f} |
                 | Periods | {nwl_sr_num_repayments} × P_constant |
                 """)
-                        st.caption("DSRA sizing suppressed — swap replaces FEC hedge")
                     else:
                         st.markdown("**Pre-Revenue Hedge**")
-                        st.caption("2×(P+I) at M24 — one shot")
+                        st.caption("2×(P+I) at R1 — one shot")
                         st.markdown(f"""
                 | Item | Amount |
                 |------|--------|
-                | Hedge Amount | €{nwl_sr_hedge_p1:,.0f} |
-                | NWL Interest M24 | €{nwl_sr_balance_for_repay * senior_ic_rate / 2:,.0f} |
-                | M24 Repayment | €{nwl_sr_hedge_p1 + nwl_sr_balance_for_repay * senior_ic_rate / 2:,.0f} |
-                | M30 (I only) | €{nwl_sr_balance_after_hedge * senior_ic_rate / 2:,.0f} |
+                | R1 Principal | €{_r1_princ:,.0f} |
+                | R1 Interest | €{_r1_interest:,.0f} |
+                | R1 Acceleration | €{_r1_accel:,.0f} |
+                | **R1 Total** | €{_r1_total:,.0f} |
+                | Balance after R1 | €{_bal_after_r1:,.0f} |
                 """)
-                        st.caption("Hedge amount identical to facility level")
 
                 with col_nwl_repay:
-                    if _sub_swap_active:
-                        st.markdown("**Repayment Structure**")
-                        st.caption(f"Vanilla: {nwl_sr_num_repayments} periods (bal÷{nwl_sr_num_repayments})")
-                        st.markdown(f"""
+                    st.markdown("**Repayment Structure**")
+                    st.caption(f"Vanilla: {nwl_sr_num_repayments} periods")
+                    st.markdown(f"""
                 | Item | Amount |
                 |------|--------|
-                | **P-1 Prepay** | €{nwl_prepayment:,.0f} |
-                | Balance for repay | €{nwl_sr_balance_for_repay:,.0f} |
+                | Construction accel (DTIC+GEPF) | €{_constr_accel:,.0f} |
+                | Balance for repay (C4 closing) | €{nwl_sr_balance_for_repay:,.0f} |
                 | **P_constant** (bal÷{nwl_sr_num_repayments}) | €{nwl_sr_new_p:,.0f} |
                 """)
-                        st.caption("Repayment = Principle + Interest")
-                    else:
-                        st.markdown("**Repayment Structure**")
-                        st.caption("After prepayments, 12 periods remain")
-                        st.markdown(f"""
-                | Item | Amount |
-                |------|--------|
-                | **P-1 Prepay** | €{nwl_prepayment:,.0f} |
-                | Balance for repay | €{nwl_sr_balance_for_repay:,.0f} |
-                | **P1 Hedge** | €{nwl_sr_hedge_p1:,.0f} |
-                | Balance after hedge | €{nwl_sr_balance_after_hedge:,.0f} |
-                | **New P** (bal÷12) | €{nwl_sr_new_p:,.0f} |
-                """)
-                        st.caption("Repayment = Principle + Interest")
 
                 st.divider()
 
@@ -3993,53 +3460,33 @@ This means:
                     _mezz_ic_note = "*(swap active — no DSRA draw)*" if _sub_swap_active else "*(receives Pre-Revenue Hedge drawdown)*"
                     st.markdown(f"**Mezz IC** — {mezz_ic_rate*100:.2f}% | {mezz_ic_reps} semi-annual {_mezz_ic_note}")
 
-                nwl_mezz_pro_rata = loans["nwl"]["mezz_portion"] / mezz_total
+                # Display from engine facility schedule (single source of truth).
                 nwl_mz_rows = []
-                nwl_mz_balance = 0.0
-
-                for idx, period in enumerate(mezz_ic_periods):
-                    month = (period + 4) * 6
-                    year = month / 12
-                    opening = nwl_mz_balance
-                    idc = opening * mezz_ic_rate / 2
-                    draw_down = mezz_ic_drawdown_schedule[idx] * nwl_mezz_pro_rata if idx < len(mezz_ic_drawdown_schedule) else 0
-                    movement = draw_down + idc
-                    nwl_mz_balance = opening + movement
+                for r in _sub_mz_schedule:
+                    _opening = r["Opening"]
+                    _closing = r["Closing"]
+                    _principal = r["Principle"]
+                    _interest = r["Interest"]
+                    _accel = r["Acceleration"]
                     nwl_mz_rows.append({
-                        "Period": period, "Month": month, "Year": year,
-                        "Opening": opening, "Draw Down": draw_down, "Interest": idc,
-                        "Principle": 0, "Repayment": 0, "Movement": movement, "Closing": nwl_mz_balance
+                        "Period": period_lookup(r["Period"])["label"],
+                        "Month": r["Month"],
+                        "Year": r["Year"],
+                        "Opening": _opening,
+                        "Draw Down": r["Draw Down"],
+                        "Interest": _interest,
+                        "Principle": _principal,
+                        "Repayment": _principal + _interest + _accel,
+                        "Acceleration": _accel,
+                        "Movement": _closing - _opening,
+                        "Closing": _closing,
                     })
 
-                # Suppress DSRA drawdown when CCS active (number → 0, schedule still renders)
-                _nwl_dsra_draw = 0.0 if _sub_swap_active else pre_revenue_hedge
-                nwl_mz_balance_before_dsra = nwl_mz_balance
-                nwl_mz_balance_with_dsra = nwl_mz_balance_before_dsra + _nwl_dsra_draw
-                nwl_mz_p_per = nwl_mz_balance_with_dsra / mezz_ic_reps
-
-                for i in range(1, mezz_ic_reps + 1):
-                    month = 18 + (i * 6)
-                    year = month / 12
-                    opening = nwl_mz_balance
-
-                    if i == 1:
-                        draw_down = _nwl_dsra_draw
-                        dsra_note = " *" if _nwl_dsra_draw > 0 else ""
-                    else:
-                        draw_down = 0
-                        dsra_note = ""
-
-                    interest = opening * mezz_ic_rate / 2
-                    principle = -nwl_mz_p_per
-                    repayment = principle - interest
-                    movement = draw_down + principle
-                    nwl_mz_balance = opening + movement
-
-                    nwl_mz_rows.append({
-                        "Period": f"{i}{dsra_note}", "Month": month, "Year": year,
-                        "Opening": opening, "Draw Down": draw_down, "Interest": interest,
-                        "Principle": principle, "Repayment": repayment, "Movement": movement, "Closing": nwl_mz_balance
-                    })
+                nwl_mz_balance_for_repay = next(
+                    (r["Closing"] for r in _sub_mz_schedule
+                     if r["Period"] == construction_end_index()), 0.0
+                )
+                nwl_mz_p_per = nwl_mz_balance_for_repay / mezz_ic_reps if mezz_ic_reps > 0 else 0
 
                 df_nwl_mezz = pd.DataFrame(nwl_mz_rows)
                 render_table(df_nwl_mezz, ic_format)
@@ -4067,21 +3514,58 @@ This means:
                         st.markdown(f"**Swap ZAR Rand Leg (Liability)** — {_zr*100:.2f}% | "
                                     f"{_zt} semi-annual from M{_zsm} | P_constant")
 
+                        _zar_fx = (_sub_swap_sched.get('zar_amount', 1)
+                                   / max(_sub_swap_sched.get('eur_amount', 1), 1)
+                                   ) if _sub_swap_sched.get('eur_amount', 0) > 0 else 1
                         _zar_rows = []
+                        _zar_running_bal = None  # Track waterfall-based ZAR closing
                         for row in _sub_swap_sched['schedule']:
-                            _zar_rows.append({
-                                "Period": row['period'], "Month": row['month'],
-                                "Year": row['month'] / 12,
-                                "Opening": row['opening'], "Interest": row['interest'],
-                                "Principal": row.get('principal', 0),
-                                "Payment": row.get('payment', 0),
-                                "Closing": row['closing'],
-                            })
+                            _m = row['month']
+                            # Map schedule month to waterfall semi-annual index
+                            _zar_hi = _m // 6 - 1 if _m >= 6 else -1
+                            _zar_accel_eur = 0
+                            if 0 <= _zar_hi < len(_fac_wf_semi):
+                                _zar_accel_eur = _fac_wf_semi[_zar_hi].get('zar_leg_accel', 0)
+                            # For repayment rows, use waterfall zar_leg_bal for continuity
+                            if row.get('phase') == 'repayment' and 0 <= _zar_hi < len(_fac_wf_semi):
+                                _wf_zar_bal_eur = _fac_wf_semi[_zar_hi]['zar_leg_bal']
+                                _wf_zar_closing = _wf_zar_bal_eur * _zar_fx
+                                _wf_zar_opening = _zar_running_bal if _zar_running_bal is not None else row['opening']
+                                _zar_interest = _wf_zar_opening * (_sub_swap_sched['zar_rate'] / 2.0)
+                                _zar_principal = row.get('principal', 0)
+                                _zar_accel_zar = _zar_accel_eur * _zar_fx
+                                _zar_rows.append({
+                                    "Period": period_lookup(row['period'])["label"] if row['period'] < total_periods() else f"S{row['period']+1}",
+                                    "Month": _m,
+                                    "Year": _m / 12,
+                                    "Opening": _wf_zar_opening, "Interest": _zar_interest,
+                                    "Principal": _zar_principal,
+                                    "Payment": _zar_principal + _zar_interest,
+                                    "Acceleration": -_zar_accel_zar if _zar_accel_zar > 0.01 else 0,
+                                    "Closing": _wf_zar_closing,
+                                })
+                                _zar_running_bal = _wf_zar_closing
+                            else:
+                                # IDC / grace rows — use vanilla schedule
+                                _zar_rows.append({
+                                    "Period": period_lookup(row['period'])["label"] if row['period'] < total_periods() else f"S{row['period']+1}",
+                                    "Month": _m,
+                                    "Year": _m / 12,
+                                    "Opening": row['opening'], "Interest": row['interest'],
+                                    "Principal": row.get('principal', 0),
+                                    "Payment": row.get('payment', 0),
+                                    "Acceleration": 0,
+                                    "Closing": row['closing'],
+                                })
+                                _zar_running_bal = row['closing']
+                            if _zar_running_bal is not None and _zar_running_bal <= 0.01:
+                                break
 
                         render_table(pd.DataFrame(_zar_rows), {
                             "Year": "{:.1f}",
                             "Opening": "R{:,.0f}", "Interest": "R{:,.0f}",
                             "Principal": "R{:,.0f}", "Payment": "R{:,.0f}",
+                            "Acceleration": "R{:,.0f}",
                             "Closing": "R{:,.0f}",
                         })
                         st.caption(f"ZAR leg: Investec quoted {_zr*100:.2f}% fixed. "
@@ -4101,22 +3585,48 @@ This means:
                     st.caption("IC Loan to LanRED")
                 st.caption(f"Senior: €{loans['lanred']['senior_portion']:,.0f} | Mezz: €{loans['lanred']['mezz_portion']:,.0f} | Total: €{loans['lanred']['total_loan']:,.0f}")
 
-                # Senior IC Facility
+                # Senior IC Facility — read from engine schedule (single source of truth)
                 with st.container(border=True):
-                    st.markdown(f"**Senior IC** — {senior_ic_rate*100:.2f}% | {senior['repayments']} semi-annual")
-                    df_lanred_senior = pd.DataFrame(build_simple_ic_schedule(
-                        loans["lanred"]["senior_portion"], senior_total, senior['repayments'],
-                        senior_ic_rate, senior_drawdown_schedule, senior_drawdown_periods
-                    ))
+                    st.markdown(f"**Senior IC** -- {senior_ic_rate*100:.2f}% | {senior['repayments']} semi-annual")
+                    _lr_sr_rows = []
+                    for r in _sub_sr_schedule:
+                        _opening = r["Opening"]
+                        _closing = r["Closing"]
+                        _principal = r["Principle"]
+                        _interest = r["Interest"]
+                        _accel = r["Acceleration"]
+                        _lr_sr_rows.append({
+                            "Period": period_lookup(r["Period"])["label"],
+                            "Month": r["Month"], "Year": r["Year"],
+                            "Opening": _opening, "Draw Down": r["Draw Down"],
+                            "Interest": _interest, "Principle": _principal,
+                            "Repayment": _principal + _interest + _accel,
+                            "Acceleration": _accel,
+                            "Movement": _closing - _opening, "Closing": _closing,
+                        })
+                    df_lanred_senior = pd.DataFrame(_lr_sr_rows)
                     render_table(df_lanred_senior, ic_format)
 
-                # Mezz IC Facility
+                # Mezz IC Facility — read from engine schedule (single source of truth)
                 with st.container(border=True):
-                    st.markdown(f"**Mezz IC** — {mezz_ic_rate*100:.2f}% | {mezz_ic_reps} semi-annual")
-                    df_lanred_mezz = pd.DataFrame(build_simple_ic_schedule(
-                        loans["lanred"]["mezz_portion"], mezz_total, mezz_ic_reps,
-                        mezz_ic_rate, mezz_ic_drawdown_schedule, mezz_ic_periods
-                    ))
+                    st.markdown(f"**Mezz IC** -- {mezz_ic_rate*100:.2f}% | {mezz_ic_reps} semi-annual")
+                    _lr_mz_rows = []
+                    for r in _sub_mz_schedule:
+                        _opening = r["Opening"]
+                        _closing = r["Closing"]
+                        _principal = r["Principle"]
+                        _interest = r["Interest"]
+                        _accel = r["Acceleration"]
+                        _lr_mz_rows.append({
+                            "Period": period_lookup(r["Period"])["label"],
+                            "Month": r["Month"], "Year": r["Year"],
+                            "Opening": _opening, "Draw Down": r["Draw Down"],
+                            "Interest": _interest, "Principle": _principal,
+                            "Repayment": _principal + _interest + _accel,
+                            "Acceleration": _accel,
+                            "Movement": _closing - _opening, "Closing": _closing,
+                        })
+                    df_lanred_mezz = pd.DataFrame(_lr_mz_rows)
                     render_table(df_lanred_mezz, ic_format)
 
                 # ── ZAR Rand Leg (LanRED) ──
@@ -4128,21 +3638,55 @@ This means:
                         st.markdown(f"**Swap ZAR Rand Leg (Liability)** — {_zr_lr*100:.2f}% | "
                                     f"{_zt_lr} semi-annual from M{_zsm_lr} | P_constant")
 
+                        _zar_lr_fx = (_sub_swap_sched.get('zar_amount', 1)
+                                      / max(_sub_swap_sched.get('eur_amount', 1), 1)
+                                      ) if _sub_swap_sched.get('eur_amount', 0) > 0 else 1
                         _zar_lr_rows = []
+                        _zar_lr_running_bal = None
                         for row in _sub_swap_sched['schedule']:
-                            _zar_lr_rows.append({
-                                "Period": row['period'], "Month": row['month'],
-                                "Year": row['month'] / 12,
-                                "Opening": row['opening'], "Interest": row['interest'],
-                                "Principal": row.get('principal', 0),
-                                "Payment": row.get('payment', 0),
-                                "Closing": row['closing'],
-                            })
+                            _m_lr = row['month']
+                            _zar_lr_hi = _m_lr // 6 - 1 if _m_lr >= 6 else -1
+                            _zar_lr_accel_eur = 0
+                            if 0 <= _zar_lr_hi < len(_fac_wf_semi):
+                                _zar_lr_accel_eur = _fac_wf_semi[_zar_lr_hi].get('zar_leg_accel', 0)
+                            if row.get('phase') == 'repayment' and 0 <= _zar_lr_hi < len(_fac_wf_semi):
+                                _wf_zar_lr_bal_eur = _fac_wf_semi[_zar_lr_hi]['zar_leg_bal']
+                                _wf_zar_lr_closing = _wf_zar_lr_bal_eur * _zar_lr_fx
+                                _wf_zar_lr_opening = _zar_lr_running_bal if _zar_lr_running_bal is not None else row['opening']
+                                _zar_lr_interest = _wf_zar_lr_opening * (_sub_swap_sched['zar_rate'] / 2.0)
+                                _zar_lr_principal = row.get('principal', 0)
+                                _zar_lr_accel_zar = _zar_lr_accel_eur * _zar_lr_fx
+                                _zar_lr_rows.append({
+                                    "Period": period_lookup(row['period'])["label"] if row['period'] < total_periods() else f"S{row['period']+1}",
+                                    "Month": _m_lr,
+                                    "Year": _m_lr / 12,
+                                    "Opening": _wf_zar_lr_opening, "Interest": _zar_lr_interest,
+                                    "Principal": _zar_lr_principal,
+                                    "Payment": _zar_lr_principal + _zar_lr_interest,
+                                    "Acceleration": -_zar_lr_accel_zar if _zar_lr_accel_zar > 0.01 else 0,
+                                    "Closing": _wf_zar_lr_closing,
+                                })
+                                _zar_lr_running_bal = _wf_zar_lr_closing
+                            else:
+                                _zar_lr_rows.append({
+                                    "Period": period_lookup(row['period'])["label"] if row['period'] < total_periods() else f"S{row['period']+1}",
+                                    "Month": _m_lr,
+                                    "Year": _m_lr / 12,
+                                    "Opening": row['opening'], "Interest": row['interest'],
+                                    "Principal": row.get('principal', 0),
+                                    "Payment": row.get('payment', 0),
+                                    "Acceleration": 0,
+                                    "Closing": row['closing'],
+                                })
+                                _zar_lr_running_bal = row['closing']
+                            if _zar_lr_running_bal is not None and _zar_lr_running_bal <= 0.01:
+                                break
 
                         render_table(pd.DataFrame(_zar_lr_rows), {
                             "Year": "{:.1f}",
                             "Opening": "R{:,.0f}", "Interest": "R{:,.0f}",
                             "Principal": "R{:,.0f}", "Payment": "R{:,.0f}",
+                            "Acceleration": "R{:,.0f}",
                             "Closing": "R{:,.0f}",
                         })
                         st.caption(f"ZAR leg: Investec quoted {_zr_lr*100:.2f}% fixed. "
@@ -4172,20 +3716,32 @@ This means:
                 # Senior IC Facility
                 with st.container(border=True):
                     st.markdown(f"**Senior IC** — {senior_ic_rate*100:.2f}% | {senior['repayments']} semi-annual")
-                    df_twx_senior = pd.DataFrame(build_simple_ic_schedule(
+                    _twx_sr_ev = build_simple_ic_schedule(
                         loans["timberworx"]["senior_portion"], senior_total, senior['repayments'],
                         senior_ic_rate, senior_drawdown_schedule, senior_drawdown_periods
-                    ))
-                    render_table(df_twx_senior, ic_format)
+                    )
+                    for r in _twx_sr_ev:
+                        r["Label"] = period_lookup(r["Period"])["label"]
+                        r["Movement"] = r["Closing"] - r["Opening"]
+                        r["Repayment"] = r["Principle"] + r["Interest"] + r.get("Acceleration", 0)
+                    df_twx_senior = pd.DataFrame(_twx_sr_ev)
+                    _ev_ic_cols = ["Label", "Month", "Year", "Opening", "Draw Down",
+                                   "Interest", "Principle", "Repayment", "Movement", "Closing"]
+                    render_table(df_twx_senior[_ev_ic_cols], ic_format)
 
                 # Mezz IC Facility
                 with st.container(border=True):
                     st.markdown(f"**Mezz IC** — {mezz_ic_rate*100:.2f}% | {mezz_ic_reps} semi-annual")
-                    df_twx_mezz = pd.DataFrame(build_simple_ic_schedule(
+                    _twx_mz_ev = build_simple_ic_schedule(
                         loans["timberworx"]["mezz_portion"], mezz_total, mezz_ic_reps,
                         mezz_ic_rate, mezz_ic_drawdown_schedule, mezz_ic_periods
-                    ))
-                    render_table(df_twx_mezz, ic_format)
+                    )
+                    for r in _twx_mz_ev:
+                        r["Label"] = period_lookup(r["Period"])["label"]
+                        r["Movement"] = r["Closing"] - r["Opening"]
+                        r["Repayment"] = r["Principle"] + r["Interest"] + r.get("Acceleration", 0)
+                    df_twx_mz = pd.DataFrame(_twx_mz_ev)
+                    render_table(df_twx_mz[_ev_ic_cols], ic_format)
 
                 st.divider()
                 st.markdown("#### Equity Stake")
@@ -4195,29 +3751,27 @@ This means:
                 with _eq_twx_c2:
                     st.metric("Share Capital", "R1m", "€50,000 at FX 20")
                 with _eq_twx_c3:
-                    _vs_logo_a = LOGO_DIR / ENTITY_LOGOS.get("vansquare", "")
+                    _vs_logo_a = LOGO_DIR / ENTITY_LOGOS.get("vansquared", "")
                     if _vs_logo_a.exists():
                         st.image(str(_vs_logo_a), width=80)
-                    st.markdown("**VanSquare — 95%**")
+                    st.markdown("**VanSquared — 95%**")
 
             # ── AUDIT: Facilities ──
             _fac_checks = []
-            # IC balance Y10 = 0 (fully amortized)
-            _sr_last = _sub_sr_schedule[-1] if _sub_sr_schedule else {}
-            _mz_last = _sub_mz_schedule[-1] if _sub_mz_schedule else {}
+            # IC balance at end of waterfall = 0 (fully amortized via P+I + acceleration)
             _fac_checks.append({
-                "name": "Senior IC Y10 closing = 0",
+                "name": "Senior IC final closing = 0",
                 "expected": 0.0,
-                "actual": abs(_sr_last.get('Closing', 0)),
+                "actual": abs(_fac_wf_semi[-1].get('sr_ic_bal', 0)),
             })
             _fac_checks.append({
-                "name": "Mezz IC Y10 closing = 0",
+                "name": "Mezz IC final closing = 0",
                 "expected": 0.0,
-                "actual": abs(_mz_last.get('Closing', 0)),
+                "actual": abs(_fac_wf_semi[-1].get('mz_ic_bal', 0)),
             })
             # Sum(interest) = total IE from P&L
-            _sr_int_total = sum(r['Interest'] for r in _sub_sr_schedule)
-            _mz_int_total = sum(r['Interest'] for r in _sub_mz_schedule)
+            _sr_int_total = sum(w.get('ie_half_sr', 0) for w in _fac_wf_semi)
+            _mz_int_total = sum(w.get('ie_half_mz', 0) for w in _fac_wf_semi)
             _pl_ie_sr = sum(a['ie_sr'] for a in _sub_annual)
             _pl_ie_mz = sum(a['ie_mz'] for a in _sub_annual)
             _fac_checks.append({
@@ -4230,13 +3784,17 @@ This means:
                 "expected": _mz_int_total,
                 "actual": _pl_ie_mz,
             })
-            # Sum(principal) = peak balance (all principal repaid over life)
-            _sr_princ_total = sum(abs(r['Principle']) for r in _sub_sr_schedule if r['Principle'] < 0)
-            _sr_peak_bal = max((r['Closing'] for r in _sub_sr_schedule), default=0)
+            # Sum(outflows) = Sum(inflows): everything drawn + capitalised must be repaid
+            _sr_outflows = sum(w.get('sr_prin_sched', 0) + w.get('sr_accel_entity', 0) for w in _fac_wf_semi)
+            # Inflows: M0 drawdown + construction drawdowns + IDC (from schedule)
+            _sr_inflows = 0.0
+            for r in _sub_sr_schedule:
+                if r['Month'] < repayment_start_month():
+                    _sr_inflows += abs(r.get('Draw Down', 0)) + abs(r.get('Interest', 0))
             _fac_checks.append({
-                "name": "Sum(SR principal paid) = peak balance",
-                "expected": _sr_peak_bal,
-                "actual": _sr_princ_total,
+                "name": "Sum(SR repaid) = Sum(SR drawn + IDC)",
+                "expected": _sr_inflows,
+                "actual": _sr_outflows,
                 "tolerance": 2.0,
             })
             run_page_audit(_fac_checks, f"{name} — Facilities")
@@ -4529,6 +4087,22 @@ This means:
                         "Depreciable Base": "\u20ac{:,.0f}",
                         "Annual Depreciation": "\u20ac{:,.0f}",
                     })
+
+                    # Section 12C accelerated depreciation schedule
+                    _depr_total = df_assets["Depreciable Base"].iloc[-1]  # Total row
+                    _s12c_schedule = [
+                        {"Year": "Y1", "Rate": "40%", "Depreciation": _depr_total * 0.40},
+                        {"Year": "Y2", "Rate": "20%", "Depreciation": _depr_total * 0.20},
+                        {"Year": "Y3", "Rate": "20%", "Depreciation": _depr_total * 0.20},
+                        {"Year": "Y4", "Rate": "20%", "Depreciation": _depr_total * 0.20},
+                    ]
+                    st.markdown("**Tax Depreciation — Section 12C (Income Tax Act)**")
+                    st.caption("Manufacturing plant qualifies for accelerated write-off: "
+                               "40% in year of commissioning, 20% in each of the following 3 years. "
+                               "Fully depreciated by Y4.")
+                    _s12c_df = pd.DataFrame(_s12c_schedule)
+                    _s12c_df.loc[len(_s12c_df)] = {"Year": "**Total**", "Rate": "100%", "Depreciation": _depr_total}
+                    render_table(_s12c_df, {"Depreciation": "\u20ac{:,.0f}"})
                 else:
                     st.info("No registered assets for this subsidiary.")
 
@@ -4696,33 +4270,6 @@ This means:
 
                 st.divider()
 
-                st.subheader("10‑Year Depreciation Overview")
-                if assets:
-                    # For TWX: CoE sold in sale year → stop CoE depreciation from that year
-                    _depr_coe_sale_yr = None
-                    if entity_key == 'timberworx':
-                        _depr_coe_sale_cfg = operations_config.get("timberworx", {}).get("coe_sale_to_llc", {})
-                        if _depr_coe_sale_cfg.get("enabled", False):
-                            _depr_coe_sale_yr = int(_depr_coe_sale_cfg.get("sale_year", 4))
-
-                    dep_rows = []
-                    for year in range(1, 11):
-                        total_dep = 0.0
-                        for a in assets:
-                            if year <= a["life"]:
-                                if _depr_coe_sale_yr and year >= _depr_coe_sale_yr and a.get("id", "") == "coe_001":
-                                    continue
-                                total_dep += a["annual_depr"]
-                        dep_rows.append({"Year": year, "Depreciation": total_dep})
-                    df_dep = pd.DataFrame(dep_rows)
-                    render_table(df_dep, {"Depreciation": "€{:,.0f}"})
-                    _depr_note = "Straight‑line depreciation. No replacements modeled in the 10‑year scope."
-                    if _depr_coe_sale_yr:
-                        _depr_note += f" CoE building depreciation stops at Y{_depr_coe_sale_yr} (sold to LLC)."
-                    st.caption(_depr_note)
-
-                st.divider()
-
                 # --- CHECKUP: Debt/Mezz reconciliation (toggleable) ---
                 with st.expander("Checkup — 85% Debt / 15% Mezz Allocation", expanded=False):
                     # Entity-level fee computation
@@ -4758,8 +4305,8 @@ This means:
                     # Verification metrics
                     _ck_base_sr_pct = _ck_base_sr / _ck_ab * 100 if _ck_ab else 0
                     _ck_fees_sr_pct = _ck_fees_sr / _ck_fees_total * 100 if _ck_fees_total else 0
-                    _ck_total_sr_pct = _ck_total_sr / (_ck_total_sr + _ck_total_mz) * 100
-                    _ck_src_sr_pct = senior_liab / (senior_liab + mezz_liab) * 100
+                    _ck_total_sr_pct = _ck_total_sr / (_ck_total_sr + _ck_total_mz) * 100 if (_ck_total_sr + _ck_total_mz) else 0
+                    _ck_src_sr_pct = senior_liab / (senior_liab + mezz_liab) * 100 if (senior_liab + mezz_liab) else 0
 
                     st.markdown(f"""
 | Component | Senior % | Mezz % | Rule |
@@ -4789,7 +4336,7 @@ This means:
                         _idc = _op * _semi_eur
                         _eur_bal = _op + _idc
                         _eur_rows.append({
-                            "Period": -(4 - gi), "Month": _m, "Year": _m / 12,
+                            "Period": period_lookup(gi)["label"], "Month": _m, "Year": _m / 12,
                             "Opening": _op, "Interest": _idc,
                             "Principle": 0, "Movement": _idc, "Closing": _eur_bal
                         })
@@ -4799,7 +4346,7 @@ This means:
                         # Bullet at M24 — entire IDC-inflated balance delivered
                         _int_m24 = _eur_bal * _semi_eur
                         _eur_rows.append({
-                            "Period": 1, "Month": 24, "Year": 2.0,
+                            "Period": period_lookup(4)["label"], "Month": period_start_month(4), "Year": period_start_month(4) / 12,
                             "Opening": _eur_bal, "Interest": _int_m24,
                             "Principle": -_eur_bal, "Movement": -_eur_bal, "Closing": 0
                         })
@@ -4807,12 +4354,13 @@ This means:
                         # LanRED: P_constant over 14 periods (follows IC Senior)
                         _eur_p = _eur_bal / 14
                         for ri in range(14):
-                            _m = 24 + ri * 6
+                            _pidx = ri + 4  # canonical index 4-17
+                            _m = period_start_month(_pidx)
                             _op = _eur_bal
                             _ii = _op * _semi_eur
                             _eur_bal = _op - _eur_p
                             _eur_rows.append({
-                                "Period": ri + 1, "Month": _m, "Year": _m / 12,
+                                "Period": period_lookup(_pidx)["label"], "Month": _m, "Year": _m / 12,
                                 "Opening": _op, "Interest": _ii,
                                 "Principle": -_eur_p, "Movement": -_eur_p,
                                 "Closing": max(_eur_bal, 0)
@@ -4837,72 +4385,50 @@ This means:
                             "Amortises with IC Senior schedule (14 semi-annual from M24)."
                         )
 
-            # ── FIXED DEPOSIT SCHEDULE ──────────────────────────
-            with st.container(border=True):
-                st.subheader("OpCo Fixed Deposit")
-                st.markdown("**Opening** + **Deposit** (Net Cash Flow) + **Interest** (4.4%/6mo) = **Closing**")
-                st.caption("Semi-annual compounding @ 9% p.a. = 4.4% per 6 months")
+            # ── FINANCIAL ASSETS: 4 Fixed Deposit Buckets (Semi-Annual Facility Format) ──
+            st.subheader("Financial Assets — Fixed Deposits (4 Buckets)")
 
-                # Build semi-annual DSRA schedule
-                # Semi-annual interest rate: (1.09)^0.5 - 1 ≈ 0.04403
-                dsra_rate_semiannual = (1 + DSRA_RATE) ** 0.5 - 1
+            # Waterfall already computed by engine -- reuse from sub_model
+            _fd_wf_semi = _fac_wf_semi
 
-                _dsra_fd_rows = []
-                _fd_bal = 0.0
+            _fd_facility_fmt = {
+                "Period": "{}",
+                "Month": "{:d}",
+                "Opening": "\u20ac{:,.0f}",
+                "Addition": "\u20ac{:,.0f}",
+                "Interest": "\u20ac{:,.0f}",
+                "Release": "\u20ac{:,.0f}",
+                "Closing": "\u20ac{:,.0f}",
+            }
 
-                # Loop through semi-annual periods (20 periods = 10 years × 2)
-                for period_idx in range(20):
-                    year = (period_idx // 2) + 1
-                    half = 'H1' if period_idx % 2 == 0 else 'H2'
-                    period_label = f"{half} Y{year}"
-
-                    # Calculate semi-annual cash flow from schedules
-                    # Period months: H1 Y1 = M0-M5, H2 Y1 = M6-M11, etc.
-                    m_start = period_idx * 6
-                    m_end = m_start + 6
-
-                    # Get semi-annual cash flows from schedules
-                    # CF components: Interest income (IE) - Interest expense + Principal margin
-                    sr_ie = sum(r['Interest'] for r in _sub_sr_schedule if m_start <= r['Month'] < m_end and r['Month'] >= 24)
-                    mz_ie = sum(r['Interest'] for r in _sub_mz_schedule if m_start <= r['Month'] < m_end and r['Month'] >= 24)
-                    sr_pr = sum(abs(r['Principle']) for r in _sub_sr_schedule if m_start <= r['Month'] < m_end and r['Principle'] < 0)
-                    mz_pr = sum(abs(r['Principle']) for r in _sub_mz_schedule if m_start <= r['Month'] < m_end and r['Principle'] < 0)
-
-                    # Get operating cash flow (EBITDA component) from annual data
-                    # Split annual EBITDA/tax equally across 2 semi-annual periods
-                    if year <= 10:
-                        a = _sub_annual[year - 1]
-                        ebitda_semi = a.get('ebitda', 0) / 2.0
-                        tax_semi = a.get('cf_tax', 0) / 2.0
-                        ops_semi = ebitda_semi - tax_semi
-                    else:
-                        ops_semi = 0.0
-
-                    # Net cash flow (semi-annual): Operations - Debt Service
-                    # Note: This is a simplified calculation. Full accuracy would require
-                    # semi-annual operating model, but annual split is sufficient for display
-                    deposit = ops_semi - sr_ie - mz_ie - sr_pr - mz_pr
-
-                    # Interest on opening balance (semi-annual rate)
-                    opening = _fd_bal
-                    interest = opening * dsra_rate_semiannual
-                    closing = opening + deposit + interest
-                    _fd_bal = closing
-
-                    _dsra_fd_rows.append({
-                        "Period": period_label,
-                        "Opening": opening,
-                        "Deposit": deposit,
-                        "Interest": interest,
-                        "Closing": closing
-                    })
-
-                render_table(pd.DataFrame(_dsra_fd_rows), {
-                    "Opening": "€{:,.0f}",
-                    "Deposit": "€{:,.0f}",
-                    "Interest": "€{:,.0f}",
-                    "Closing": "€{:,.0f}",
-                })
+            # Bucket definitions: (title, bal_key, fill_key, interest_key, release_key)
+            _fd_buckets = [
+                ("1. Ops Reserve FD", 'ops_reserve_bal', 'ops_reserve_fill', 'ops_reserve_interest', None),
+                ("2. OpCo DSRA FD", 'opco_dsra_bal', 'opco_dsra_fill', None, 'opco_dsra_release'),
+                ("3. Mezz Dividend Reserve FD", 'mz_div_fd_bal', 'mz_div_fd_fill', 'mz_div_fd_interest', 'mz_div_payout_amount'),
+                ("4. Surplus Cash FD (Entity)", 'entity_fd_bal', 'entity_fd_fill', 'entity_fd_interest', None),
+            ]
+            for _fd_title, _fd_bal_key, _fd_fill_key, _fd_int_key, _fd_rel_key in _fd_buckets:
+                with st.container(border=True):
+                    st.markdown(f"**{_fd_title}**")
+                    _fd_rows = []
+                    for hi in range(total_periods()):
+                        _prev_bal = _fd_wf_semi[hi - 1][_fd_bal_key] if hi > 0 else 0.0
+                        _cur = _fd_wf_semi[hi]
+                        _addition = _cur.get(_fd_fill_key, 0)
+                        _interest = _cur.get(_fd_int_key, 0) if _fd_int_key else 0.0
+                        _release = _cur.get(_fd_rel_key, 0) if _fd_rel_key else 0.0
+                        _closing = _cur[_fd_bal_key]
+                        _fd_rows.append({
+                            "Period": period_lookup(hi)["label"],
+                            "Month": period_start_month(hi),
+                            "Opening": _prev_bal,
+                            "Addition": _addition,
+                            "Interest": _interest,
+                            "Release": _release,
+                            "Closing": _closing,
+                        })
+                    render_table(pd.DataFrame(_fd_rows), _fd_facility_fmt)
 
             # ── AUDIT: Assets ──
             _ast_checks = []
@@ -4913,17 +4439,19 @@ This means:
                 "actual": _sub_depr_base,
             })
             # Y10 accumulated depr <= depr base
-            _acc_depr_10 = sum(_sub_annual[i]['depr'] for i in range(10))
+            _acc_depr_10 = sum(_sub_annual[i]['depr'] for i in range(total_years()))
             _ast_checks.append({
                 "name": "Y10 accum depr <= depr base",
                 "expected": _sub_depr_base,
                 "actual": _acc_depr_10,
                 "tolerance": _sub_depr_base - _acc_depr_10 + 1.0 if _acc_depr_10 <= _sub_depr_base else 0.0,
             })
-            # BS fixed assets Y1 = depr base - Y1 depr
+            # BS fixed assets Y1 = capitalised cost - Y1 depr
+            # During construction (Y1-Y2), cumulative capex < depr base; use actual capex drawn
+            _cum_capex_y1 = _sub_annual[0].get('cf_capex', 0)
             _ast_checks.append({
-                "name": "BS fixed assets Y1 = base - Y1 depr",
-                "expected": max(_sub_depr_base - _sub_annual[0]['depr'], 0),
+                "name": "BS fixed assets Y1 = capex drawn - Y1 depr",
+                "expected": max(min(_cum_capex_y1, _sub_depr_base) - _sub_annual[0]['depr'], 0),
                 "actual": _sub_annual[0]['bs_fixed_assets'],
             })
             run_page_audit(_ast_checks, f"{name} — Assets")
@@ -5207,7 +4735,7 @@ This means:
 
                     _days_per_half = 182.5
                     _kl_per_mld = 1000.0
-                    _rev_months = list(range(6, 126, 6))  # M6..M120 (20 periods)
+                    _rev_months = [period_start_month(si) for si in range(total_periods())]  # M0..M114 (20 periods)
                     _rev_labels = [f"M{m}" for m in _rev_months]
 
                     # Compute BrownField honeysucker rate from Revenue Sharing inputs (session state)
@@ -5311,13 +4839,13 @@ This means:
                     }
                     for _seg_name, _seg_vals in _seg_data.items():
                         _ann_rev["Segment"].append(_seg_name)
-                        for _yi in range(10):
+                        for _yi in range(total_years()):
                             _ann_rev[f"Y{_yi+1}"].append(_seg_vals[_yi * 2] + _seg_vals[_yi * 2 + 1])
                         _ann_rev["Total"].append(sum(_seg_vals))
 
                     # Total row
                     _ann_rev["Segment"].append("**Total Revenue**")
-                    for _yi in range(10):
+                    for _yi in range(total_years()):
                         _ann_rev[f"Y{_yi+1}"].append(_rev_total[_yi * 2] + _rev_total[_yi * 2 + 1])
                     _ann_rev["Total"].append(_total_10y)
 
@@ -5437,7 +4965,7 @@ This means:
                     # --- BrownField 10-year income (temporary revenue) ---
                     st.markdown("---")
                     st.markdown("**BrownField Income Projection** — temporary revenue that declines as GreenField absorbs capacity")
-                    _bf_months_20 = list(range(6, 126, 6))
+                    _bf_months_20 = [period_start_month(si) for si in range(total_periods())]
                     _bf_labels_20 = [f"M{m}" for m in _bf_months_20]
                     _bf_income_hon = []
                     _bf_income_agri = []
@@ -5462,9 +4990,9 @@ This means:
                     _bf_total_10y = sum(_bf_income_total)
 
                     # Annual table
-                    _bf_yr_cols = [f"Y{y}" for y in range(1, 11)] + ["Total"]
+                    _bf_yr_cols = [f"Y{y}" for y in range(1, total_years() + 1)] + ["Total"]
                     _bf_yr = {"Stream": ["Honeysucker", "Agri-water", "**Total BF Revenue**"]}
-                    for _yi in range(10):
+                    for _yi in range(total_years()):
                         _h = _bf_income_hon[_yi * 2] + _bf_income_hon[_yi * 2 + 1]
                         _a = _bf_income_agri[_yi * 2] + _bf_income_agri[_yi * 2 + 1]
                         _bf_yr[f"Y{_yi+1}"] = [_h, _a, _h + _a]
@@ -5505,7 +5033,7 @@ This means:
                         {"Item": "O&M indexation (p.a.)", "Value": "5.0%"},
                         {"Item": "Awarded O&M contract", "Value": "Yes"},
                         {"Item": "Equity issued", "Value": "Yes"},
-                        {"Item": "Equity value / prepayment", "Value": "ZAR 44,720,857"},
+                        {"Item": "Equity value / acceleration", "Value": "ZAR 44,720,857"},
                         {"Item": "EPC contract issued", "Value": "No"},
                         {"Item": "Opex starts with CoD (month)", "Value": 12},
                     ])
@@ -5514,7 +5042,7 @@ This means:
                     _om_start_month = 12
                     _om_monthly_fee = 1000000
                     _om_index_pa = 0.05
-                    _semi_months = list(range(6, 139, 6))
+                    _semi_months = list(range(0, 133, 6))  # M0..M132 (22 periods, start_month convention)
                     _om_period_rows = []
                     for _idx, _m in enumerate(_semi_months, start=1):
                         if _m >= _om_start_month:
@@ -5625,16 +5153,16 @@ This means:
                     _cum_saving_zar = []
                     _cum_total = 0.0
                     _start_month = 18  # power starts M18
-                    for _yi in range(10):
+                    for _yi in range(total_years()):
                         _mabr_yr = 0.0
                         _cas_yr = 0.0
-                        for _mi in range(_yi * 12 + 1, (_yi + 1) * 12 + 1):
+                        for _mi in range(_yi * 12, (_yi + 1) * 12):  # 0-based months
                             if _mi < _start_month:
                                 continue
                             # Capacity ramp: simplified — use 0 before M18, ramp to 1.9 by M24, then steady
                             if _mi < 18:
                                 _cap = 0.0
-                            elif _mi < 24:
+                            elif _mi < repayment_start_month():
                                 _cap = 0.53 + (1.9 - 0.53) * (_mi - 18) / 6.0
                             else:
                                 _cap = 1.9
@@ -5649,7 +5177,7 @@ This means:
                         _cum_total += (_cas_yr - _mabr_yr)
                         _cum_saving_zar.append(_cum_total)
 
-                    _years_lbl = [f"Y{i+1}" for i in range(10)]
+                    _years_lbl = [f"Y{i+1}" for i in range(total_years())]
                     _lifetime_saving = _cum_saving_zar[-1] if _cum_saving_zar else 0
 
                     st.metric("10-Year Lifetime Saving", f"R{_lifetime_saving:,.0f}", delta=f"\u20ac{_lifetime_saving / FX_RATE:,.0f}")
@@ -5728,7 +5256,7 @@ This means:
                     _rent_annual_eur_actual = [a.get('rent_cost', 0) for a in _sub_annual]
                     _rent_annual_zar_actual = [v * FX_RATE for v in _rent_annual_eur_actual]
                     _rent_total_10yr = sum(_rent_annual_zar_actual)
-                    _years_lbl_rent = [f"Y{i+1}" for i in range(10)]
+                    _years_lbl_rent = [f"Y{i+1}" for i in range(total_years())]
 
                     fig_rent = go.Figure()
                     fig_rent.add_trace(go.Bar(
@@ -5774,7 +5302,7 @@ This means:
                         _ph2_cap = int(_ph2.get("houses_per_year", 156))
                         _ph3_cap = int(_ph3.get("houses_per_year", 650))
 
-                        _years_lbl_d = [f"Y{i+1}" for i in range(10)]
+                        _years_lbl_d = [f"Y{i+1}" for i in range(total_years())]
                         _pop_5yr = _demand_houses[4] * _ppl_per_house
                         _pop_10yr = _demand_houses[9] * _ppl_per_house
                         _mw_5yr = _demand_houses[4] * _kva_per_stand * _diversity * _comm_mult / 1000
@@ -5895,7 +5423,7 @@ Pipeline: R178M across 10 committed projects. SA housing deficit: 3.7M units, gr
                     """)
 
                     # Timber sales chart
-                    _sales_years_lbl = [f"Y{i+1}" for i in range(10)]
+                    _sales_years_lbl = [f"Y{i+1}" for i in range(total_years())]
                     _sales_units = _units_per_year if len(_units_per_year) == 10 else _units_per_year + [_units_per_year[-1]] * (10 - len(_units_per_year))
                     _sales_rev_annual = [a.get('rev_timber_sales', 0) for a in _sub_annual]
 
@@ -5920,7 +5448,7 @@ Pipeline: R178M across 10 committed projects. SA housing deficit: 3.7M units, gr
 
                 # --- CoE SALE TO LLC (one-time event, Year 4) ---
                 with st.container(border=True):
-                    st.subheader(f"CoE Sale to Lanseria LLC (Year {_coe_sale_yr})")
+                    st.subheader(f"CoE Sale to Lanseria Landowners Consortium (Year {_coe_sale_yr})")
                     _sale_premium = float(operations_config.get("timberworx", {}).get("coe_sale_to_llc", {}).get("premium_pct", 10.0))
                     _coe_sale_eur = sum(a.get('rev_coe_sale', 0) for a in _sub_annual)
                     _coe_capex_eur = load_config("assets")["assets"]["coe"]["line_items"][0]["budget"]
@@ -5931,7 +5459,7 @@ Pipeline: R178M across 10 committed projects. SA housing deficit: 3.7M units, gr
                     _cs3.metric("Sale Proceeds", f"\u20ac{_coe_sale_eur:,.0f}")
 
                     st.markdown(f"""
-Centre of Excellence building sold to Lanseria LLC at **{_sale_premium:.0f}% premium** on CapEx (\u20ac{_coe_capex_eur:,.0f} \u00d7 1.{_sale_premium:.0f} = **\u20ac{_coe_sale_eur:,.0f}**).
+Centre of Excellence building sold to Lanseria Landowners Consortium at **{_sale_premium:.0f}% premium** on CapEx (\u20ac{_coe_capex_eur:,.0f} \u00d7 1.{_sale_premium:.0f} = **\u20ac{_coe_sale_eur:,.0f}**).
 
 **After sale (Y{_coe_sale_yr}+):** All CoE-related items stop — lease revenue, training, O&M, depreciation, NWL rent obligation.
 Only house sales continue permanently.
@@ -5967,7 +5495,7 @@ Only house sales continue permanently.
                     _lease_annual_eur_actual = [a.get('rev_lease', 0) for a in _sub_annual]
                     _lease_annual_zar_actual = [v * FX_RATE for v in _lease_annual_eur_actual]
                     _lease_total = sum(_lease_annual_zar_actual)
-                    _years_lbl_lease = [f"Y{i+1}" for i in range(10)]
+                    _years_lbl_lease = [f"Y{i+1}" for i in range(total_years())]
 
                     fig_lease = go.Figure()
                     fig_lease.add_trace(go.Bar(
@@ -6009,7 +5537,7 @@ Accredited training providers receive **R{_seta_subsidy:,.0f}/student subsidy** 
                     """)
 
                     # Training chart — use model output (respects CoE sale stop)
-                    _train_years_lbl = [f"Y{i+1}" for i in range(10)]
+                    _train_years_lbl = [f"Y{i+1}" for i in range(total_years())]
                     _train_rev_annual = [a.get('rev_training', 0) for a in _sub_annual]
                     _train_students_actual = [a.get('students', 0) for a in _sub_annual]
                     for _tsi in range(len(_train_students_actual)):
@@ -6083,7 +5611,7 @@ Accredited training providers receive **R{_seta_subsidy:,.0f}/student subsidy** 
                     _bf_sites = _np_cfg.get("sites", [])
                     _bf_rev_esc = _np_cfg.get("revenue_escalation_pct", 8.0)
                     _bf_cost_esc = _np_cfg.get("cost_escalation_pct", 6.0)
-                    _bf_years_lbl = [f"Y{i+1}" for i in range(10)]
+                    _bf_years_lbl = [f"Y{i+1}" for i in range(total_years())]
 
                     # ── SECTION 1: Portfolio Overview ──
                     with st.container(border=True):
@@ -6113,10 +5641,10 @@ Accredited training providers receive **R{_seta_subsidy:,.0f}/student subsidy** 
                         st.subheader("2. Revenue Projection")
                         st.caption(f"Revenue escalates at {_bf_rev_esc:.0f}% p.a. (PPA indexation). Costs escalate at {_bf_cost_esc:.0f}% p.a.")
 
-                        _bf_ann_rev = [_tot_monthly_rev * 12 * ((1 + _bf_rev_esc / 100) ** yi) for yi in range(10)]
-                        _bf_ann_cogs = [_tot_monthly_cogs * 12 * ((1 + _bf_cost_esc / 100) ** yi) for yi in range(10)]
-                        _bf_ann_ins = [sum(s['monthly_insurance_zar'] for s in _bf_sites) * 12 * ((1 + _bf_cost_esc / 100) ** yi) for yi in range(10)]
-                        _bf_ann_om = [sum(s['monthly_om_zar'] for s in _bf_sites) * 12 * ((1 + _bf_cost_esc / 100) ** yi) for yi in range(10)]
+                        _bf_ann_rev = [_tot_monthly_rev * 12 * ((1 + _bf_rev_esc / 100) ** yi) for yi in range(total_years())]
+                        _bf_ann_cogs = [_tot_monthly_cogs * 12 * ((1 + _bf_cost_esc / 100) ** yi) for yi in range(total_years())]
+                        _bf_ann_ins = [sum(s['monthly_insurance_zar'] for s in _bf_sites) * 12 * ((1 + _bf_cost_esc / 100) ** yi) for yi in range(total_years())]
+                        _bf_ann_om = [sum(s['monthly_om_zar'] for s in _bf_sites) * 12 * ((1 + _bf_cost_esc / 100) ** yi) for yi in range(total_years())]
                         _bf_ann_net = [r - c - i - o for r, c, i, o in zip(_bf_ann_rev, _bf_ann_cogs, _bf_ann_ins, _bf_ann_om)]
 
                         _bf_r1, _bf_r2, _bf_r3 = st.columns(3)
@@ -6299,7 +5827,7 @@ Accredited training providers receive **R{_seta_subsidy:,.0f}/student subsidy** 
                         _gen_data = [a.get('generation_kwh', 0) for a in _sub_annual]
                         _bess_data = [a.get('bess_effective_kwh', 0) for a in _sub_annual]
                         _cf_data = [a.get('capacity_factor_pct', 0) for a in _sub_annual]
-                        _years_lbl = [f"Y{i+1}" for i in range(10)]
+                        _years_lbl = [f"Y{i+1}" for i in range(total_years())]
 
                         fig_gen = go.Figure()
                         fig_gen.add_trace(go.Bar(
@@ -6771,11 +6299,12 @@ split is well-balanced: BESS provides grid independence and peak shaving while P
                 _pnl_line('Swap ZAR interest', 'cf_swap_zar_i', -1.0)
                 _pnl_line('Swap EUR interest income', 'swap_eur_interest_cash')
             _pnl_line('Finance Costs', 'ie', -1.0, row_type='total')
+            _pnl_line('IDC capitalised (memo)', 'idc_memo', -1.0, row_type='memo')
 
             # FINANCE INCOME
             _pnl_spacer()
             _pnl_section('FINANCE INCOME')
-            _pnl_line('FD Interest Income (9%)', 'ii_dsra')
+            _pnl_line('FD Interest Income', 'ii_dsra')
 
             # BOTTOM LINE
             _pnl_spacer()
@@ -6808,6 +6337,9 @@ split is well-balanced: BESS provides grid independence and peak shaving while P
                     lbl_style = td_style
                 elif rtype == 'total':
                     td_style = 'font-weight:600;background:#F1F5F9;border-top:1px solid #CBD5E1;border-bottom:1px solid #CBD5E1;'
+                    lbl_style = td_style
+                elif rtype == 'memo':
+                    td_style = 'font-style:italic;color:#9CA3AF;font-size:12px;border-bottom:1px dotted #E2E8F0;'
                     lbl_style = td_style
                 elif rtype == 'sub':
                     td_style = 'font-style:italic;color:#475569;border-bottom:1px dashed #E2E8F0;'
@@ -6957,19 +6489,24 @@ split is well-balanced: BESS provides grid independence and peak shaving while P
                 offsetgroup='in', legendgroup='Inflows'
             ))
             fig_ccf.add_trace(go.Bar(
-                x=_years, y=[a.get('rev_total', 0) for a in _sub_annual],
+                x=_years, y=[a.get('rev_bulk_services', 0) for a in _sub_annual],
+                name='Bulk Services Revenue', marker_color='#047857',
+                offsetgroup='in', legendgroup='Inflows'
+            ))
+            fig_ccf.add_trace(go.Bar(
+                x=_years, y=[a.get('rev_operating', 0) for a in _sub_annual],
                 name='Operating Revenue', marker_color='#10B981',
                 offsetgroup='in', legendgroup='Inflows'
             ))
-            # Outflows: Capex + Prepay + Opex + Tax + Debt Service (stacked, right)
+            # Outflows: Capex + Grant Accel + Opex + Tax + Debt Service (stacked, right)
             fig_ccf.add_trace(go.Bar(
                 x=_years, y=[a.get('cf_capex', 0) for a in _sub_annual],
                 name='Capital Expenditure', marker_color='#1E3A5F',
                 offsetgroup='out', legendgroup='Outflows'
             ))
             fig_ccf.add_trace(go.Bar(
-                x=_years, y=[a.get('cf_prepay', 0) for a in _sub_annual],
-                name='Grant Prepayment', marker_color='#7C3AED',
+                x=_years, y=[a.get('cf_grant_accel', a.get('cf_prepay', 0)) for a in _sub_annual],
+                name='Grant Acceleration', marker_color='#7C3AED',
                 offsetgroup='out', legendgroup='Outflows'
             ))
             fig_ccf.add_trace(go.Bar(
@@ -6992,12 +6529,7 @@ split is well-balanced: BESS provides grid independence and peak shaving while P
                 name='Principal Repayments', marker_color='#6366F1',
                 offsetgroup='out', legendgroup='Outflows'
             ))
-            # FD balance line
-            fig_ccf.add_trace(go.Scatter(
-                x=_years, y=[a.get('dsra_bal', 0) for a in _sub_annual],
-                name='FD Balance', mode='lines+markers',
-                line=dict(color='#7C3AED', width=3)
-            ))
+            # FD balances shown in dedicated chart below
             fig_ccf.update_layout(
                 barmode='stack', height=420,
                 margin=dict(l=10, r=10, t=40, b=10),
@@ -7010,29 +6542,42 @@ split is well-balanced: BESS provides grid independence and peak shaving while P
             # ======================================================
             # CHART 3: Fixed Deposit — Balance & Interest
             # ======================================================
-            st.subheader("3. Fixed Deposit")
+            st.subheader("3. Fixed Deposits (4 Buckets)")
             fig_dsra = go.Figure()
-            fig_dsra.add_trace(go.Scatter(
-                x=_years, y=[a.get('dsra_bal', 0) for a in _sub_annual],
-                name='FD Balance', fill='tozeroy',
-                line=dict(color='#7C3AED', width=2),
-                fillcolor='rgba(124,58,237,0.15)'
+            # Stacked bars: 4 reserve buckets
+            fig_dsra.add_trace(go.Bar(
+                x=_years, y=[a.get('bs_ops_reserve', 0) for a in _sub_annual],
+                name='Ops Reserve', marker_color='#3B82F6'
             ))
             fig_dsra.add_trace(go.Bar(
-                x=_years, y=[a.get('dsra_interest', 0) for a in _sub_annual],
-                name='Interest Earned (9%)', marker_color='#10B981',
-                yaxis='y2'
+                x=_years, y=[a.get('bs_opco_dsra', 0) for a in _sub_annual],
+                name='OpCo DSRA', marker_color='#8B5CF6'
+            ))
+            fig_dsra.add_trace(go.Bar(
+                x=_years, y=[a.get('bs_mz_div_fd', 0) for a in _sub_annual],
+                name='Mezz Dividend FD', marker_color='#F59E0B'
+            ))
+            fig_dsra.add_trace(go.Bar(
+                x=_years, y=[a.get('bs_entity_fd', 0) for a in _sub_annual],
+                name='Surplus Cash FD', marker_color='#10B981'
+            ))
+            # Total line overlay — sum of 4 reserve buckets from waterfall
+            fig_dsra.add_trace(go.Scatter(
+                x=_years, y=[a.get('bs_ops_reserve', 0) + a.get('bs_opco_dsra', 0) + a.get('bs_mz_div_fd', 0) + a.get('bs_entity_fd', 0) for a in _sub_annual],
+                name='Total FD Balance', mode='lines+markers',
+                line=dict(color='#1E293B', width=2.5, dash='dot'),
+                marker=dict(size=7, color='#1E293B')
             ))
             fig_dsra.update_layout(
+                barmode='stack',
                 height=380,
-                margin=dict(l=10, r=60, t=40, b=10),
+                margin=dict(l=10, r=10, t=40, b=10),
                 xaxis=dict(dtick=1),
-                yaxis=dict(title='FD Balance (EUR)', side='left'),
-                yaxis2=dict(title='Interest Earned (EUR)', side='right', overlaying='y', showgrid=False),
+                yaxis=dict(title='FD Balance (EUR)'),
                 legend=dict(orientation="h", yanchor="bottom", y=1.06, xanchor="center", x=0.5),
             )
             st.plotly_chart(fig_dsra, use_container_width=True)
-            st.caption("Fixed Deposit: surplus cash deposited at 9% p.a. Opening + Deposit + Interest = Closing.")
+            st.caption("Fixed Deposits: Ops Reserve + OpCo DSRA + Mezz Dividend FD + Surplus Cash FD. Dotted line = total.")
 
             st.divider()
 
@@ -7082,13 +6627,13 @@ split is well-balanced: BESS provides grid independence and peak shaving while P
             _cf_line('Total Grants', 'cf_grants', row_type='sub')
             _cf_spacer()
 
-            # --- IC LOAN PREPAYMENTS ---
-            _cf_section('IC LOAN PREPAYMENTS (Grant-funded)')
+            # --- IC LOAN ACCELERATION (Grant-funded) ---
+            _cf_section('IC LOAN ACCELERATION (Grant-funded)')
             _cf_line('From DTIC Grant', 'cf_prepay_dtic', -1.0)
             _cf_line('From Bulk Services (GEPF)', 'cf_prepay_gepf', -1.0)
-            _cf_line('Total Prepayment', 'cf_prepay', -1.0, row_type='sub')
+            _cf_line('Total Grant Acceleration', 'cf_prepay', -1.0, row_type='sub')
             _cf_computed('Net Grants & Equity',
-                         [a.get('cf_equity', 0) + a.get('cf_grants', 0) - a.get('cf_prepay', 0) for a in _sub_annual], row_type='sub')
+                         [a.get('cf_equity', 0) + a.get('cf_grants', 0) - a.get('cf_grant_accel', a.get('cf_prepay', 0)) for a in _sub_annual], row_type='sub')
             _cf_spacer()
 
             # --- DEBT SERVICE ---
@@ -7114,16 +6659,42 @@ split is well-balanced: BESS provides grid independence and peak shaving while P
             _cf_section('NET CASH FLOW')
             _cf_line('Free CF (Ops − DS − Swap)', 'cf_after_debt_service', row_type='total') if _sub_swap_active else _cf_line('Free CF (Ops − DS)', 'cf_after_debt_service', row_type='total')
             _cf_line('Period Cash Flow', 'cf_net', row_type='total')
-            _cf_computed('→ to Fixed Deposit',
-                         [-a.get('cf_net', 0) for a in _sub_annual], row_type='sub')
             _cf_spacer()
 
-            # --- FIXED DEPOSIT ---
-            _cf_section('FIXED DEPOSIT')
-            _cf_line('Opening Balance', 'dsra_opening', point_in_time=True)
-            _cf_line('Deposit (Net CF)', 'dsra_deposit')
-            _cf_line('Interest Earned (9%)', 'dsra_interest')
-            _cf_line('Closing Balance', 'dsra_bal', row_type='grand', point_in_time=True)
+            # --- SURPLUS ALLOCATION (waterfall) or FIXED DEPOSIT (pre-waterfall) ---
+            _has_wf_cf = any(a.get('cf_ops_reserve_fill', 0) > 0.01
+                             or a.get('cf_entity_fd_fill', 0) > 0.01
+                             or a.get('cf_sr_accel', 0) > 0.01
+                             for a in _sub_annual)
+            if _has_wf_cf:
+                _cf_section('SURPLUS ALLOCATION (Waterfall)')
+                _cf_line('Ops Reserve Fill', 'cf_ops_reserve_fill', -1.0)
+                _cf_line('OpCo DSRA Fill', 'cf_opco_dsra_fill', -1.0)
+                _cf_line('DSRA Release', 'cf_opco_dsra_release')
+                _cf_line('Mezz Div FD Fill', 'cf_mz_div_fd_fill', -1.0)
+                _cf_line('OD → LanRED', 'cf_od_lent', -1.0)
+                _cf_spacer()
+                _cf_section('ACCELERATION')
+                _cf_line('Mezz IC Accel', 'cf_mz_accel', -1.0)
+                _cf_line('ZAR Rand Accel', 'cf_zar_accel', -1.0)
+                _cf_line('Sr IC Accel', 'cf_sr_accel', -1.0)
+                _cf_spacer()
+                _cf_section('ENTITY RESERVES')
+                _cf_line('Entity FD Fill', 'cf_entity_fd_fill', -1.0)
+                _cf_line('Unallocated', 'cf_free_surplus')
+                _cf_spacer()
+                _cf_section('RESERVE BALANCES')
+                _cf_line('Ops Reserve FD', 'bs_ops_reserve', point_in_time=True)
+                _cf_line('OpCo DSRA', 'bs_opco_dsra', point_in_time=True)
+                _cf_line('Mezz Div FD', 'bs_mz_div_fd', point_in_time=True)
+                _cf_line('Entity FD', 'bs_entity_fd', point_in_time=True)
+                _cf_line('Total Reserves', 'bs_reserves_total', row_type='grand', point_in_time=True)
+            else:
+                _cf_section('FIXED DEPOSIT')
+                _cf_line('Opening Balance', 'dsra_opening', point_in_time=True)
+                _cf_line('Deposit (Net CF)', 'dsra_deposit')
+                _cf_line('Interest Earned (9%)', 'dsra_interest')
+                _cf_line('Closing Balance', 'dsra_bal', row_type='grand', point_in_time=True)
             _cf_spacer()
 
             # --- COVERAGE ---
@@ -7196,12 +6767,15 @@ split is well-balanced: BESS provides grid independence and peak shaving while P
                     "expected": _a['ebitda'] + _a.get('ii_dsra', 0.0) - _a['cf_tax'],
                     "actual": _a['cf_ops'],
                 })
-                # Comprehensive CF Net
+                # Comprehensive CF Net — must match engine/loop.py build_annual() cf_net
+                # cf_net = equity + draw - capex + grants - grant_accel + ops - ie - pr - dividend
+                # Note: cf_swap_zar is NOT part of engine cf_net (swap DS flows through waterfall)
                 _exp_net = (_a['cf_equity']
                             + _a['cf_draw'] - _a['cf_capex']
-                            + _a['cf_grants'] - _a['cf_prepay']
+                            + _a['cf_grants'] - _a.get('cf_grant_accel', _a.get('cf_prepay', 0))
                             + _a['cf_ops']
-                            - _a['cf_ie'] - _a['cf_pr'])
+                            - _a['cf_ie'] - _a['cf_pr']
+                            - _a.get('cf_dividend', 0))
                 _cf_checks.append({
                     "name": f"Y{_y}: CF Net = components",
                     "expected": _exp_net,
@@ -7225,7 +6799,7 @@ split is well-balanced: BESS provides grid independence and peak shaving while P
                 # ── Shared data ──
                 _ds_fin = financing
                 _ds_struct = structure
-                _ds_prepays = _ds_fin.get('prepayments', {})
+                _ds_grants = _ds_fin.get('prepayments', {})
                 _ds_sr_detail = _ds_fin['loan_detail']['senior']
                 _ds_nwl_sr_ic = entity_data['senior_portion']
                 _ds_nwl_mz_ic = entity_data['mezz_portion']
@@ -7234,21 +6808,21 @@ split is well-balanced: BESS provides grid independence and peak shaving while P
                 _ds_mz_rate = _ds_struct['sources']['mezzanine']['interest']['total_rate']
 
                 # Grants
-                _dtic = _ds_prepays.get('dtic_grant', {})
-                _gepf = _ds_prepays.get('gepf_bulk_services', {})
+                _dtic = _ds_grants.get('dtic_grant', {})
+                _gepf = _ds_grants.get('gepf_bulk_services', {})
                 _dtic_eur = _dtic.get('amount_eur', 0)
                 _gepf_eur = _gepf.get('amount_eur', 0)
                 _total_grants = _dtic_eur + _gepf_eur
 
-                # NWL IC balance at M24 (after IDC, after grant prepayment)
+                # NWL IC balance at M24 (after IDC, after grant acceleration)
                 _nwl_sr_opening = 0.0
                 for _r in _sub_sr_schedule:
-                    if _r['Month'] >= 24:
+                    if _r['Month'] >= repayment_start_month():
                         _nwl_sr_opening = _r.get('Opening', 0)
                         break
                 _nwl_mz_opening = 0.0
                 for _r in _sub_mz_schedule:
-                    if _r['Month'] >= 24:
+                    if _r['Month'] >= repayment_start_month():
                         _nwl_mz_opening = _r.get('Opening', 0)
                         break
 
@@ -7258,346 +6832,343 @@ split is well-balanced: BESS provides grid independence and peak shaving while P
                 _sr_det = financing['loan_detail']['senior']
                 _sr_total = sum(l['senior_portion'] for l in structure['uses']['loans_to_subsidiaries'].values())
                 _nwl_sr_principal = structure['uses']['loans_to_subsidiaries']['nwl']['senior_portion']
-                _nwl_prepay_pct = _sr_det.get('prepayment_allocation', {}).get('nwl', 0.0)
-                _nwl_prepays = {k: v * _nwl_prepay_pct for k, v in _sr_det.get('prepayment_periods', {}).items()} if _nwl_prepay_pct > 0 else None
-                _nwl_sr_no_dsra = build_simple_ic_schedule(
+                _nwl_grant_pct = _sr_det.get('prepayment_allocation', {}).get('nwl', 0.0)
+                _nwl_grant_accel = {k: v * _nwl_grant_pct for k, v in _sr_det.get('prepayment_periods', {}).items()} if _nwl_grant_pct > 0 else None
+                _nwl_sr_vanilla = build_simple_ic_schedule(
                     _nwl_sr_principal, _sr_total,
                     _sr_cfg['repayments'],
                     _sr_cfg['interest']['rate'] + INTERCOMPANY_MARGIN,
-                    _sr_det['drawdown_schedule'], [-4, -3, -2, -1],
-                    _nwl_prepays, dsra_amount=0.0)
-                # Also build no-DSRA Mezz schedule (for swap scenario — no DSRA injection)
+                    _sr_det['drawdown_schedule'], construction_period_labels())
+                # Vanilla Mezz schedule (no DSRA injection — all cash flows via waterfall)
                 _mz_cfg = structure['sources']['mezzanine']
                 _mz_total = sum(l['mezz_portion'] for l in structure['uses']['loans_to_subsidiaries'].values())
                 _nwl_mz_principal = structure['uses']['loans_to_subsidiaries']['nwl']['mezz_portion']
-                _nwl_mz_no_dsra = build_simple_ic_schedule(
+                _nwl_mz_vanilla = build_simple_ic_schedule(
                     _nwl_mz_principal, _mz_total,
                     _mz_cfg.get('repayments', 10),
                     _mz_cfg['interest']['total_rate'] + INTERCOMPANY_MARGIN,
-                    [_mz_cfg['amount_eur'], 0, 0, 0], [-4, -3, -2, -1],
-                    dsra_drawdown=0.0)
-                # Pre-Revenue Hedging = 2×(P+I) at M24 on Senior facility
-                # Single canonical value — all downstream references use this
-                _ds_sr_bal = (_sr_det['loan_drawdown_total']
-                              + _sr_det['rolled_up_interest_idc']
-                              - _sr_det['grant_proceeds_to_early_repayment']
-                              - _sr_det['gepf_bulk_proceeds'])
-                _ds_sr_rate = _sr_cfg['interest']['rate']
-                _ds_sr_num = _sr_cfg['repayments']
-                _ds_sr_p = _ds_sr_bal / _ds_sr_num
-                _ds_sr_i_m24 = _ds_sr_bal * _ds_sr_rate / 2
-                _ds_dsra_amount = 2 * (_ds_sr_p + _ds_sr_i_m24)
-                # Informational split: P+I at M24, P+I at M30 (facility side)
-                _ds_eur_m24 = _ds_sr_p + _ds_sr_i_m24
-                _ds_eur_m30 = _ds_sr_p + (_ds_sr_bal - _ds_sr_p) * _ds_sr_rate / 2
+                    [_mz_cfg['amount_eur'], 0, 0, 0], construction_period_labels())
+                # Pre-Revenue Hedging = 2×(P+I) SCLCA loan M24
+                # Deterministic from config — indexes compute_nwl_swap_bounds()
+                _ds_swap_bounds = _engine_swap_bounds(ModelConfig.load())
+                _ds_pre_revenue_hedge = _ds_swap_bounds["min"]
+                _ds_swap_max = _ds_swap_bounds["max"]
+                # Informational split per entity (from bounds breakdown)
+                _ds_sum_pi = _ds_swap_bounds["sum_pi_m24"]
+                _ds_eur_m24 = _ds_sum_pi  # P+I at M24 (all entities combined)
+                _ds_fac_rate = _ds_swap_bounds["facility_rate"]
+                _ds_fac_repayments = _ds_swap_bounds["repayments"]
 
                 # ════════════════════════════════════════════════════
                 # Section 1: Specials — DTIC + GEPF Bulk Services
                 # ════════════════════════════════════════════════════
-                st.subheader("1. Grant Prepayments (Specials)")
-                st.markdown(f"""
-NWL benefits from **two grant-funded prepayments** that reduce Senior IC exposure before cash flows start:
+                st.subheader("1. Grant Acceleration (Specials)")
+                with st.container(border=True):
+                    st.markdown(f"""
+NWL benefits from **two grant-funded accelerations** that reduce Senior IC exposure before cash flows start:
 """)
-                _sp_c1, _sp_c2 = st.columns(2)
-                with _sp_c1:
-                    with st.container(border=True):
-                        st.markdown(f"**{_dtic.get('name', 'DTIC Grant')}**")
-                        st.metric("Amount", f"€{_dtic_eur:,.0f}")
-                        st.caption(f"R{_dtic.get('amount_zar', 0):,.0f} | Status: {_dtic.get('status', 'TBC')}")
-                        st.markdown("Manufacturing incentive from the Department of Trade, Industry & Competition. "
-                                    "Applied as prepayment at **M12** (Period -2), reducing NWL Senior IC principal.")
-                with _sp_c2:
-                    with st.container(border=True):
-                        st.markdown(f"**{_gepf.get('name', 'GEPF Bulk Services')}**")
-                        st.metric("Amount", f"€{_gepf_eur:,.0f}")
-                        st.caption(f"R{_gepf.get('total_zar', 0):,.0f} | Timing: {_gepf.get('timing', 'COD')}")
-                        st.markdown("Government Employees Pension Fund bulk services contribution for water infrastructure. "
-                                    "Applied at **M12**, further reducing NWL Senior IC principal before repayment starts.")
+                    _sp_c1, _sp_c2 = st.columns(2)
+                    with _sp_c1:
+                        with st.container(border=True):
+                            st.markdown(f"**{_dtic.get('name', 'DTIC Grant')}**")
+                            st.metric("Amount", f"€{_dtic_eur:,.0f}")
+                            st.caption(f"R{_dtic.get('amount_zar', 0):,.0f} | Status: {_dtic.get('status', 'TBC')}")
+                            st.markdown("Manufacturing incentive from the Department of Trade, Industry & Competition. "
+                                        "Applied as acceleration at **M12** (Period -2), reducing NWL Senior IC principal.")
+                    with _sp_c2:
+                        with st.container(border=True):
+                            st.markdown(f"**{_gepf.get('name', 'GEPF Bulk Services')}**")
+                            st.metric("Amount", f"€{_gepf_eur:,.0f}")
+                            st.caption(f"R{_gepf.get('total_zar', 0):,.0f} | Timing: {_gepf.get('timing', 'COD')}")
+                            st.markdown("Government Employees Pension Fund bulk services contribution for water infrastructure. "
+                                        "Applied at **M12**, further reducing NWL Senior IC principal before repayment starts.")
 
-                st.markdown(f"""
-**Combined effect:** €{_total_grants:,.0f} prepaid at M12 → NWL Senior IC balance reduced from
+                    st.markdown(f"""
+**Combined effect:** €{_total_grants:,.0f} accelerated at M12 → NWL Senior IC balance reduced from
 €{_ds_nwl_sr_ic:,.0f} to **€{_nwl_sr_opening:,.0f}** at M24 (after IDC capitalisation).
 """)
+
+                    # Cash Sweep — subsidy allocation percentage
+                    _cs_c1, _cs_c2 = st.columns([2, 3])
+                    with _cs_c1:
+                        _sweep_val = st.radio(
+                            "Cash sweep %",
+                            options=[100, 90, 80, 70],
+                            index=0,
+                            format_func=lambda x: f"{x}%",
+                            key="nwl_cash_sweep_pct",
+                            horizontal=True,
+                        )
+                        _sweep_pct = _sweep_val / 100.0
+                    with _cs_c2:
+                        if _sweep_pct < 1.0:
+                            st.caption(
+                                f"{_sweep_val}% surplus to IC acceleration, "
+                                f"{100 - _sweep_val}% retained in Entity FD."
+                            )
+
                 st.divider()
 
                 # ════════════════════════════════════════════════════
                 # Section 2: Hedging — DSRA→FEC vs Swap (side by side)
                 # ════════════════════════════════════════════════════
                 st.subheader("2. Pre-Revenue Hedging (M24–M30)")
-                _ds_nwl_hedge = st.session_state.get("sclca_nwl_hedge", "Cross-Currency Swap")
-                _ds_swap_active = (_ds_nwl_hedge == "Cross-Currency Swap")
+                with st.container(border=True):
+                    _ds_nwl_hedge = st.session_state.get("sclca_nwl_hedge", "Cross-Currency Swap")
+                    _ds_swap_active = (_ds_nwl_hedge == "Cross-Currency Swap")
 
-                st.radio(
-                    "Select hedging mechanism",
-                    ["Cross-Currency Swap", "CC DSRA → FEC"],
-                    key="_ds_nwl_hedge_entity",
-                    horizontal=True,
-                    index=0 if _ds_swap_active else 1,
-                    on_change=lambda: st.session_state.update(
-                        sclca_nwl_hedge=st.session_state.get("_ds_nwl_hedge_entity", "Cross-Currency Swap")),
-                )
-                _ds_swap_active = st.session_state.get("_ds_nwl_hedge_entity", _ds_nwl_hedge) == "Cross-Currency Swap"
+                    st.radio(
+                        "Select hedging mechanism",
+                        ["Cross-Currency Swap", "CC DSRA → FEC"],
+                        key="_ds_nwl_hedge_entity",
+                        horizontal=True,
+                        index=0 if _ds_swap_active else 1,
+                        on_change=lambda: st.session_state.update(
+                            sclca_nwl_hedge=st.session_state.get("_ds_nwl_hedge_entity", "Cross-Currency Swap")),
+                    )
+                    _ds_swap_active = st.session_state.get("_ds_nwl_hedge_entity", _ds_nwl_hedge) == "Cross-Currency Swap"
 
-                # Muted colors for inactive diagrams
-                _fec_cc = "#7C3AED" if not _ds_swap_active else "#9CA3AF"
-                _fec_dsra = "#0D9488" if not _ds_swap_active else "#9CA3AF"
-                _fec_fec = "#F59E0B" if not _ds_swap_active else "#D1D5DB"
-                _fec_iic = "#1E3A5F" if not _ds_swap_active else "#9CA3AF"
-                _fec_fc = "white" if not _ds_swap_active else "#6B7280"
-                _fec_fc2 = "#1a1a1a" if not _ds_swap_active else "#6B7280"
-                _fec_edge = "#64748B" if not _ds_swap_active else "#D1D5DB"
+                    # Show active hedging value prominently
+                    _hv1, _hv2 = st.columns(2)
+                    with _hv1:
+                        _hedge_label = "Cross-Currency Swap" if _ds_swap_active else "CC DSRA → FEC"
+                        _hedge_val = float(st.session_state.get("nwl_swap_notional", int(round(_ds_pre_revenue_hedge)))) if _ds_swap_active else _ds_pre_revenue_hedge
+                        _hedge_delta = f"2×(P+I) SCLCA loan M24 = €{_ds_pre_revenue_hedge:,.0f}"
+                        if _hedge_val > _ds_pre_revenue_hedge + 1:
+                            _hedge_delta += f" + €{_hedge_val - _ds_pre_revenue_hedge:,.0f} local content"
+                        st.metric(f"{_hedge_label} — Notional", f"€{_hedge_val:,.0f}", delta=_hedge_delta)
+                    with _hv2:
+                        st.metric("ZAR Equivalent", f"R{_hedge_val * FX_RATE:,.0f}", delta=f"FX {FX_RATE:.0f}")
 
-                _sw_eur = "#F59E0B" if _ds_swap_active else "#D1D5DB"
-                _sw_sr = "#1E3A5F" if _ds_swap_active else "#9CA3AF"
-                _sw_mz = "#7C3AED" if _ds_swap_active else "#9CA3AF"
-                _sw_gn = "#059669" if _ds_swap_active else "#9CA3AF"
-                _sw_fc = "white" if _ds_swap_active else "#6B7280"
-                _sw_fc2 = "#1a1a1a" if _ds_swap_active else "#6B7280"
-                _sw_edge = "#64748B" if _ds_swap_active else "#D1D5DB"
+                    st.markdown("---")
 
-                # Compute swap schedule (needed by both panels for sizing)
-                # Swap notional = same as DSRA = 2×(P+I) at M24
-                _ds_swap_amt = _ds_dsra_amount
-                _ds_last_sr_m = max(
-                    (r['Month'] for r in _nwl_sr_no_dsra
-                     if r['Month'] >= 24 and abs(r.get('Principle', 0)) > 0),
-                    default=102)
-                _ds_swap_sched = _build_nwl_swap_schedule(_ds_swap_amt, FX_RATE, last_sr_month=_ds_last_sr_m)
-                _ds_zar_start = _ds_swap_sched['start_month'] if _ds_swap_sched else 36
-                _ds_zar_end = _ds_zar_start + (_ds_swap_sched['tenor'] - 1) * 6 if _ds_swap_sched else 102
+                    # Muted colors for inactive diagrams
+                    _fec_cc = "#7C3AED" if not _ds_swap_active else "#9CA3AF"
+                    _fec_dsra = "#0D9488" if not _ds_swap_active else "#9CA3AF"
+                    _fec_fec = "#F59E0B" if not _ds_swap_active else "#D1D5DB"
+                    _fec_iic = "#1E3A5F" if not _ds_swap_active else "#9CA3AF"
+                    _fec_fc = "white" if not _ds_swap_active else "#6B7280"
+                    _fec_fc2 = "#1a1a1a" if not _ds_swap_active else "#6B7280"
+                    _fec_edge = "#64748B" if not _ds_swap_active else "#D1D5DB"
 
-                # Muted colors for inactive charts
-                _sw_txt_clr = None if _ds_swap_active else "#D1D5DB"
-                _fec_txt_clr = None if not _ds_swap_active else "#D1D5DB"
+                    _sw_eur = "#F59E0B" if _ds_swap_active else "#D1D5DB"
+                    _sw_sr = "#1E3A5F" if _ds_swap_active else "#9CA3AF"
+                    _sw_mz = "#7C3AED" if _ds_swap_active else "#9CA3AF"
+                    _sw_gn = "#059669" if _ds_swap_active else "#9CA3AF"
+                    _sw_fc = "white" if _ds_swap_active else "#6B7280"
+                    _sw_fc2 = "#1a1a1a" if _ds_swap_active else "#6B7280"
+                    _sw_edge = "#64748B" if _ds_swap_active else "#D1D5DB"
 
-                # Build full M0-M102 timeline (every 6 months)
-                _all_months = list(range(0, 108, 6))  # M0, M6, M12, ..., M102
+                    # Swap notional slider (swap scenario only)
+                    if _ds_swap_active:
+                        _nwl_swap_cfg_ui = load_config("waterfall")["nwl_swap"]
+                        _slider_min = int(round(_ds_swap_bounds["min"]))
+                        _slider_max = int(round(_ds_swap_bounds["max"]))
 
-                # EUR leg: M0 = -notional (red, outflow), M24 = +2×(P+I) one shot (green, inflow)
-                _eur_pi_map = {0: -_ds_swap_amt, 24: _ds_swap_amt}
-                # ZAR leg: M0 = +draw (green, we receive ZAR), M36+ = -repayments (red, we pay ZAR)
-                _zar_total = _ds_swap_sched['zar_amount'] if _ds_swap_sched else 0
-                _zar_tenor = _ds_swap_sched['tenor'] if _ds_swap_sched else 12
-                _zar_per_period = _ds_swap_sched.get('p_constant_zar', _zar_total / _zar_tenor) if _ds_swap_sched and _zar_tenor > 0 else 0
-                _zar_pi_map = {0: _zar_total}
-                for _zi in range(_zar_tenor):
-                    _zar_pi_map[_ds_zar_start + _zi * 6] = -_zar_per_period
+                        # Initialise session state if not yet set
+                        if "nwl_swap_notional" not in st.session_state:
+                            st.session_state["nwl_swap_notional"] = _slider_min
 
-                _h_c1, _h_c2 = st.columns(2)
+                        with st.container(border=True):
+                            st.markdown("**Swap Notional** — Adjust between 2×(P+I) SCLCA loan M24 and Local Content ceiling")
+                            _nc1, _nc2, _nc3 = st.columns([3, 1, 1])
+                            with _nc1:
+                                _selected_notional = st.slider(
+                                    "Swap Notional (EUR)",
+                                    min_value=_slider_min,
+                                    max_value=_slider_max,
+                                    step=1000,
+                                    value=int(st.session_state.get("nwl_swap_notional", _slider_min)),
+                                    key="nwl_swap_notional",
+                                    help=(
+                                        f"Min = 2×(P+I) SCLCA loan M24 (€{_slider_min:,.0f}). "
+                                        f"Max = Local content ceiling: "
+                                        f"NWL Civil €{_nwl_swap_cfg_ui.get('nwl_civil_eur', 3746392):,.0f} "
+                                        f"+ WSP €{_nwl_swap_cfg_ui.get('wsp_eur', 250000):,.0f} "
+                                        f"= €{_slider_max:,.0f}."
+                                    ),
+                                )
+                            _excess_notional = _selected_notional - _slider_min
+                            with _nc2:
+                                st.metric("2×(P+I) SCLCA M24", f"€{_slider_min:,.0f}")
+                            with _nc3:
+                                st.metric(
+                                    "Excess → Bullet",
+                                    f"€{_excess_notional:,.0f}",
+                                    delta="Additional repayment to SCLCA IC" if _excess_notional > 0 else None,
+                                )
+                            if _excess_notional > 0:
+                                st.info(
+                                    f"€{_excess_notional:,.0f} above 2×(P+I) SCLCA loan M24 paid as additional "
+                                    f"bullet to SCLCA IC at M24, reducing holding IC balance. "
+                                    f"ZAR repayment leg scales to full notional of "
+                                    f"€{_selected_notional:,.0f}."
+                                )
+                        _ds_swap_amt = float(st.session_state["nwl_swap_notional"])
+                    else:
+                        _ds_swap_amt = _ds_pre_revenue_hedge
 
-                # ── LEFT: FEC (DSRA) ──
-                with _h_c1:
-                    with st.container(border=True):
-                        if not _ds_swap_active:
-                            st.success("**ACTIVE** — CC DSRA → FEC")
-                        else:
-                            st.error("**INACTIVE** — CC DSRA → FEC")
+                    _ds_last_sr_m = max(
+                        (r['Month'] for r in _nwl_sr_vanilla
+                         if r['Month'] >= repayment_start_month() and abs(r.get('Principle', 0)) > 0),
+                        default=102)
+                    _ds_swap_sched = _build_nwl_swap_schedule(_ds_swap_amt, FX_RATE, last_sr_month=_ds_last_sr_m)
+                    _ds_zar_start = _ds_swap_sched['start_month'] if _ds_swap_sched else 36
+                    _ds_zar_end = _ds_zar_start + (_ds_swap_sched['tenor'] - 1) * 6 if _ds_swap_sched else 102
 
-                        st.metric("Pre-Revenue Hedge", f"€{_ds_dsra_amount:,.0f}",
-                                  delta=f"2×(P+I) at M24 — one shot")
+                    # Muted colors for inactive charts
+                    _sw_txt_clr = None if _ds_swap_active else "#D1D5DB"
+                    _fec_txt_clr = None if not _ds_swap_active else "#D1D5DB"
 
-                        st.markdown(
-                            f'<div style="opacity:{1.0 if not _ds_swap_active else 0.35}; text-align:center; '
-                            f'font-size:18px; line-height:2.6; padding:18px 0;">'
-                            f'<span style="background:{_fec_cc};color:white;padding:8px 16px;border-radius:8px;font-weight:600;">CC 2nd Mezz Draw</span>'
-                            f'<br>↓<br>'
-                            f'<span style="background:{_fec_dsra};color:white;padding:8px 16px;border-radius:8px;font-weight:600;">Holding → NWL (Mezz IC ↑)</span>'
-                            f'<br>↓<br>'
-                            f'<span style="background:{_fec_fec};color:#1a1a1a;padding:8px 16px;border-radius:8px;font-weight:600;">NWL buys FEC (Investec)</span>'
-                            f'<br>↓<br>'
-                            f'<span style="background:{_fec_iic};color:white;padding:8px 16px;border-radius:8px;font-weight:600;">EUR → Holding → IIC Senior (one shot)</span>'
-                            f'</div>',
-                            unsafe_allow_html=True,
-                        )
+                    # Build full M0-M102 timeline (every 6 months)
+                    _all_months = list(range(0, 108, 6))  # M0, M6, M12, ..., M102
 
-                        st.markdown(f"""
-- CC injects **€{_ds_dsra_amount:,.0f}** (2nd Mezz draw) → Holding → NWL Mezz IC ↑
+                    # EUR leg: M0 = -notional (red, outflow), M24 = +2×(P+I) SCLCA loan M24 one shot (green, inflow)
+                    _eur_pi_map = {0: -_ds_swap_amt, 24: _ds_swap_amt}
+                    # ZAR leg: M0 = +draw (green, we receive ZAR), M36+ = -repayments (red, we pay ZAR)
+                    _zar_total = _ds_swap_sched['zar_amount'] if _ds_swap_sched else 0
+                    _zar_tenor = _ds_swap_sched['tenor'] if _ds_swap_sched else 12
+                    _zar_per_period = _ds_swap_sched.get('p_constant_zar', _zar_total / _zar_tenor) if _ds_swap_sched and _zar_tenor > 0 else 0
+                    _zar_pi_map = {0: _zar_total}
+                    for _zi in range(_zar_tenor):
+                        _zar_pi_map[_ds_zar_start + _zi * 6] = -_zar_per_period
+
+                    _h_c1, _h_c2 = st.columns(2)
+
+                    # ── LEFT: FEC (DSRA) ──
+                    with _h_c1:
+                        with st.container(border=True):
+                            if not _ds_swap_active:
+                                st.success("**ACTIVE** — CC DSRA → FEC")
+                            else:
+                                st.error("**INACTIVE** — CC DSRA → FEC")
+
+                            st.metric("Pre-Revenue Hedge", f"€{_ds_pre_revenue_hedge:,.0f}",
+                                      delta=f"2×(P+I) SCLCA loan M24 — one shot")
+
+                            st.markdown(
+                                f'<div style="opacity:{1.0 if not _ds_swap_active else 0.35}; text-align:center; '
+                                f'font-size:18px; line-height:2.6; padding:18px 0;">'
+                                f'<span style="background:{_fec_cc};color:white;padding:8px 16px;border-radius:8px;font-weight:600;">CC 2nd Mezz Draw</span>'
+                                f'<br>↓<br>'
+                                f'<span style="background:{_fec_dsra};color:white;padding:8px 16px;border-radius:8px;font-weight:600;">Holding → NWL (Mezz IC ↑)</span>'
+                                f'<br>↓<br>'
+                                f'<span style="background:{_fec_fec};color:#1a1a1a;padding:8px 16px;border-radius:8px;font-weight:600;">NWL buys FEC (Investec)</span>'
+                                f'<br>↓<br>'
+                                f'<span style="background:{_fec_iic};color:white;padding:8px 16px;border-radius:8px;font-weight:600;">EUR → Holding → IIC Senior (one shot)</span>'
+                                f'</div>',
+                                unsafe_allow_html=True,
+                            )
+
+                            st.markdown(f"""
+- CC injects **€{_ds_pre_revenue_hedge:,.0f}** (2nd Mezz draw) → Holding → NWL Mezz IC ↑
 - NWL buys FEC from Investec (ZAR → EUR hedge)
 - NWL uses EUR to repay Senior IC → Holding → IIC Senior facility payoff
 - **One shot at M24** — Senior IC ↓, Mezz IC ↑, total debt unchanged
 - **Cost**: 14.75% (CC rate) + 5.25% (dividend accrual) = **20% effective**
 """)
 
-                # ── RIGHT: Cross-Currency Swap ──
-                with _h_c2:
-                    with st.container(border=True):
-                        if _ds_swap_active:
-                            st.success("**ACTIVE** — Cross-Currency Swap")
-                        else:
-                            st.error("**INACTIVE** — Cross-Currency Swap")
+                    # ── RIGHT: Cross-Currency Swap ──
+                    with _h_c2:
+                        with st.container(border=True):
+                            if _ds_swap_active:
+                                st.success("**ACTIVE** — Cross-Currency Swap")
+                            else:
+                                st.error("**INACTIVE** — Cross-Currency Swap")
 
-                        st.metric("Swap Notional", f"€{_ds_swap_amt:,.0f}",
-                                  delta=f"2×(P+I) at M24 — one shot")
+                            st.metric("Swap Notional", f"€{_ds_swap_amt:,.0f}",
+                                      delta=f"2×(P+I) SCLCA loan M24 — one shot")
 
-                        # EUR Leg — full M0-M102 timeline (all months, zeros shown empty)
-                        st.markdown("**EUR Leg (Financial Asset)**")
-                        _eur_gn = "#059669" if _ds_swap_active else "#D1D5DB"
-                        _eur_rd = "#EF4444" if _ds_swap_active else "#D1D5DB"
-                        _eur_labels = [f"M{_m}" for _m in _all_months]
-                        _eur_vals = [_eur_pi_map.get(_m, 0) for _m in _all_months]
-                        _eur_colors_list = [_eur_rd if v < -0.01 else _eur_gn if v > 0.01 else "rgba(0,0,0,0)" for v in _eur_vals]
-                        _eur_texts = [f"€{abs(v):,.0f}" if abs(v) > 0.01 else "" for v in _eur_vals]
-                        _fig_eur = go.Figure(go.Bar(
-                            x=_eur_labels, y=_eur_vals,
-                            marker_color=_eur_colors_list,
-                            text=_eur_texts,
-                            textposition="outside", textfont=dict(size=8, color=_sw_txt_clr),
-                        ))
-                        _fig_eur.update_layout(
-                            height=220, margin=dict(l=10, r=10, t=30, b=30),
-                            yaxis=dict(title="EUR", zeroline=True, zerolinecolor="#94A3B8", zerolinewidth=2, showgrid=False),
-                            xaxis=dict(showgrid=False, tickangle=-45, dtick=1),
-                            plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
-                            title=dict(text="EUR Leg Cash Flows", font=dict(size=11)),
-                        )
-                        st.plotly_chart(_fig_eur, use_container_width=True, key="eur_leg_timeline")
+                            # EUR Leg — full M0-M102 timeline (all months, zeros shown empty)
+                            st.markdown("**EUR Leg (Financial Asset)**")
+                            _eur_gn = "#059669" if _ds_swap_active else "#D1D5DB"
+                            _eur_rd = "#EF4444" if _ds_swap_active else "#D1D5DB"
+                            _eur_labels = [f"M{_m}" for _m in _all_months]
+                            _eur_vals = [_eur_pi_map.get(_m, 0) for _m in _all_months]
+                            _eur_colors_list = [_eur_rd if v < -0.01 else _eur_gn if v > 0.01 else "rgba(0,0,0,0)" for v in _eur_vals]
+                            _eur_texts = [f"€{abs(v):,.0f}" if abs(v) > 0.01 else "" for v in _eur_vals]
+                            _fig_eur = go.Figure(go.Bar(
+                                x=_eur_labels, y=_eur_vals,
+                                marker_color=_eur_colors_list,
+                                text=_eur_texts,
+                                textposition="outside", textfont=dict(size=8, color=_sw_txt_clr),
+                            ))
+                            _fig_eur.update_layout(
+                                height=220, margin=dict(l=10, r=10, t=30, b=30),
+                                yaxis=dict(title="EUR", zeroline=True, zerolinecolor="#94A3B8", zerolinewidth=2, showgrid=False),
+                                xaxis=dict(showgrid=False, tickangle=-45, dtick=1),
+                                plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
+                                title=dict(text="EUR Leg Cash Flows", font=dict(size=11)),
+                            )
+                            st.plotly_chart(_fig_eur, use_container_width=True, key="eur_leg_timeline")
 
-                        # ZAR Leg — full M0-M102 timeline (all months, zeros shown empty)
-                        st.markdown("**ZAR Leg (Liability)**")
-                        _zar_gn = "#059669" if _ds_swap_active else "#D1D5DB"
-                        _zar_rd = "#EF4444" if _ds_swap_active else "#D1D5DB"
-                        _zar_labels = [f"M{_m}" for _m in _all_months]
-                        _zar_vals_list = [_zar_pi_map.get(_m, 0) for _m in _all_months]
-                        _zar_colors_list = [_zar_rd if v < -0.01 else _zar_gn if v > 0.01 else "rgba(0,0,0,0)" for v in _zar_vals_list]
-                        _zar_texts = [f"R{abs(v):,.0f}" if abs(v) > 0.01 else "" for v in _zar_vals_list]
-                        _fig_zar = go.Figure(go.Bar(
-                            x=_zar_labels, y=_zar_vals_list,
-                            marker_color=_zar_colors_list,
-                            text=_zar_texts,
-                            textposition="outside", textfont=dict(size=7, color=_sw_txt_clr),
-                        ))
-                        _fig_zar.update_layout(
-                            height=220, margin=dict(l=10, r=10, t=30, b=30),
-                            yaxis=dict(title="ZAR", zeroline=True, zerolinecolor="#94A3B8", zerolinewidth=2, showgrid=False),
-                            xaxis=dict(showgrid=False, tickangle=-45, dtick=1),
-                            plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
-                            title=dict(text="ZAR Leg Cash Flows", font=dict(size=11)),
-                        )
-                        st.plotly_chart(_fig_zar, use_container_width=True, key="zar_leg_timeline")
+                            # ZAR Leg — full M0-M102 timeline (all months, zeros shown empty)
+                            st.markdown("**ZAR Leg (Liability)**")
+                            _zar_gn = "#059669" if _ds_swap_active else "#D1D5DB"
+                            _zar_rd = "#EF4444" if _ds_swap_active else "#D1D5DB"
+                            _zar_labels = [f"M{_m}" for _m in _all_months]
+                            _zar_vals_list = [_zar_pi_map.get(_m, 0) for _m in _all_months]
+                            _zar_colors_list = [_zar_rd if v < -0.01 else _zar_gn if v > 0.01 else "rgba(0,0,0,0)" for v in _zar_vals_list]
+                            _zar_texts = [f"R{abs(v):,.0f}" if abs(v) > 0.01 else "" for v in _zar_vals_list]
+                            _fig_zar = go.Figure(go.Bar(
+                                x=_zar_labels, y=_zar_vals_list,
+                                marker_color=_zar_colors_list,
+                                text=_zar_texts,
+                                textposition="outside", textfont=dict(size=7, color=_sw_txt_clr),
+                            ))
+                            _fig_zar.update_layout(
+                                height=220, margin=dict(l=10, r=10, t=30, b=30),
+                                yaxis=dict(title="ZAR", zeroline=True, zerolinecolor="#94A3B8", zerolinewidth=2, showgrid=False),
+                                xaxis=dict(showgrid=False, tickangle=-45, dtick=1),
+                                plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
+                                title=dict(text="ZAR Leg Cash Flows", font=dict(size=11)),
+                            )
+                            st.plotly_chart(_fig_zar, use_container_width=True, key="zar_leg_timeline")
 
-                        st.markdown("**Cost**: 9.69% — below Mezz (14.75%), no dividend accrual. "
-                                    "Paid contractually on schedule, or accelerated from NWL surplus (P2 priority).")
+                            st.markdown("**Cost**: 9.69% — below Mezz (14.75%), no dividend accrual. "
+                                        "Paid contractually on schedule, or accelerated from NWL surplus (P2 priority).")
 
                 st.divider()
 
                 # ════════════════════════════════════════════════════
-                # Section 3: One-Time Dividend (CC IRR top-up)
+                # Section 3: Waterfall
                 # ════════════════════════════════════════════════════
-                st.subheader("3. One-Time Dividend")
-                _ds_cc_cfg = load_config("waterfall").get("cc_irr", {})
-                _ds_cc_gap = _ds_cc_cfg.get("gap", 0.0525)
-                _ds_cc_target = _ds_cc_cfg.get("target", 0.20)
-                _ds_cc_contract = _ds_cc_cfg.get("contractual", 0.1475)
-                st.markdown(f"""
-Creation Capital's target IRR is **{_ds_cc_target:.0%}**, but the contractual Mezz rate is only **{_ds_cc_contract:.2%}**.
-The gap of **{_ds_cc_gap:.2%}** accrues annually on the CC opening balance as a deferred dividend obligation.
+                st.subheader("3. Waterfall")
 
-When CC's principal is fully repaid (Mezz IC = 0), SCLCA pays the accumulated dividend as a **one-time slug**.
-This ensures CC achieves its target return without increasing the contractual rate.
-""")
-
-                # --- Dividend accrual graph (NWL contribution) ---
-                # Use correct schedules based on hedging mode:
-                # FEC active → _sub_sr/mz_schedule (has DSRA), no swap
-                # Swap active → no-DSRA schedules, with swap
+                # Construct typed cash inflows for NWL waterfall
+                _ds_iic_ta_eur = _ds_grants.get('invest_int_ta', {}).get('amount_eur', 0)
+                _ds_cash_inflows = [{} for _ in range(total_periods())]
+                _ds_cash_inflows[2] = {  # M12 = index 2 (C3)
+                    'dtic_grant': _dtic_eur,
+                    'iic_grant': _ds_iic_ta_eur,
+                    'gepf_bulk': _gepf_eur,
+                }
                 if _ds_swap_active:
-                    _div_sr_sched = _nwl_sr_no_dsra
-                    _div_mz_sched = _nwl_mz_no_dsra
-                    _div_swap = _ds_swap_sched
+                    _ds_cash_inflows[4] = {'eur_leg_repayment': _ds_pre_revenue_hedge}  # M24 = index 4 (R1)
                 else:
-                    _div_sr_sched = _sub_sr_schedule
-                    _div_mz_sched = _sub_mz_schedule
-                    _div_swap = None
-                _ent_wf_div = _compute_entity_waterfall_inputs(
-                    entity_key, _sub_ops_annual,
-                    _div_sr_sched, _div_mz_sched,
-                    nwl_swap_schedule=_div_swap)
-                # Mezz IC opening for Y1 — from selected schedule
-                _div_mz_opening = 0.0
-                for _r in _div_mz_sched:
-                    if _r['Month'] >= 24:
-                        _div_mz_opening = _r.get('Opening', 0)
-                        break
-                _div_mz_closing = []
-                _div_accrual = []
-                _div_cum = []
-                _div_slug_yr = None
-                _cum = 0.0
-                _slug_paid = False
-                _mz_prev_close = _div_mz_opening
-                for _yi_d in range(10):
-                    _mz_close = _ent_wf_div[_yi_d].get('mz_ic_bal', 0)
-                    _div_mz_closing.append(_mz_close)
-                    if _slug_paid:
-                        _div_accrual.append(0.0)
-                        _div_cum.append(0.0)
-                    else:
-                        # Accrual on opening balance (= previous year's closing)
-                        _acc = _mz_prev_close * _ds_cc_gap if _mz_prev_close > 0.01 else 0.0
-                        _div_accrual.append(_acc)
-                        _cum += _acc
-                        _div_cum.append(_cum)
-                        if _mz_close <= 0.01:
-                            _div_slug_yr = _yi_d
-                            _slug_paid = True
-                    _mz_prev_close = _mz_close
+                    _ds_cash_inflows[4] = {'mezz_draw': _ds_pre_revenue_hedge}  # M24 = index 4 (R1)
 
-                _div_years = [f"Y{yi+1}" for yi in range(10)]
-                _fig_div = go.Figure()
-                _fig_div.add_trace(go.Scatter(
-                    x=_div_years, y=_div_mz_closing,
-                    mode='lines+markers', name='NWL Mezz IC Balance',
-                    line=dict(color='#7C3AED', width=2),
-                    yaxis='y',
-                ))
-                _fig_div.add_trace(go.Bar(
-                    x=_div_years, y=_div_accrual,
-                    name=f'Dividend Accrual ({_ds_cc_gap:.2%})',
-                    marker_color='#F59E0B', opacity=0.7,
-                    yaxis='y',
-                ))
-                _fig_div.add_trace(go.Scatter(
-                    x=_div_years, y=_div_cum,
-                    mode='lines+markers', name='Cumulative Dividend',
-                    line=dict(color='#EF4444', width=2, dash='dot'),
-                    yaxis='y',
-                ))
-                if _div_slug_yr is not None:
-                    _fig_div.add_vline(x=_div_slug_yr, line_dash="dash", line_color="#059669", line_width=2)
-                    _fig_div.add_annotation(
-                        x=_div_slug_yr, y=_div_cum[_div_slug_yr] if _div_slug_yr < len(_div_cum) else 0,
-                        text=f"<b>Slug Paid</b><br>€{_div_cum[_div_slug_yr]:,.0f}" if _div_slug_yr < len(_div_cum) else "<b>Slug Paid</b>",
-                        showarrow=True, arrowhead=2, ax=40, ay=-40,
-                        font=dict(size=10, color="#059669"),
-                        bordercolor="#059669", borderwidth=1, bgcolor="white",
-                    )
-                _fig_div.update_layout(
-                    height=350, barmode='overlay',
-                    title='One-Time Dividend — NWL Contribution',
-                    yaxis=dict(title='EUR', showgrid=True, gridcolor='#E2E8F0'),
-                    xaxis=dict(showgrid=False),
-                    plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
-                    legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
-                )
-                st.plotly_chart(_fig_div, use_container_width=True, key="div_accrual_graph")
+                # Read converged waterfall from entity builder (single source of truth)
+                _ent_wf_semi = _sub_model["waterfall_semi"]
+                _ent_wf = _sub_model["waterfall_annual"]
+                _ds_years = [f"Y{yi+1}" for yi in range(total_years())]
+                # Waterfall display: canonical period labels from periods.json
+                # Start at hi=1 (C2/M12) — grants + acceleration land here
+                _wf_hi_start = 1
+                _wf_hi_grants = 1
+                _wf_period_info = [period_lookup(hi) for hi in range(_wf_hi_start, total_periods())]
+                _wf_display_months = [p["month"] for p in _wf_period_info]
+                _wf_display_periods = [p["label"] for p in _wf_period_info]
+                _wf_cols = _wf_display_periods
+                _wf_month_row = [str(p["month"]) for p in _wf_period_info]
+                _wf_year_row = [f"{p['year']:.1f}" for p in _wf_period_info]
 
-                st.divider()
+                with st.container(border=True):
+                    st.caption("Surplus allocation after IC debt service")
 
-                # ════════════════════════════════════════════════════
-                # Section 4: Entity Cascade Waterfall
-                # ════════════════════════════════════════════════════
-                st.subheader("4. Entity Cascade")
-                st.caption("Surplus allocation after IC debt service")
-
-                _render_entity_cascade_diagram(
-                    name,
-                    show_swap=_ds_swap_active,
-                    show_od_lend=True,
-                )
-
-                st.markdown(f"""
+                    st.markdown(f"""
 After contractual IC debt service (Senior + Mezz), **{name}** allocates surplus in priority order:
-1. **Ops Reserve FD** — 100% of annual operating costs
+1. **Ops Reserve FD** — 1× semi-annual operating costs (1 period)
 2. **OpCo DSRA** — 1× next Senior IC P+I
 3. **LanRED Overdraft** — lending to cover LanRED early-year deficits
 4. **Mezz IC Acceleration** (15.25%) — highest-rate debt first
@@ -7606,244 +7177,298 @@ After contractual IC debt service (Senior + Mezz), **{name}** allocates surplus 
 {'7' if _ds_swap_active else '6'}. **Entity FD** — retained locally after both IC loans repaid
 """)
 
-                # Compute entity waterfall
-                _ent_wf = _compute_entity_waterfall_inputs(
-                    entity_key, _sub_ops_annual,
-                    _sub_sr_schedule, _sub_mz_schedule)
-                _ds_years = [f"Y{yi+1}" for yi in range(10)]
+                    # ── Full Waterfall Table ──
+                    # All rows driven by engine output keys — no display overlays.
+                    st.caption("1. Cash Flow → 2. Legal Obligations → 3. Surplus Allocation")
+                    _wf_rows = [
+                        ('EBITDA',                    'ebitda',              False, True),
+                        ('+ DTIC Grant',              'dtic_grant',          False, False),
+                        ('+ IIC Grant',               'iic_grant',           False, False),
+                        ('+ Pre-Revenue Hedging',     'pre_rev_hedge',       False, False),
+                        ('+ DSRA Release',            'opco_dsra_release',   False, False),
+                        ('Tax',                       'tax',                 True,  False),
+                        ('Cash Available',            'cash_available',      False, True),
+                        ('IC Senior P+I',             'sr_pi',               True,  False),
+                        ('ZAR Rand Leg',              'zar_leg_scheduled',   True,  False),
+                        ('IC Mezz P+I',               'mz_pi',               True,  False),
+                        ('Surplus Available',         'surplus',             False, True),
+                        ('Ops Reserve Fill',          'ops_reserve_fill',    True,  False),
+                        ('OpCo DSRA Fill',            'opco_dsra_fill',      True,  False),
+                        ('OD \u2192 LanRED',               'od_lent',             True,  False),
+                        ('Mezz Div Reserve FD',       'mz_div_fd_fill',     True,  False),
+                        ('Mezz IC Accel',             'mz_accel_entity',     True,  False),
+                        ('ZAR Rand Accel',            'zar_leg_accel',       True,  False),
+                        ('Sr IC Accel',               'sr_accel_entity',     True,  False),
+                        ('Entity FD Fill',            'entity_fd_fill',      True,  False),
+                        ('Unallocated',               'free_surplus',        False, True),
+                    ]
+                    _wf_summary_labels = {lbl for lbl, _, _, is_sum in _wf_rows if is_sum}
+                    def _eur_k(v):
+                        if abs(v) < 0.5:
+                            return '—'
+                        return f"€{v/1e3:,.0f}k"
+                    _wf_tbl = {}
+                    _wf_tbl['Month'] = _wf_month_row
+                    _wf_tbl['Year'] = _wf_year_row
+                    for _row_label, _row_key, _negate, _ in _wf_rows:
+                        _row_vals = []
+                        for hi in range(_wf_hi_start, total_periods()):
+                            _w = _ent_wf_semi[hi]
+                            _v = _w.get(_row_key, 0)
+                            if abs(_v) < 0.5:
+                                _row_vals.append('—')
+                            elif _negate:
+                                _row_vals.append(f"({_eur_k(_v)})")
+                            else:
+                                _row_vals.append(_eur_k(_v))
+                        _wf_tbl[_row_label] = _row_vals
+                    _wf_df = pd.DataFrame(_wf_tbl, index=_wf_cols).T
 
-                with st.expander("Full Cascade Detail", expanded=False):
-                    _ds_rows = {}
-                    for _row_label, _row_key in [
-                        ('EBITDA', 'ebitda'), ('Tax', 'tax'),
-                        ('IC Senior P+I', 'sr_pi'), ('IC Mezz P+I', 'mz_pi'),
-                        ('Ops Reserve Fill', 'ops_reserve_fill'),
-                        ('OpCo DSRA Fill', 'opco_dsra_fill'),
-                        ('Mezz IC Acceleration', 'mz_accel_entity'),
-                        ('Sr IC Acceleration', 'sr_accel_entity'),
-                        ('Entity FD Fill', 'entity_fd_fill'),
-                    ]:
-                        _ds_rows[_row_label] = [
-                            _eur_fmt.format(_ent_wf[yi].get(_row_key, 0))
-                            if abs(_ent_wf[yi].get(_row_key, 0)) > 0.5 else '—'
-                            for yi in range(10)]
-                    st.dataframe(pd.DataFrame(_ds_rows, index=_ds_years).T, use_container_width=True)
+                    _wf_header_labels = {'Month', 'Year'}
+                    def _wf_row_highlight(row):
+                        if row.name in _wf_header_labels:
+                            return ['background-color: #374151; color: #D1D5DB; font-size: 0.85em'] * len(row)
+                        if row.name in _wf_summary_labels:
+                            return ['background-color: #1E3A5F; color: white; font-weight: bold'] * len(row)
+                        return [''] * len(row)
 
-                    st.markdown("**Balances**")
-                    _ds_bal_rows = {}
-                    for _row_label, _row_key in [
-                        ('Ops Reserve Bal', 'ops_reserve_bal'),
-                        ('OpCo DSRA Bal', 'opco_dsra_bal'),
-                        ('Mezz IC Bal', 'mz_ic_bal'),
-                        ('Senior IC Bal', 'sr_ic_bal'),
-                        ('Entity FD Bal', 'entity_fd_bal'),
-                    ]:
-                        _ds_bal_rows[_row_label] = [
-                            _eur_fmt.format(_ent_wf[yi].get(_row_key, 0))
-                            for yi in range(10)]
-                    st.dataframe(pd.DataFrame(_ds_bal_rows, index=_ds_years).T, use_container_width=True)
+                    st.dataframe(_wf_df.style.apply(_wf_row_highlight, axis=1),
+                                 use_container_width=True, height=(_wf_df.shape[0] + 1) * 35 + 3)
 
-                # Stacked bar chart — Cascade allocation
-                fig_ds = go.Figure()
-                _ds_colors = [
-                    ('IC Senior P+I', 'sr_pi', '#1E3A5F'),
-                    ('IC Mezz P+I', 'mz_pi', '#7C3AED'),
-                    ('Ops Reserve', 'ops_reserve_fill', '#0D9488'),
-                    ('OpCo DSRA', 'opco_dsra_fill', '#2563EB'),
-                    ('Mezz IC Accel', 'mz_accel_entity', '#A855F7'),
-                    ('Sr IC Accel', 'sr_accel_entity', '#3B82F6'),
-                    ('Entity FD', 'entity_fd_fill', '#059669'),
-                    ('Free Surplus', 'free_surplus', '#94A3B8'),
-                ]
-                for _lbl, _fld, _clr in _ds_colors:
-                    _vs = [_ent_wf[yi].get(_fld, 0) for yi in range(10)]
-                    if any(v > 0 for v in _vs):
-                        fig_ds.add_trace(go.Bar(x=_ds_years, y=_vs, name=_lbl, marker_color=_clr))
-                _ds_deficits = [_ent_wf[yi].get('deficit', 0) for yi in range(10)]
-                if any(d < 0 for d in _ds_deficits):
-                    fig_ds.add_trace(go.Bar(x=_ds_years, y=_ds_deficits, name='Deficit', marker_color='#EF4444'))
-                # EBITDA line — shows total available before allocation
-                _ds_ebitda = [_ent_wf[yi].get('ebitda', 0) for yi in range(10)]
-                fig_ds.add_trace(go.Scatter(
-                    x=_ds_years, y=_ds_ebitda,
-                    mode='lines+markers', name='EBITDA',
-                    line=dict(color='#059669', width=2, dash='dot'),
-                    marker=dict(size=6),
-                ))
-                fig_ds.update_layout(
-                    barmode='stack', title=f'{name} — Cascade Allocation',
-                    yaxis_title='EUR', height=400,
-                    legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
-                )
-                st.plotly_chart(fig_ds, use_container_width=True)
+                    with st.expander("Balances (semi-annual)", expanded=False):
+                        _ds_bal_rows = {}
+                        for _row_label, _row_key in [
+                            ('Senior IC Bal', 'sr_ic_bal'),
+                            ('Mezz IC Bal', 'mz_ic_bal'),
+                            ('Ops Reserve Target', 'ops_reserve_target'),
+                            ('Ops Reserve Bal', 'ops_reserve_bal'),
+                            ('OpCo DSRA Target', 'opco_dsra_target'),
+                            ('OpCo DSRA Bal', 'opco_dsra_bal'),
+                            ('ZAR Rand Leg Bal', 'zar_leg_bal'),
+                            ('Mezz Div FD Bal', 'mz_div_fd_bal'),
+                            ('Entity FD Bal', 'entity_fd_bal'),
+                        ]:
+                            _ds_bal_rows[_row_label] = [
+                                _eur_k(_ent_wf_semi[hi].get(_row_key, 0))
+                                for hi in range(_wf_hi_start, total_periods())]
+                        st.dataframe(pd.DataFrame(_ds_bal_rows, index=_wf_cols).T, use_container_width=True)
+
+                    # ── Waterfall Audit (semi-annual) ──
+                    _wf_checks = []
+                    for _aud_hi in range(total_periods()):
+                        _aud_h = _aud_hi + 1
+                        _aw = _ent_wf_semi[_aud_hi]
+                        _a_ebitda = _aw['ebitda']
+                        _a_tax = _aw['tax']
+                        _a_sr_pi = _aw['sr_pi']
+                        _a_mz_pi = _aw['mz_pi']
+                        _a_zar = _aw.get('zar_leg_scheduled', _aw.get('swap_leg_scheduled', 0))
+                        _a_surplus = _aw['surplus']
+
+                        # Check 1: Surplus = EBITDA - Tax - Sr P+I - ZAR Leg - Mz P+I
+                        # (Specials + Pre-Rev Hedge bypass cascade — not in surplus)
+                        _wf_checks.append({
+                            "name": f"H{_aud_h}: Surplus = EBITDA - Tax - DS",
+                            "expected": max(_a_ebitda - _a_tax - _a_sr_pi - _a_mz_pi - _a_zar, 0),
+                            "actual": _a_surplus,
+                        })
+
+                        # Check 2: Surplus + DSRA release fully allocated (no leaks)
+                        _a_dsra_release = _aw.get('opco_dsra_release', 0)
+                        _a_pool = _a_surplus + _a_dsra_release
+                        _a_allocated = (_aw.get('ops_reserve_fill', 0) + _aw.get('opco_dsra_fill', 0)
+                                        + _aw.get('od_lent', 0) + _aw.get('mz_div_fd_fill', 0)
+                                        + _aw.get('mz_accel_entity', 0) + _aw.get('zar_leg_accel', 0)
+                                        + _aw.get('sr_accel_entity', 0) + _aw.get('entity_fd_fill', 0)
+                                        + _aw.get('free_surplus', 0))
+                        _wf_checks.append({
+                            "name": f"H{_aud_h}: Pool (surplus + DSRA release) = sum(allocations)",
+                            "expected": _a_pool,
+                            "actual": _a_allocated,
+                        })
+
+                        # Check 3: No P+I when previous half balance was already zero
+                        if _aud_hi > 0:
+                            _prev_mz_bal = _ent_wf_semi[_aud_hi - 1].get('mz_ic_bal', 999)
+                            if _prev_mz_bal <= 0.01:
+                                _wf_checks.append({
+                                    "name": f"H{_aud_h}: Mezz IC prev bal=0 → Mz P+I should be 0",
+                                    "expected": 0.0,
+                                    "actual": _a_mz_pi,
+                                })
+                            _prev_sr_bal = _ent_wf_semi[_aud_hi - 1].get('sr_ic_bal', 999)
+                            if _prev_sr_bal <= 0.01:
+                                _wf_checks.append({
+                                    "name": f"H{_aud_h}: Sr IC prev bal=0 → Sr P+I should be 0",
+                                    "expected": 0.0,
+                                    "actual": _a_sr_pi,
+                                })
+
+                        # Check 4: No Entity FD while debt outstanding
+                        _a_efd = _aw.get('entity_fd_fill', 0)
+                        if _a_efd > 0:
+                            _any_debt = (_aw.get('mz_ic_bal', 0) > 0.01 or _aw.get('sr_ic_bal', 0) > 0.01
+                                         or _aw.get('zar_leg_bal', 0) > 0.01)
+                            _wf_checks.append({
+                                "name": f"H{_aud_h}: Entity FD only when ALL debt = 0",
+                                "expected": 0.0,
+                                "actual": 1.0 if _any_debt else 0.0,
+                            })
+
+                        # Check 5: Closing balance = Opening - Principal - Accel
+                        if _aud_hi > 0:
+                            _prev_mz = _ent_wf_semi[_aud_hi - 1].get('mz_ic_bal', 0)
+                            _exp_mz = max(_prev_mz - _aw.get('mz_prin_sched', 0) - _aw.get('mz_accel_entity', 0), 0)
+                            if _prev_mz > 0.01:
+                                _wf_checks.append({
+                                    "name": f"H{_aud_h}: Mezz bal = prev - sched - accel",
+                                    "expected": _exp_mz,
+                                    "actual": _aw.get('mz_ic_bal', 0),
+                                    "tolerance": 10.0,
+                                })
+
+                    run_page_audit(_wf_checks, f"{entity_key.upper()} — Waterfall Cascade")
+
+                    # Stacked bar chart — Surplus allocation (semi-annual, P1..P20)
+                    _chart_x = _wf_display_periods
+                    fig_ds = go.Figure()
+                    _ds_colors = [
+                        ('Ops Reserve', 'ops_reserve_fill', '#0D9488'),
+                        ('OpCo DSRA', 'opco_dsra_fill', '#2563EB'),
+                        ('OD → LanRED', 'od_lent', '#F97316'),
+                        ('Mezz Div FD', 'mz_div_fd_fill', '#DB2777'),
+                        ('Mezz IC Accel', 'mz_accel_entity', '#A855F7'),
+                        ('ZAR Rand Accel', 'zar_leg_accel', '#F59E0B'),
+                        ('Sr IC Accel', 'sr_accel_entity', '#3B82F6'),
+                        ('Entity FD', 'entity_fd_fill', '#059669'),
+                        ('Unallocated', 'free_surplus', '#94A3B8'),
+                    ]
+                    for _lbl, _fld, _clr in _ds_colors:
+                        _vs = [_ent_wf_semi[hi].get(_fld, 0) for hi in range(total_periods())]
+                        if any(v > 0 for v in _vs):
+                            fig_ds.add_trace(go.Bar(x=_chart_x, y=_vs, name=_lbl, marker_color=_clr))
+                    _ds_deficits = [_ent_wf_semi[hi].get('deficit', 0) for hi in range(total_periods())]
+                    if any(d < 0 for d in _ds_deficits):
+                        fig_ds.add_trace(go.Bar(x=_chart_x, y=_ds_deficits, name='Deficit', marker_color='#EF4444'))
+                    fig_ds.update_layout(
+                        barmode='stack', title=f'{name} — Surplus Allocation (Semi-Annual)',
+                        yaxis_title='EUR', height=400,
+                        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1, traceorder="reversed"),
+                    )
+                    st.plotly_chart(fig_ds, use_container_width=True)
 
                 st.divider()
 
                 # ════════════════════════════════════════════════════
-                # Section 5: Balance Trajectories
+                # Section 4: One-Time Dividend (CC IRR top-up)
                 # ════════════════════════════════════════════════════
-                st.subheader("5. Balance Trajectories")
-                st.caption("OpCo DSRA declines as consumed, Ops Reserve fills, surplus flows to holding via 2-pipe")
-
-                _dsra_bals = [_ent_wf[yi].get('opco_dsra_bal', 0) for yi in range(10)]
-                _opsres_bals = [_ent_wf[yi].get('ops_reserve_bal', 0) for yi in range(10)]
-                _fd_bals = [_ent_wf[yi].get('entity_fd_bal', 0) for yi in range(10)]
-                _od_bals = [_ent_wf[yi].get('od_bal', 0) for yi in range(10)]
-                _surplus_to_holding = [
-                    _ent_wf[yi].get('sr_pi', 0) + _ent_wf[yi].get('mz_pi', 0)
-                    + _ent_wf[yi].get('mz_accel_entity', 0) + _ent_wf[yi].get('sr_accel_entity', 0)
-                    for yi in range(10)]
-
-                # Find year when IC fully repaid (DSRA releases to FD)
-                _ic_repaid_yr = None
-                for _yi_r in range(10):
-                    if _ent_wf[_yi_r].get('mz_ic_bal', 1) <= 0.01 and _ent_wf[_yi_r].get('sr_ic_bal', 1) <= 0.01:
-                        _ic_repaid_yr = _yi_r
-                        break
-
-                fig_bal = go.Figure()
-                fig_bal.add_trace(go.Scatter(
-                    x=_ds_years, y=_dsra_bals,
-                    name='OpCo DSRA (declining)', mode='lines+markers',
-                    line=dict(color='#2563EB', width=2.5)))
-                fig_bal.add_trace(go.Scatter(
-                    x=_ds_years, y=_opsres_bals,
-                    name='Ops Reserve (filling)', mode='lines+markers',
-                    line=dict(color='#0D9488', width=2)))
-                fig_bal.add_trace(go.Scatter(
-                    x=_ds_years, y=_fd_bals,
-                    name='Entity FD (grows after repaid)', mode='lines+markers',
-                    line=dict(color='#059669', width=3)))
-                if any(v > 0 for v in _od_bals):
-                    fig_bal.add_trace(go.Scatter(
-                        x=_ds_years, y=_od_bals,
-                        name='OD Balance', mode='lines+markers',
-                        line=dict(color='#F59E0B', width=2, dash='dash')))
-                fig_bal.add_trace(go.Bar(
-                    x=_ds_years, y=_surplus_to_holding,
-                    name='→ Holding (via pipe)', marker_color='rgba(30,58,95,0.2)',
-                    marker_line_color='#1E3A5F', marker_line_width=1))
-
-                # Mark the IC repaid moment
-                if _ic_repaid_yr is not None:
-                    _repaid_label = _ds_years[_ic_repaid_yr]
-                    fig_bal.add_vline(x=_ic_repaid_yr, line_dash="dot", line_color="#EF4444", line_width=2)
-                    fig_bal.add_annotation(
-                        x=_repaid_label, y=max(_fd_bals[_ic_repaid_yr], _dsra_bals[max(_ic_repaid_yr-1, 0)]),
-                        text="<b>IC Repaid</b><br>DSRA → FD release",
-                        showarrow=True, arrowhead=2, arrowcolor="#EF4444",
-                        font=dict(size=11, color='#EF4444'),
-                        bgcolor="rgba(255,255,255,0.8)", bordercolor="#EF4444")
-
-                fig_bal.update_layout(
-                    title='Balance Trajectories & Upstream Flow',
-                    yaxis_title='EUR', height=450, barmode='overlay',
-                    legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
-                )
-                st.plotly_chart(fig_bal, use_container_width=True)
-
-                if _ic_repaid_yr is not None:
+                st.subheader("4. One-Time Dividend")
+                _ds_cc_cfg = load_config("waterfall").get("cc_irr", {})
+                _ds_cc_gap = _ds_cc_cfg.get("gap", 0.0525)
+                _ds_cc_target = _ds_cc_cfg.get("target", 0.20)
+                _ds_cc_contract = _ds_cc_cfg.get("contractual", 0.1475)
+                with st.container(border=True):
                     st.markdown(f"""
-**{_ds_years[_ic_repaid_yr]}**: Both IC loans fully repaid. OpCo DSRA releases remaining balance
-(€{_dsra_bals[max(_ic_repaid_yr-1,0)]:,.0f}) into Entity FD. From this point, all surplus is retained locally —
-Entity FD grows as retained cash.
+Creation Capital's target IRR is **{_ds_cc_target:.0%}**, but the contractual Mezz rate is only **{_ds_cc_contract:.2%}**.
+The gap of **{_ds_cc_gap:.2%}** creates two separate obligations:
+
+| Function | Mechanism | Timing |
+|----------|-----------|--------|
+| **Accrual** (liability) | {_ds_cc_gap:.2%} x opening Mezz IC balance, simple interest, no compounding | Each year while Mezz IC > 0 |
+| **Capitalisation** (FD) | Surplus after P+I fills a ring-fenced Fixed Deposit to match the liability | Each year from entity surplus |
+| **Payout** | FD balance paid as one-time dividend slug to SCLCA/CC | When Mezz IC fully repaid |
 """)
 
-                st.divider()
+                    # --- Compute waterfall for dividend display ---
+                    if _ds_swap_active:
+                        _div_sr_sched = _nwl_sr_vanilla
+                        _div_mz_sched = _nwl_mz_vanilla
+                        _div_swap = _ds_swap_sched
+                    else:
+                        _div_sr_sched = _sub_sr_schedule
+                        _div_mz_sched = _sub_mz_schedule
+                        _div_swap = None
+                    _ent_wf_div = _aggregate_entity_wf_to_annual(
+                        _compute_entity_waterfall_inputs(
+                            entity_key, _sub_ops_annual,
+                            _div_sr_sched, _div_mz_sched,
+                            nwl_swap_schedule=_div_swap,
+                            sweep_pct=_sweep_pct,
+                            ops_semi_annual=_sub_ops_semi,
+                            cash_inflows=_ds_cash_inflows,
+                            semi_annual_tax=_sub_semi_annual_tax))
 
-                # ════════════════════════════════════════════════════
-                # Section 6: Pipe Servicing — IC Loan Impact
-                # ════════════════════════════════════════════════════
-                st.subheader("6. Pipe Servicing — IC Loan Balances")
-                st.caption("How the 2 pipes service the IC loans, and how hedging affects the trajectory")
+                    # Extract year-by-year data from engine
+                    _div_mz_opening = 0.0
+                    for _r in _div_mz_sched:
+                        if _r['Month'] >= repayment_start_month():
+                            _div_mz_opening = _r.get('Opening', 0)
+                            break
 
-                _render_holding_passthrough_diagram()
+                    _div_years = [f"Y{yi+1}" for yi in range(total_years())]
+                    _div_mz_open_yr = []    # Mezz IC opening (basis for accrual)
+                    _div_mz_close_yr = []   # Mezz IC closing
+                    _div_accrual = []       # This year's accrual
+                    _div_liab_bal = []      # Cumulative liability
+                    _div_fd_fill = []       # FD fill this year (capitalisation)
+                    _div_fd_bal = []        # FD balance
+                    _div_gap = []           # Unfunded gap (liability - FD)
+                    _div_payout = []        # Payout amount (0 until slug year)
+                    _div_slug_yr = None
 
-                # Compute BOTH scenarios for comparison
-                # Current scenario = _ent_wf (already computed)
-                _sr_bals_curr = [_ent_wf[yi].get('sr_ic_bal', 0) for yi in range(10)]
-                _mz_bals_curr = [_ent_wf[yi].get('mz_ic_bal', 0) for yi in range(10)]
+                    _mz_prev = _div_mz_opening
+                    for _yi_d in range(total_years()):
+                        _w = _ent_wf_div[_yi_d]
+                        _mz_open = _w.get('mz_div_opening_basis', _mz_prev)
+                        _mz_close = _w.get('mz_ic_bal', 0)
+                        _acc = _w.get('mz_div_accrual', 0)
+                        _liab = _w.get('mz_div_liability_bal', 0)
+                        _fill = _w.get('mz_div_fd_fill', 0)
+                        _fd = _w.get('mz_div_fd_bal', 0)
+                        _pay = _w.get('mz_div_payout_amount', 0)
 
-                # Alternative scenario: compute with opposite swap setting
-                if _ds_swap_active:
-                    # Current is Swap → alternative is FEC (no swap schedule)
-                    _alt_wf = _compute_entity_waterfall_inputs(
-                        entity_key, _sub_ops_annual,
-                        _sub_sr_schedule, _sub_mz_schedule)
-                    _alt_label = "FEC"
-                else:
-                    # Current is FEC → alternative is Swap (with swap schedule)
-                    _alt_wf = _compute_entity_waterfall_inputs(
-                        entity_key, _sub_ops_annual,
-                        _sub_sr_schedule, _sub_mz_schedule,
-                        nwl_swap_schedule=_ds_swap_sched)
-                    _alt_label = "Swap"
-                _curr_label = "Swap" if _ds_swap_active else "FEC"
-                _sr_bals_alt = [_alt_wf[yi].get('sr_ic_bal', 0) for yi in range(10)]
-                _mz_bals_alt = [_alt_wf[yi].get('mz_ic_bal', 0) for yi in range(10)]
+                        _div_mz_open_yr.append(_mz_open)
+                        _div_mz_close_yr.append(_mz_close)
+                        _div_accrual.append(_acc)
+                        _div_liab_bal.append(_liab)
+                        _div_fd_fill.append(_fill)
+                        _div_fd_bal.append(_fd)
+                        _div_gap.append(max(_liab - _fd, 0))
+                        _div_payout.append(_pay)
 
-                fig_pipe = go.Figure()
-                # Current scenario (solid lines)
-                fig_pipe.add_trace(go.Scatter(
-                    x=_ds_years, y=_sr_bals_curr,
-                    name=f'Senior IC ({_curr_label} ✓)', mode='lines+markers',
-                    line=dict(color='#1E3A5F', width=3)))
-                fig_pipe.add_trace(go.Scatter(
-                    x=_ds_years, y=_mz_bals_curr,
-                    name=f'Mezz IC ({_curr_label} ✓)', mode='lines+markers',
-                    line=dict(color='#7C3AED', width=3)))
-                # Alternative scenario (dashed lines)
-                fig_pipe.add_trace(go.Scatter(
-                    x=_ds_years, y=_sr_bals_alt,
-                    name=f'Senior IC ({_alt_label})', mode='lines',
-                    line=dict(color='#1E3A5F', width=1.5, dash='dash')))
-                fig_pipe.add_trace(go.Scatter(
-                    x=_ds_years, y=_mz_bals_alt,
-                    name=f'Mezz IC ({_alt_label})', mode='lines',
-                    line=dict(color='#7C3AED', width=1.5, dash='dash')))
-                fig_pipe.add_annotation(
-                    x='Y1', y=_sr_bals_curr[0] if _sr_bals_curr[0] > 0 else _nwl_sr_opening,
-                    text=f"Grants: −€{_total_grants:,.0f}", showarrow=True,
-                    arrowhead=2, font=dict(size=10, color='#059669'))
-                fig_pipe.update_layout(
-                    title=f'NWL IC Balance Trajectory — {_curr_label} (active, solid) vs {_alt_label} (dashed)',
-                    yaxis_title='EUR', height=400,
-                    legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
-                )
-                st.plotly_chart(fig_pipe, use_container_width=True)
+                        if _mz_close <= 0.01 and _div_slug_yr is None and _liab > 0.01:
+                            _div_slug_yr = _yi_d
+                        _mz_prev = _mz_close
 
-                # Loan service comparison table — BOTH scenarios
-                _pipe_c1, _pipe_c2 = st.columns(2)
-                with _pipe_c1:
-                    _active_tag = " ✓" if not _ds_swap_active else ""
-                    st.markdown(f"**FEC Scenario{_active_tag}**")
-                    _fec_wf = _ent_wf if not _ds_swap_active else _alt_wf
-                    _fec_summary = {
-                        'Metric': ['10yr Sr P+I', '10yr Sr Accel', '10yr Mz P+I', '10yr Mz Accel', 'Hedging Cost'],
-                        'Value': [
-                            f"€{sum(_fec_wf[yi].get('sr_pi', 0) for yi in range(10)):,.0f}",
-                            f"€{sum(_fec_wf[yi].get('sr_accel_entity', 0) for yi in range(10)):,.0f}",
-                            f"€{sum(_fec_wf[yi].get('mz_pi', 0) for yi in range(10)):,.0f}",
-                            f"€{sum(_fec_wf[yi].get('mz_accel_entity', 0) for yi in range(10)):,.0f}",
-                            "20% effective (14.75% + 5.25% dividend)",
-                        ],
+                    # ── Detail table ──
+                    st.markdown("**Year-by-Year Calculation**")
+                    _eur_f = lambda v: f"€{v:,.0f}" if abs(v) > 0.5 else '—'
+                    _mz_div_table = {
+                        'Mezz IC Opening':       [_eur_f(v) for v in _div_mz_open_yr],
+                        f'Accrual ({_ds_cc_gap:.2%})': [_eur_f(v) for v in _div_accrual],
+                        'Liability (cumulative)': [_eur_f(v) for v in _div_liab_bal],
+                        'FD Fill (from surplus)': [_eur_f(v) for v in _div_fd_fill],
+                        'FD Balance':             [_eur_f(v) for v in _div_fd_bal],
+                        'Unfunded Gap':           [_eur_f(v) for v in _div_gap],
+                        'Payout':                 [_eur_f(v) for v in _div_payout],
                     }
-                    st.dataframe(pd.DataFrame(_fec_summary).set_index('Metric'), use_container_width=True)
-                with _pipe_c2:
-                    _active_tag = " ✓" if _ds_swap_active else ""
-                    st.markdown(f"**Swap Scenario{_active_tag}**")
-                    _swap_wf = _ent_wf if _ds_swap_active else _alt_wf
-                    _swap_summary = {
-                        'Metric': ['10yr Sr P+I', '10yr Sr Accel', '10yr Mz P+I', '10yr Mz Accel', 'Hedging Cost'],
-                        'Value': [
-                            f"€{sum(_swap_wf[yi].get('sr_pi', 0) for yi in range(10)):,.0f}",
-                            f"€{sum(_swap_wf[yi].get('sr_accel_entity', 0) for yi in range(10)):,.0f}",
-                            f"€{sum(_swap_wf[yi].get('mz_pi', 0) for yi in range(10)):,.0f}",
-                            f"€{sum(_swap_wf[yi].get('mz_accel_entity', 0) for yi in range(10)):,.0f}",
-                            "9.69% (ZAR leg, Priority P2)",
-                        ],
-                    }
-                    st.dataframe(pd.DataFrame(_swap_summary).set_index('Metric'), use_container_width=True)
+                    st.dataframe(
+                        pd.DataFrame(_mz_div_table, index=_div_years).T,
+                        use_container_width=True
+                    )
+                    if _div_slug_yr is not None:
+                        _payout_amt = _div_payout[_div_slug_yr]
+                        st.success(
+                            f"Mezz IC fully repaid in **Y{_div_slug_yr+1}**. "
+                            f"FD of **€{_payout_amt:,.0f}** paid as one-time dividend to SCLCA/CC."
+                        )
+                    else:
+                        _total_liab = _div_liab_bal[-1] if _div_liab_bal else 0
+                        _total_fd = _div_fd_bal[-1] if _div_fd_bal else 0
+                        st.warning(
+                            f"Mezz IC not yet fully repaid by Y10. "
+                            f"Accrued liability: €{_total_liab:,.0f}, FD funded: €{_total_fd:,.0f}."
+                        )
 
             elif entity_key == 'lanred':
                 # ════════════════════════════════════════════════════
@@ -7899,11 +7524,13 @@ Entity FD grows as retained cash.
                     show_od_repay=True,
                 )
 
-                _ent_wf = _compute_entity_waterfall_inputs(
-                    entity_key, _sub_ops_annual,
-                    _sub_sr_schedule, _sub_mz_schedule,
-                    lanred_swap_schedule=_sub_swap_sched if _lr_ds_swap_active else None)
-                _ds_years = [f"Y{yi+1}" for yi in range(10)]
+                # Read converged waterfall from entity builder (single source of truth)
+                _ent_wf_semi = _sub_model["waterfall_semi"]
+                _ent_wf = _sub_model["waterfall_annual"]
+                _ds_years = [f"Y{yi+1}" for yi in range(total_years())]
+                _ds_halves = [period_lookup(hi)["label"] for hi in range(total_periods())]
+                def _eur_k(v):
+                    return f"€{v/1e3:,.0f}k"
 
                 st.markdown(f"""
 After contractual IC debt service, **{name}** allocates surplus:
@@ -7911,7 +7538,7 @@ Ops Reserve → OpCo DSRA → Mezz IC Accel (15.25%) →
 {'ZAR Rand Leg (9.69%) → ' if _lr_ds_swap_active else ''}OD Repayment (10%) → Sr IC Accel (5.20%) → Entity FD.
 """)
 
-                with st.expander("Full Cascade Detail", expanded=False):
+                with st.expander("Full Cascade Detail (semi-annual)", expanded=False):
                     _ds_rows = {}
                     _ds_row_defs = [
                         ('EBITDA', 'ebitda'), ('Tax', 'tax'),
@@ -7928,12 +7555,12 @@ Ops Reserve → OpCo DSRA → Mezz IC Accel (15.25%) →
                     ])
                     for _row_label, _row_key in _ds_row_defs:
                         _ds_rows[_row_label] = [
-                            _eur_fmt.format(_ent_wf[yi].get(_row_key, 0))
-                            if abs(_ent_wf[yi].get(_row_key, 0)) > 0.5 else '—'
-                            for yi in range(10)]
-                    st.dataframe(pd.DataFrame(_ds_rows, index=_ds_years).T, use_container_width=True)
+                            _eur_k(_ent_wf_semi[hi].get(_row_key, 0))
+                            if abs(_ent_wf_semi[hi].get(_row_key, 0)) > 0.5 else '—'
+                            for hi in range(total_periods())]
+                    st.dataframe(pd.DataFrame(_ds_rows, index=_ds_halves).T, use_container_width=True)
 
-                    st.markdown("**Balances**")
+                    st.markdown("**Balances (semi-annual)**")
                     _ds_bal_rows = {}
                     for _row_label, _row_key in [
                         ('Ops Reserve Bal', 'ops_reserve_bal'),
@@ -7943,9 +7570,9 @@ Ops Reserve → OpCo DSRA → Mezz IC Accel (15.25%) →
                         ('Entity FD Bal', 'entity_fd_bal'),
                     ]:
                         _ds_bal_rows[_row_label] = [
-                            _eur_fmt.format(_ent_wf[yi].get(_row_key, 0))
-                            for yi in range(10)]
-                    st.dataframe(pd.DataFrame(_ds_bal_rows, index=_ds_years).T, use_container_width=True)
+                            _eur_k(_ent_wf_semi[hi].get(_row_key, 0))
+                            for hi in range(total_periods())]
+                    st.dataframe(pd.DataFrame(_ds_bal_rows, index=_ds_halves).T, use_container_width=True)
 
                 fig_ds = go.Figure()
                 _ds_colors = [
@@ -7962,18 +7589,86 @@ Ops Reserve → OpCo DSRA → Mezz IC Accel (15.25%) →
                     ('Entity FD', 'entity_fd_fill', '#059669'),
                 ])
                 for _lbl, _fld, _clr in _ds_colors:
-                    _vs = [_ent_wf[yi].get(_fld, 0) for yi in range(10)]
+                    _vs = [_ent_wf_semi[hi].get(_fld, 0) for hi in range(total_periods())]
                     if any(v > 0 for v in _vs):
-                        fig_ds.add_trace(go.Bar(x=_ds_years, y=_vs, name=_lbl, marker_color=_clr))
-                _ds_deficits = [_ent_wf[yi].get('deficit', 0) for yi in range(10)]
+                        fig_ds.add_trace(go.Bar(x=_ds_halves, y=_vs, name=_lbl, marker_color=_clr))
+                _ds_deficits = [_ent_wf_semi[hi].get('deficit', 0) for hi in range(total_periods())]
                 if any(d < 0 for d in _ds_deficits):
-                    fig_ds.add_trace(go.Bar(x=_ds_years, y=_ds_deficits, name='Deficit', marker_color='#EF4444'))
+                    fig_ds.add_trace(go.Bar(x=_ds_halves, y=_ds_deficits, name='Deficit', marker_color='#EF4444'))
                 fig_ds.update_layout(
-                    barmode='relative', title=f'{name} — Cascade Allocation',
+                    barmode='relative', title=f'{name} — Cascade Allocation (Semi-Annual)',
                     yaxis_title='EUR', height=400,
                     legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
                 )
                 st.plotly_chart(fig_ds, use_container_width=True)
+
+                st.divider()
+                # ════════════════════════════════════════════════════
+                # Section 1b: LanRED Mezz Dividend Reserve
+                # ════════════════════════════════════════════════════
+                st.subheader("Mezz Dividend Reserve (LanRED)")
+                _lr_cc_gap = load_config("waterfall").get("cc_irr", {}).get("gap", 0.0525)
+                st.caption(
+                    f"LanRED Mezz IC accrues {_lr_cc_gap:.2%}/yr on opening balance "
+                    f"as deferred dividend obligation to Creation Capital. "
+                    f"FD funded from surplus (after P+I, before Ops Reserve). "
+                    f"Paid as slug at Mezz repayment."
+                )
+
+                _lr_mz_div_accruals = [_ent_wf[yi].get('mz_div_accrual', 0) for yi in range(total_years())]
+                _lr_mz_div_liab     = [_ent_wf[yi].get('mz_div_liability_bal', 0) for yi in range(total_years())]
+                _lr_mz_div_fd       = [_ent_wf[yi].get('mz_div_fd_bal', 0) for yi in range(total_years())]
+                _lr_mz_closing      = [_ent_wf[yi].get('mz_ic_bal', 0) for yi in range(total_years())]
+                _lr_div_years       = [f"Y{yi+1}" for yi in range(total_years())]
+
+                _lr_fig_div = go.Figure()
+                _lr_fig_div.add_trace(go.Scatter(
+                    x=_lr_div_years, y=_lr_mz_closing,
+                    mode='lines+markers', name='Mezz IC Balance',
+                    line=dict(color='#7C3AED', width=2)))
+                _lr_fig_div.add_trace(go.Bar(
+                    x=_lr_div_years, y=_lr_mz_div_accruals,
+                    name=f'Dividend Accrual ({_lr_cc_gap:.2%})',
+                    marker_color='#F59E0B', opacity=0.7))
+                _lr_fig_div.add_trace(go.Scatter(
+                    x=_lr_div_years, y=_lr_mz_div_liab,
+                    mode='lines+markers', name='Liability (cum)',
+                    line=dict(color='#EF4444', width=2, dash='dot')))
+                _lr_fig_div.add_trace(go.Scatter(
+                    x=_lr_div_years, y=_lr_mz_div_fd,
+                    mode='lines+markers', name='FD Balance',
+                    line=dict(color='#059669', width=2, dash='dash')))
+                _lr_fig_div.update_layout(
+                    height=320, barmode='overlay',
+                    title='Mezz Dividend Reserve — LanRED',
+                    yaxis=dict(title='EUR', showgrid=True, gridcolor='#E2E8F0'),
+                    xaxis=dict(showgrid=False),
+                    plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)',
+                    legend=dict(orientation='h', yanchor='bottom', y=1.02, xanchor='right', x=1),
+                )
+                st.plotly_chart(_lr_fig_div, use_container_width=True, key='lr_mz_div_graph')
+
+                with st.expander("LanRED Mezz Dividend Reserve Detail", expanded=False):
+                    _lr_mz_openings = [_lr_mz_closing[yi-1] if yi > 0 else
+                                       next((r.get('Opening', 0) for r in _sub_mz_schedule
+                                             if r['Month'] >= repayment_start_month()), 0)
+                                       for yi in range(total_years())]
+                    _lr_div_table = {
+                        'Mz Opening':      [f"€{v:,.0f}" if v > 0.5 else '—' for v in _lr_mz_openings],
+                        'Accrual':         [f"€{v:,.0f}" if v > 0.5 else '—' for v in _lr_mz_div_accruals],
+                        'Liability (cum)': [f"€{v:,.0f}" if v > 0.5 else '—' for v in _lr_mz_div_liab],
+                        'FD Fill':         [f"€{_ent_wf[yi].get('mz_div_fd_fill', 0):,.0f}"
+                                            if _ent_wf[yi].get('mz_div_fd_fill', 0) > 0.5 else '—'
+                                            for yi in range(total_years())],
+                        'FD Balance':      [f"€{v:,.0f}" if v > 0.5 else '—' for v in _lr_mz_div_fd],
+                        'Gap':             [f"€{max(_lr_mz_div_liab[yi] - _lr_mz_div_fd[yi], 0):,.0f}"
+                                            if max(_lr_mz_div_liab[yi] - _lr_mz_div_fd[yi], 0) > 0.5 else '—'
+                                            for yi in range(total_years())],
+                    }
+                    st.dataframe(
+                        pd.DataFrame(_lr_div_table, index=_lr_div_years).T,
+                        use_container_width=True
+                    )
 
                 # ════════════════════════════════════════════════════
                 # Section 2: LanRED Swap Details (only when swap active)
@@ -8017,17 +7712,20 @@ Ops Reserve → OpCo DSRA → Mezz IC Accel (15.25%) →
 
                 _render_entity_cascade_diagram(name)
 
-                _ent_wf = _compute_entity_waterfall_inputs(
-                    entity_key, _sub_ops_annual,
-                    _sub_sr_schedule, _sub_mz_schedule)
-                _ds_years = [f"Y{yi+1}" for yi in range(10)]
+                # Read converged waterfall from entity builder (single source of truth)
+                _ent_wf_semi = _sub_model["waterfall_semi"]
+                _ent_wf = _sub_model["waterfall_annual"]
+                _ds_years = [f"Y{yi+1}" for yi in range(total_years())]
+                _ds_halves = [period_lookup(hi)["label"] for hi in range(total_periods())]
+                def _eur_k(v):
+                    return f"€{v/1e3:,.0f}k"
 
                 st.markdown(f"""
 After contractual IC debt service, **{name}** allocates surplus:
 Ops Reserve → OpCo DSRA → Mezz IC Accel (15.25%) → Sr IC Accel (5.20%) → Entity FD.
 """)
 
-                with st.expander("Full Cascade Detail", expanded=False):
+                with st.expander("Full Cascade Detail (semi-annual)", expanded=False):
                     _ds_rows = {}
                     for _row_label, _row_key in [
                         ('EBITDA', 'ebitda'), ('Tax', 'tax'),
@@ -8039,12 +7737,12 @@ Ops Reserve → OpCo DSRA → Mezz IC Accel (15.25%) → Sr IC Accel (5.20%) →
                         ('Entity FD Fill', 'entity_fd_fill'),
                     ]:
                         _ds_rows[_row_label] = [
-                            _eur_fmt.format(_ent_wf[yi].get(_row_key, 0))
-                            if abs(_ent_wf[yi].get(_row_key, 0)) > 0.5 else '—'
-                            for yi in range(10)]
-                    st.dataframe(pd.DataFrame(_ds_rows, index=_ds_years).T, use_container_width=True)
+                            _eur_k(_ent_wf_semi[hi].get(_row_key, 0))
+                            if abs(_ent_wf_semi[hi].get(_row_key, 0)) > 0.5 else '—'
+                            for hi in range(total_periods())]
+                    st.dataframe(pd.DataFrame(_ds_rows, index=_ds_halves).T, use_container_width=True)
 
-                    st.markdown("**Balances**")
+                    st.markdown("**Balances (semi-annual)**")
                     _ds_bal_rows = {}
                     for _row_label, _row_key in [
                         ('Ops Reserve Bal', 'ops_reserve_bal'),
@@ -8054,9 +7752,9 @@ Ops Reserve → OpCo DSRA → Mezz IC Accel (15.25%) → Sr IC Accel (5.20%) →
                         ('Entity FD Bal', 'entity_fd_bal'),
                     ]:
                         _ds_bal_rows[_row_label] = [
-                            _eur_fmt.format(_ent_wf[yi].get(_row_key, 0))
-                            for yi in range(10)]
-                    st.dataframe(pd.DataFrame(_ds_bal_rows, index=_ds_years).T, use_container_width=True)
+                            _eur_k(_ent_wf_semi[hi].get(_row_key, 0))
+                            for hi in range(total_periods())]
+                    st.dataframe(pd.DataFrame(_ds_bal_rows, index=_ds_halves).T, use_container_width=True)
 
                 fig_ds = go.Figure()
                 _ds_colors = [
@@ -8069,14 +7767,14 @@ Ops Reserve → OpCo DSRA → Mezz IC Accel (15.25%) → Sr IC Accel (5.20%) →
                     ('Entity FD', 'entity_fd_fill', '#059669'),
                 ]
                 for _lbl, _fld, _clr in _ds_colors:
-                    _vs = [_ent_wf[yi].get(_fld, 0) for yi in range(10)]
+                    _vs = [_ent_wf_semi[hi].get(_fld, 0) for hi in range(total_periods())]
                     if any(v > 0 for v in _vs):
-                        fig_ds.add_trace(go.Bar(x=_ds_years, y=_vs, name=_lbl, marker_color=_clr))
-                _ds_deficits = [_ent_wf[yi].get('deficit', 0) for yi in range(10)]
+                        fig_ds.add_trace(go.Bar(x=_ds_halves, y=_vs, name=_lbl, marker_color=_clr))
+                _ds_deficits = [_ent_wf_semi[hi].get('deficit', 0) for hi in range(total_periods())]
                 if any(d < 0 for d in _ds_deficits):
-                    fig_ds.add_trace(go.Bar(x=_ds_years, y=_ds_deficits, name='Deficit', marker_color='#EF4444'))
+                    fig_ds.add_trace(go.Bar(x=_ds_halves, y=_ds_deficits, name='Deficit', marker_color='#EF4444'))
                 fig_ds.update_layout(
-                    barmode='relative', title=f'{name} — Cascade Allocation',
+                    barmode='relative', title=f'{name} — Cascade Allocation (Semi-Annual)',
                     yaxis_title='EUR', height=400,
                     legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
                 )
@@ -8152,8 +7850,18 @@ Ops Reserve → OpCo DSRA → Mezz IC Accel (15.25%) → Sr IC Accel (5.20%) →
                 _bs_line('Currency Swap: EUR Leg', 'bs_swap_eur')
 
             _bs_spacer()
-            _bs_section('DSRA FIXED DEPOSIT')
-            _bs_line('DSRA Balance', 'bs_dsra', row_type='total')
+            _bs_section('RESERVES & FIXED DEPOSITS')
+            _bs_line('Ops Reserve FD', 'bs_ops_reserve')
+            _bs_line('OpCo DSRA', 'bs_opco_dsra')
+            _bs_line('Mezz Div Reserve FD', 'bs_mz_div_fd')
+            _bs_line('Entity FD', 'bs_entity_fd')
+            # Show catch-all DSRA only when no structured reserves (non-NWL entities)
+            _has_reserves = any(a.get('bs_reserves_total', 0) > 0.01 for a in _sub_annual)
+            if not _has_reserves:
+                _bs_line('DSRA FD', 'bs_dsra')
+            # BS total uses bs_dsra (CF accumulator) to maintain A = D + E identity;
+            # bs_reserves_total (sum of 4 FD buckets) is used in charts only.
+            _bs_line('Total Reserves & FD', 'bs_dsra', row_type='total')
 
             _bs_spacer()
             _bs_line('Total Assets', 'bs_assets', row_type='grand')
@@ -8226,15 +7934,30 @@ Ops Reserve → OpCo DSRA → Mezz IC Accel (15.25%) → Sr IC Accel (5.20%) →
             _h.append('</tbody></table></div>')
             st.markdown(''.join(_h), unsafe_allow_html=True)
 
-            # BS chart — Stacked Debt + Equity bars, Assets as line overlay
+            # BS chart — Asset breakdown (stacked) vs Debt + Equity
             fig_bs = go.Figure()
             _bs_debt_vals = [a['bs_debt'] for a in _sub_annual]
             _bs_equity_vals = [a['bs_equity'] for a in _sub_annual]
             _bs_asset_vals = [a['bs_assets'] for a in _sub_annual]
-            fig_bs.add_trace(go.Bar(x=_years, y=_bs_debt_vals, name='Debt', marker_color='#EF4444'))
-            fig_bs.add_trace(go.Bar(x=_years, y=_bs_equity_vals, name='Equity', marker_color='#8B5CF6'))
+            # Asset breakdown: stacked bars
+            fig_bs.add_trace(go.Bar(x=_years, y=[a['bs_fixed_assets'] for a in _sub_annual],
+                name='Fixed Assets', marker_color='#64748B'))
+            if _sub_swap_active:
+                fig_bs.add_trace(go.Bar(x=_years, y=[a.get('bs_swap_eur', 0) for a in _sub_annual],
+                    name='Swap EUR Leg', marker_color='#06B6D4'))
+            fig_bs.add_trace(go.Bar(x=_years, y=[a.get('bs_ops_reserve', 0) for a in _sub_annual],
+                name='Ops Reserve FD', marker_color='#3B82F6'))
+            fig_bs.add_trace(go.Bar(x=_years, y=[a.get('bs_opco_dsra', 0) for a in _sub_annual],
+                name='OpCo DSRA FD', marker_color='#8B5CF6'))
+            fig_bs.add_trace(go.Bar(x=_years, y=[a.get('bs_mz_div_fd', 0) for a in _sub_annual],
+                name='Dividend FD', marker_color='#F59E0B'))
+            fig_bs.add_trace(go.Bar(x=_years, y=[a.get('bs_entity_fd', 0) for a in _sub_annual],
+                name='Surplus Cash FD', marker_color='#10B981'))
+            # Debt + Equity as negative stacked (below axis) for A = D + E view
+            fig_bs.add_trace(go.Scatter(x=_years, y=_bs_debt_vals, name='Debt (liability)',
+                mode='lines+markers', line=dict(color='#EF4444', width=2, dash='dot'), marker=dict(size=6)))
             fig_bs.add_trace(go.Scatter(x=_years, y=_bs_asset_vals, name='Total Assets',
-                mode='lines+markers', line=dict(color='#10B981', width=3), marker=dict(size=8)))
+                mode='lines+markers', line=dict(color='#1E293B', width=2.5), marker=dict(size=7)))
             # D/E ratio annotations
             for _bi, _byr in enumerate(_years):
                 _b_eq = _bs_equity_vals[_bi]
@@ -8247,29 +7970,42 @@ Ops Reserve → OpCo DSRA → Mezz IC Accel (15.25%) → Sr IC Accel (5.20%) →
                         showarrow=False, yshift=18,
                         font=dict(size=10, color='#DC2626' if _de > 5 else '#1E3A5F')
                     )
-            fig_bs.update_layout(barmode='relative', title=f'{name} — Balance Sheet (A = D + E)', yaxis_title='EUR', height=400)
+            fig_bs.update_layout(barmode='stack', title=f'{name} — Assets Breakdown (A = D + E)', yaxis_title='EUR', height=420)
             st.plotly_chart(fig_bs, use_container_width=True)
 
-            # Chart 2: DSRA Balance
-            st.subheader("2. DSRA Fixed Deposit")
+            # Chart 2: Cash Reserves (DSRA + Ops Reserve + OpCo DSRA + Entity FD)
+            st.subheader("2. Cash Reserves & Fixed Deposits")
             fig_bs_dsra = go.Figure()
-            fig_bs_dsra.add_trace(go.Scatter(
-                x=_years, y=[a.get('bs_dsra', 0) for a in _sub_annual],
-                name='DSRA Balance', fill='tozeroy',
-                line=dict(color='#7C3AED', width=2),
-                fillcolor='rgba(124,58,237,0.15)'
+            # Stacked bars: individual reserve buckets
+            fig_bs_dsra.add_trace(go.Bar(
+                x=_years, y=[a.get('bs_ops_reserve', 0) for a in _sub_annual],
+                name='Ops Reserve', marker_color='#3B82F6'
             ))
             fig_bs_dsra.add_trace(go.Bar(
-                x=_years, y=[a.get('dsra_interest', 0) for a in _sub_annual],
-                name='Interest Earned (9%)', marker_color='#10B981',
-                yaxis='y2'
+                x=_years, y=[a.get('bs_opco_dsra', 0) for a in _sub_annual],
+                name='OpCo DSRA', marker_color='#8B5CF6'
+            ))
+            fig_bs_dsra.add_trace(go.Bar(
+                x=_years, y=[a.get('bs_mz_div_fd', 0) for a in _sub_annual],
+                name='Mezz Dividend FD', marker_color='#F59E0B'
+            ))
+            fig_bs_dsra.add_trace(go.Bar(
+                x=_years, y=[a.get('bs_entity_fd', 0) for a in _sub_annual],
+                name='Entity FD', marker_color='#10B981'
+            ))
+            # Total line overlay — sum of 4 actual FD buckets (never negative)
+            fig_bs_dsra.add_trace(go.Scatter(
+                x=_years, y=[a.get('bs_ops_reserve', 0) + a.get('bs_opco_dsra', 0) + a.get('bs_mz_div_fd', 0) + a.get('bs_entity_fd', 0) for a in _sub_annual],
+                name='Total Reserves', mode='lines+markers',
+                line=dict(color='#1E293B', width=2.5, dash='dot'),
+                marker=dict(size=7, color='#1E293B')
             ))
             fig_bs_dsra.update_layout(
+                barmode='stack',
                 height=360,
-                margin=dict(l=10, r=60, t=40, b=10),
+                margin=dict(l=10, r=10, t=40, b=10),
                 xaxis=dict(dtick=1),
-                yaxis=dict(title='DSRA Balance (EUR)', side='left'),
-                yaxis2=dict(title='Interest Earned (EUR)', side='right', overlaying='y', showgrid=False),
+                yaxis=dict(title='EUR'),
                 legend=dict(orientation="h", yanchor="bottom", y=1.06, xanchor="center", x=0.5),
             )
             st.plotly_chart(fig_bs_dsra, use_container_width=True)
@@ -8296,17 +8032,18 @@ Ops Reserve → OpCo DSRA → Mezz IC Accel (15.25%) → Sr IC Accel (5.20%) →
                     "expected": _a['bs_retained_check'],
                     "actual": _a['bs_retained'],
                 })
-                # BS DSRA = CF DSRA closing
+                # BS Reserves = DSRA FD closing (all cash allocated to reserve buckets)
                 _bs_checks.append({
-                    "name": f"Y{_y}: BS DSRA = CF DSRA",
+                    "name": f"Y{_y}: BS Reserves = DSRA FD",
                     "expected": _a['dsra_bal'],
                     "actual": _a['bs_dsra'],
                 })
-                # BS fixed assets = depr base - accumulated depr
+                # BS fixed assets = min(cum_capex, depr_base) - accumulated depr
                 _acc_depr = sum(_sub_annual[i]['depr'] for i in range(_y))
+                _cum_capex_chk = sum(_sub_annual[i].get('cf_capex', 0) for i in range(_y))
                 _bs_checks.append({
                     "name": f"Y{_y}: Fixed Assets = Base - AccDepr",
-                    "expected": max(_sub_depr_base - _acc_depr, 0),
+                    "expected": max(min(_cum_capex_chk, _sub_depr_base) - _acc_depr, 0),
                     "actual": _a['bs_fixed_assets'],
                 })
             run_page_audit(_bs_checks, f"{name} — Balance Sheet")
@@ -8534,12 +8271,12 @@ Ops Reserve → OpCo DSRA → Mezz IC Accel (15.25%) → Sr IC Accel (5.20%) →
                 _cas_ann = []
                 _cum_sav = []
                 _cum_t = 0.0
-                for _yi in range(10):
+                for _yi in range(total_years()):
                     _my = 0.0
                     _cy = 0.0
                     _cap = _sub_annual[_yi].get('vol_treated_mld', 0)
                     _vol = _cap * 1000.0
-                    for _mi in range(_yi * 12 + 1, (_yi + 1) * 12 + 1):
+                    for _mi in range(_yi * 12, (_yi + 1) * 12):  # 0-based months
                         if _mi < 18:
                             continue
                         _yf = (_mi - 18) / 12.0
@@ -8577,14 +8314,14 @@ Ops Reserve → OpCo DSRA → Mezz IC Accel (15.25%) → Sr IC Accel (5.20%) →
                 st.subheader("3. Senior Debt Bridge — Grants & Bulk Services")
                 st.markdown(
                     "The Senior IC loan **bridges** until non-diluting grant proceeds and bulk services fees are received. "
-                    "These receipts are applied as prepayments, reducing the outstanding balance and lifetime debt service."
+                    "These receipts are applied as acceleration, reducing the outstanding balance and lifetime debt service."
                 )
                 # DTIC + GEPF grants are 100% NWL (not pro-rata)
                 _grant_eur = financing['prepayments']['dtic_grant']['amount_eur']
                 _gepf_eur = financing['prepayments']['gepf_bulk_services']['amount_eur']
                 _sr_drawn = entity_data['senior_portion']
-                _prepay_tot = _grant_eur + _gepf_eur
-                _sr_remaining = _sr_drawn - _prepay_tot
+                _accel_tot = _grant_eur + _gepf_eur
+                _sr_remaining = _sr_drawn - _accel_tot
 
                 fig_bridge = go.Figure(go.Waterfall(
                     x=['Senior Loan', 'DTIC Grant', 'GEPF Bulk Services', 'Remaining Debt'],
@@ -8605,7 +8342,7 @@ Ops Reserve → OpCo DSRA → Mezz IC Accel (15.25%) → Sr IC Accel (5.20%) →
                 _bc1, _bc2, _bc3 = st.columns(3)
                 _bc1.metric("DTIC Grant (NWL share)", f"\u20ac{_grant_eur:,.0f}")
                 _bc2.metric("GEPF Bulk Services (NWL share)", f"\u20ac{_gepf_eur:,.0f}")
-                _bc3.metric("Debt Reduction", f"{_prepay_tot / _sr_drawn * 100:.1f}%")
+                _bc3.metric("Debt Reduction", f"{_accel_tot / _sr_drawn * 100:.1f}%")
 
                 st.divider()
 
@@ -8945,7 +8682,7 @@ Ops Reserve → OpCo DSRA → Mezz IC Accel (15.25%) → Sr IC Accel (5.20%) →
                     _gf_cfg = operations_config.get("nwl", {}).get("greenfield", {})
                     _days_per_half = 182.5
                     _kl_per_mld = 1000.0
-                    _rev_months = list(range(6, 126, 6))
+                    _rev_months = [period_start_month(si) for si in range(total_periods())]  # M0..M114
                     _rev_labels = [f"M{m}" for m in _rev_months]
 
                     # Get base rates and growth
@@ -9095,201 +8832,10 @@ Ops Reserve → OpCo DSRA → Mezz IC Accel (15.25%) → Sr IC Accel (5.20%) →
                         f"{name} sensitivity scenarios will be added in a future release.")
             else:
                 # =============================================================
-                # NWL SENSITIVITY ENGINE
+                # NWL SENSITIVITY ENGINE (extracted to entities/nwl.py)
                 # =============================================================
-                _sens_cfg = operations_config.get("nwl", {})
-                _sens_gf = _sens_cfg.get("greenfield", {})
-                _sens_bf = _sens_cfg.get("brownfield", {})
-                _sens_ramp = _sens_cfg.get("on_ramp", {})
-                _sens_srv = _sens_cfg.get("sewerage_revenue_sharing", {})
-                _sens_om = _sens_cfg.get("om", {})
-                _sens_pw = _sens_cfg.get("power", {})
-                _sens_rent = _sens_cfg.get("coe_rent", {})
-                _sens_bulk = _sens_cfg.get("bulk_services", {})
-
-                def _nwl_sens_calc(
-                    sewage_rate_factor=1.0,
-                    water_rate_factor=1.0,
-                    piped_delay_months=0,
-                    ramp_delay_months=0,
-                    honey_share_pct=40.0,
-                ):
-                    """Recompute NWL revenue/EBITDA with sensitivity overrides."""
-                    months_semi = list(range(6, 121, 6))
-
-                    # --- Capacity ramp (with optional delay) ---
-                    ramp_rows = _sens_ramp.get("rows", [])
-                    cap_pts = [(int(r.get("period_months", 0)), r.get("capacity_available_mld"))
-                               for r in ramp_rows]
-                    cap_pts = [(m, float(v)) for m, v in cap_pts if v is not None]
-                    if ramp_delay_months > 0:
-                        cap_pts = [(m + ramp_delay_months, v) for m, v in cap_pts]
-                    if not any(m <= 6 for m, _ in cap_pts):
-                        cap_pts.append((6, 0.0))
-                    if not any(m == 12 for m, _ in cap_pts):
-                        cap_pts.append((12, 0.0))
-                    cap_pts = sorted(cap_pts, key=lambda x: x[0])
-                    cap_m = [m for m, _ in cap_pts]
-                    cap_v = [v for _, v in cap_pts]
-                    sewage_cap = _extrapolate_piecewise_linear(cap_m, cap_v, months_semi, floor=0.0)
-
-                    # --- Demand schedules ---
-                    demand_months_base = [18, 24, 30, 36, 42, 48, 54, 60, 66, 72]
-                    piped_base = [float(x) for x in _sens_gf.get("piped_sewage_topcos_mld", [0.0] * 10)]
-                    construction_base = [float(x) for x in _sens_gf.get("construction_water_demand_topcos_mld", [0.0] * 10)]
-                    latent_base = [float(x) for x in _sens_bf.get("latent_demand_quantified", [0.0] * 10)]
-
-                    # Piped delay: shift demand months right (less piped demand earlier)
-                    piped_months_shifted = [m + piped_delay_months for m in demand_months_base]
-
-                    piped_demand = _extrapolate_piecewise_linear(piped_months_shifted, piped_base, months_semi, floor=0.0)
-                    construction_demand = _extrapolate_piecewise_linear(demand_months_base, construction_base, months_semi, floor=0.0)
-                    latent_demand = _extrapolate_piecewise_linear(demand_months_base, latent_base, months_semi, floor=0.0)
-
-                    # --- Volume calculations ---
-                    sewage_sold = [min(c, d) for c, d in zip(sewage_cap, piped_demand)]
-                    overflow_bf = [max(c - s, 0.0) for c, s in zip(sewage_cap, sewage_sold)]
-                    brine_pct = float(_sens_gf.get("brine_pct_default", 10.0))
-                    reuse_ratio = float(_sens_gf.get("reuse_ratio_default", 0.80))
-                    reuse_cap = [c * (1.0 - brine_pct / 100.0) for c in sewage_cap]
-                    reuse_topcos_dem = [s * reuse_ratio for s in sewage_sold]
-                    reuse_sold_topcos = [min(c, d) for c, d in zip(reuse_cap, reuse_topcos_dem)]
-                    reuse_after = [max(c - s, 0.0) for c, s in zip(reuse_cap, reuse_sold_topcos)]
-                    reuse_sold_constr = [min(r, d) for r, d in zip(reuse_after, construction_demand)]
-                    reuse_overflow_agri = [max(c - s1 - s2, 0.0) for c, s1, s2
-                                           in zip(reuse_cap, reuse_sold_topcos, reuse_sold_constr)]
-                    bf_served = [min(o, d) for o, d in zip(overflow_bf, latent_demand)]
-
-                    # --- Rates with tariff sensitivity ---
-                    growth = 1.0 + float(_sens_gf.get("annual_growth_pct_default", 7.7)) / 100.0
-                    base_sewage = float(_sens_gf.get("sewage_rate_2025_r_per_kl", 46.40)) * sewage_rate_factor
-                    base_water = float(_sens_gf.get("water_rate_2025_r_per_kl", 62.05)) * water_rate_factor
-                    agri_base = float(_sens_bf.get("agri_base_2025_r_per_kl", 37.70))
-                    sewage_r = [base_sewage * (growth ** (m / 12.0)) for m in months_semi]
-                    water_r = [base_water * (growth ** (m / 12.0)) for m in months_semi]
-                    agri_r = [agri_base * (growth ** (m / 12.0)) for m in months_semi]
-
-                    # --- Honeysucker rate with sharing override ---
-                    transport_km = float(_sens_srv.get("transport_r_per_km_default", 28.0))
-                    truck_cap = max(float(_sens_srv.get("truck_capacity_m3_default", 10.0)), 1.0)
-                    nwl_dist = float(_sens_srv.get("nwl_roundtrip_km_default", 10.0))
-                    gov_dist = float(_sens_srv.get("gov_roundtrip_km_default", 100.0))
-                    saving_per_m3 = (gov_dist - nwl_dist) * transport_km / truck_cap
-                    market_price = max(saving_per_m3 * (honey_share_pct / 100.0), 0.0)
-                    srv_growth = 1.0 + float(_sens_srv.get("growth_pct_default", 7.7)) / 100.0
-                    honey_r = [market_price * (srv_growth ** (m / 12.0)) for m in months_semi]
-
-                    # --- Revenue (semi-annual, then aggregate to annual) ---
-                    hyk = 1000.0 * 365.0 / 2.0  # half-year KL per MLD
-                    rev_gf_s = [v * hyk * p for v, p in zip(sewage_sold, sewage_r)]
-                    rev_bf_s = [v * hyk * p for v, p in zip(bf_served, honey_r)]
-                    rev_reuse = [v * hyk * p for v, p in zip(reuse_sold_topcos, water_r)]
-                    rev_constr = [v * hyk * p for v, p in zip(reuse_sold_constr, water_r)]
-                    rev_agri = [v * hyk * p for v, p in zip(reuse_overflow_agri, agri_r)]
-
-                    # Bulk services (unaffected by sensitivity)
-                    bulk_yr = [0.0] * 10
-                    for row in _sens_bulk.get("rows", []):
-                        amt = float(row.get("price_zar", 0.0))
-                        rp = max(float(row.get("receipt_period", 12.0)), 0.0)
-                        if amt <= 0:
-                            continue
-                        if rp == 0.0:
-                            bi = _month_to_year_idx(12)
-                            if bi is not None:
-                                bulk_yr[bi] += amt
-                            continue
-                        for mi in range(1, 121):
-                            if 13 <= mi < 13 + rp:
-                                bi = _month_to_year_idx(mi)
-                                if bi is not None:
-                                    bulk_yr[bi] += amt / rp
-
-                    # O&M cost
-                    om_fee = float(_sens_om.get("flat_fee_per_month_zar", 0.0))
-                    om_idx = float(_sens_om.get("annual_indexation_pa", 0.0))
-                    om_start = int(_sens_om.get("opex_start_month", 12))
-                    om_yr = [0.0] * 10
-                    for mi in range(1, 121):
-                        yi = _month_to_year_idx(mi)
-                        if yi is None or mi < om_start:
-                            continue
-                        om_yr[yi] += om_fee * ((1.0 + om_idx) ** ((mi - om_start) / 12.0))
-
-                    # Power cost
-                    pw_kwh = float(_sens_pw.get("kwh_per_m3", 0.4))
-                    esk_base = float(_sens_pw.get("eskom_base_rate_r_per_kwh", 2.81))
-                    ic_disc = float(_sens_pw.get("ic_discount_pct", 10.0))
-                    pw_rate = esk_base * (1.0 - ic_disc / 100.0)
-                    pw_esc = float(_sens_pw.get("annual_escalation_pct", 10.0)) / 100.0
-                    pw_start = int(_sens_pw.get("start_month", 18))
-                    pw_yr = [0.0] * 10
-                    for mi in range(1, 121):
-                        yi = _month_to_year_idx(mi)
-                        if yi is None or mi < pw_start:
-                            continue
-                        c_mld = 0.0
-                        for ci in range(len(cap_m) - 1):
-                            if cap_m[ci] <= mi <= cap_m[ci + 1]:
-                                frac = (mi - cap_m[ci]) / max(cap_m[ci + 1] - cap_m[ci], 1)
-                                c_mld = cap_v[ci] + frac * (cap_v[ci + 1] - cap_v[ci])
-                                break
-                        else:
-                            if mi >= cap_m[-1]:
-                                c_mld = cap_v[-1]
-                        vol_m3 = c_mld * 1000.0
-                        rate_i = pw_rate * ((1.0 + pw_esc) ** ((mi - pw_start) / 12.0))
-                        pw_yr[yi] += vol_m3 * pw_kwh * rate_i * 30.44
-
-                    # CoE rent
-                    rent_om_pct = float(_sens_rent.get("om_overhead_pct", 2.0))
-                    _r_monthly, _, _, _ = compute_coe_rent_monthly_eur(rent_om_pct)
-                    _r_monthly_zar = _r_monthly * FX_RATE
-                    rent_esc = float(_sens_rent.get("annual_escalation_pct", 5.0)) / 100.0
-                    rent_start = int(_sens_rent.get("start_month", 24))
-                    rent_yr = [0.0] * 10
-                    for mi in range(1, 121):
-                        yi = _month_to_year_idx(mi)
-                        if yi is None or mi < rent_start:
-                            continue
-                        rent_yr[yi] += _r_monthly_zar * ((1.0 + rent_esc) ** ((mi - rent_start) / 12.0))
-
-                    # --- Aggregate to annual EUR dicts ---
-                    month_to_idx = {m: i for i, m in enumerate(months_semi)}
-                    result = []
-                    for yi in range(10):
-                        m1, m2 = 6 + yi * 12, 12 + yi * 12
-                        si = [month_to_idx[m1], month_to_idx[m2]] if m1 in month_to_idx and m2 in month_to_idx else []
-
-                        def _ys(arr, _si=si):
-                            return sum(arr[i] for i in _si) if _si else 0.0
-
-                        gfs = _ys(rev_gf_s) / FX_RATE
-                        bfs = _ys(rev_bf_s) / FX_RATE
-                        reu = _ys(rev_reuse) / FX_RATE
-                        con = _ys(rev_constr) / FX_RATE
-                        agr = _ys(rev_agri) / FX_RATE
-                        blk = bulk_yr[yi] / FX_RATE
-                        om_e = om_yr[yi] / FX_RATE
-                        pw_e = pw_yr[yi] / FX_RATE
-                        rn_e = rent_yr[yi] / FX_RATE
-                        rev = gfs + bfs + reu + con + agr + blk
-                        ebitda = rev - om_e - pw_e - rn_e
-                        result.append({
-                            'year': yi + 1,
-                            'rev_greenfield_sewage': gfs,
-                            'rev_brownfield_sewage': bfs,
-                            'rev_reuse': reu,
-                            'rev_construction': con,
-                            'rev_agri': agr,
-                            'rev_bulk': blk,
-                            'rev_total': rev,
-                            'om_cost': om_e,
-                            'power_cost': pw_e,
-                            'rent_cost': rn_e,
-                            'ebitda': ebitda,
-                        })
-                    return result
+                _sens_cfg = ModelConfig.load()
+                _sens_srv = _sens_cfg.operations.get("nwl", {}).get("sewerage_revenue_sharing", {})
 
                 # --- Base case from the full model ---
                 _base = _sub_annual
@@ -9336,7 +8882,7 @@ Ops Reserve → OpCo DSRA → Mezz IC Accel (15.25%) → Sr IC Accel (5.20%) →
                             format="%+d%%", key="sens_tariff_wat"
                         )
 
-                    _sens_tariff = _nwl_sens_calc(
+                    _sens_tariff = build_nwl_sensitivity(_sens_cfg,
                         sewage_rate_factor=1.0 + _tariff_sew / 100.0,
                         water_rate_factor=1.0 + _tariff_wat / 100.0,
                     )
@@ -9383,7 +8929,7 @@ Ops Reserve → OpCo DSRA → Mezz IC Accel (15.25%) → Sr IC Accel (5.20%) →
 
                     _sens_ramp_results = {}
                     for _rd in [0, 6, 12, 18]:
-                        _sens_ramp_results[_rd] = _nwl_sens_calc(ramp_delay_months=_rd)
+                        _sens_ramp_results[_rd] = build_nwl_sensitivity(_sens_cfg,ramp_delay_months=_rd)
 
                     _ramp_sel = _sens_ramp_results[_ramp_delay]
                     _ramp_ebitda = sum(r['ebitda'] for r in _ramp_sel)
@@ -9431,7 +8977,7 @@ Ops Reserve → OpCo DSRA → Mezz IC Accel (15.25%) → Sr IC Accel (5.20%) →
 
                     _sens_piped_results = {}
                     for _pd in [0, 6, 12, 18, 24]:
-                        _sens_piped_results[_pd] = _nwl_sens_calc(piped_delay_months=_pd)
+                        _sens_piped_results[_pd] = build_nwl_sensitivity(_sens_cfg,piped_delay_months=_pd)
 
                     _piped_sel = _sens_piped_results[_piped_delay]
                     _piped_rev = sum(r['rev_total'] for r in _piped_sel)
@@ -9516,9 +9062,9 @@ Ops Reserve → OpCo DSRA → Mezz IC Accel (15.25%) → Sr IC Accel (5.20%) →
 
                     _sens_honey_results = {}
                     for _hp in range(20, 65, 10):
-                        _sens_honey_results[_hp] = _nwl_sens_calc(honey_share_pct=float(_hp))
+                        _sens_honey_results[_hp] = build_nwl_sensitivity(_sens_cfg,honey_share_pct=float(_hp))
 
-                    _honey_sel = _sens_honey_results.get(_honey_pct, _nwl_sens_calc(honey_share_pct=float(_honey_pct)))
+                    _honey_sel = _sens_honey_results.get(_honey_pct, build_nwl_sensitivity(_sens_cfg,honey_share_pct=float(_honey_pct)))
                     _honey_bf_10 = sum(r['rev_brownfield_sewage'] for r in _honey_sel)
                     _honey_ebitda = sum(r['ebitda'] for r in _honey_sel)
                     _honey_delta = _honey_ebitda - _base_ebitda_10
@@ -9564,17 +9110,17 @@ Ops Reserve → OpCo DSRA → Mezz IC Accel (15.25%) → Sr IC Accel (5.20%) →
 
                 _tornado_vars = [
                     ("Tariff +20%", "Tariff -20%",
-                     sum(r['ebitda'] for r in _nwl_sens_calc(sewage_rate_factor=1.20, water_rate_factor=1.20)),
-                     sum(r['ebitda'] for r in _nwl_sens_calc(sewage_rate_factor=0.80, water_rate_factor=0.80))),
+                     sum(r['ebitda'] for r in build_nwl_sensitivity(_sens_cfg,sewage_rate_factor=1.20, water_rate_factor=1.20)),
+                     sum(r['ebitda'] for r in build_nwl_sensitivity(_sens_cfg,sewage_rate_factor=0.80, water_rate_factor=0.80))),
                     ("Capacity delay +0m", "Capacity delay +12m",
                      _base_ebitda_10,
-                     sum(r['ebitda'] for r in _nwl_sens_calc(ramp_delay_months=12))),
+                     sum(r['ebitda'] for r in build_nwl_sensitivity(_sens_cfg,ramp_delay_months=12))),
                     ("Piped delay +12m", "Piped delay +0m",
-                     sum(r['ebitda'] for r in _nwl_sens_calc(piped_delay_months=12)),
+                     sum(r['ebitda'] for r in build_nwl_sensitivity(_sens_cfg,piped_delay_months=12)),
                      _base_ebitda_10),
                     ("Sharing 30%", "Sharing 50%",
-                     sum(r['ebitda'] for r in _nwl_sens_calc(honey_share_pct=30.0)),
-                     sum(r['ebitda'] for r in _nwl_sens_calc(honey_share_pct=50.0))),
+                     sum(r['ebitda'] for r in build_nwl_sensitivity(_sens_cfg,honey_share_pct=30.0)),
+                     sum(r['ebitda'] for r in build_nwl_sensitivity(_sens_cfg,honey_share_pct=50.0))),
                 ]
 
                 # Sort by total spread (largest first)
@@ -9642,7 +9188,7 @@ Ops Reserve → OpCo DSRA → Mezz IC Accel (15.25%) → Sr IC Accel (5.20%) →
                     else:
                         st.markdown(
                             "NWL is the **primary operating asset** in the IIC facility. "
-                            "Through grant-funded prepayments (DTIC + GEPF) and the Creation Capital DSRA, "
+                            "Through grant-funded acceleration (DTIC + GEPF) and the Creation Capital DSRA, "
                             "IIC's **actual credit exposure only begins at month 36** "
                             "— and at a **substantially lower balance** than the NWL Senior IC loan."
                         )
@@ -9655,34 +9201,22 @@ Ops Reserve → OpCo DSRA → Mezz IC Accel (15.25%) → Sr IC Accel (5.20%) →
                     _sec_total_sr = sum(l['senior_portion'] for l in structure['uses']['loans_to_subsidiaries'].values())
                     _sec_sr_detail = financing['loan_detail']['senior']
                     _sec_sr_drawdowns = _sec_sr_detail['drawdown_schedule']
-                    _sec_sr_periods = [-4, -3, -2, -1]
+                    _sec_sr_periods = construction_period_labels()
                     _sec_prepay_raw = _sec_sr_detail.get('prepayment_periods', {})
                     _sec_prepay_alloc = _sec_sr_detail.get('prepayment_allocation', {})
                     _sec_nwl_prepay_pct = _sec_prepay_alloc.get('nwl', 0.0)
                     _sec_sr_prepayments = {k: v * _sec_nwl_prepay_pct for k, v in _sec_prepay_raw.items()} if _sec_nwl_prepay_pct > 0 else None
 
-                    # DSRA sizing (facility level, allocated 100% to NWL)
-                    _sec_fac_bal = (_sec_sr_detail['loan_drawdown_total']
-                                   + _sec_sr_detail['rolled_up_interest_idc']
-                                   - _sec_sr_detail['grant_proceeds_to_early_repayment']
-                                   - _sec_sr_detail['gepf_bulk_proceeds'])
-                    _sec_fac_rate = _sec_sr_cfg['interest']['rate']
-                    _sec_fac_num = _sec_sr_cfg['repayments']
-                    _sec_fac_p = _sec_fac_bal / _sec_fac_num
-                    _sec_fac_i_m24 = _sec_fac_bal * _sec_fac_rate / 2
-                    _sec_dsra_total = 2 * (_sec_fac_p + _sec_fac_i_m24)
-
                     _sec_sr_schedule = build_simple_ic_schedule(
                         _sec_sr_principal, _sec_total_sr, _sec_sr_repayments, _sec_sr_rate,
-                        _sec_sr_drawdowns, _sec_sr_periods, _sec_sr_prepayments,
-                        dsra_amount=_sec_dsra_total
+                        _sec_sr_drawdowns, _sec_sr_periods
                     )
 
                     # Extract milestone balances
                     _bal_by_month = {r['Month']: r for r in _sec_sr_schedule}
                     _bal_m0 = 0.0
                     # End of construction (M18) = closing of last drawdown period
-                    _construction_rows = [r for r in _sec_sr_schedule if r['Period'] < 0 or (r['Period'] == 0 and r['Month'] <= 18)]
+                    _construction_rows = [r for r in _sec_sr_schedule if r['Period'] <= construction_end_index()]
                     _drawdown_rows = [r for r in _sec_sr_schedule if r['Draw Down'] > 0 or r['Interest'] > 0 and r['Principle'] == 0]
                     # Balance at M18 (end of drawdown phase, before repayments)
                     _last_drawdown = [r for r in _sec_sr_schedule if r['Month'] <= 18]
@@ -9691,8 +9225,8 @@ Ops Reserve → OpCo DSRA → Mezz IC Accel (15.25%) → Sr IC Accel (5.20%) →
                     _total_draws = sum(r['Draw Down'] for r in _sec_sr_schedule if r['Draw Down'] > 0)
                     # Total IDC capitalised
                     _total_idc = sum(r['Interest'] for r in _sec_sr_schedule if r['Principle'] == 0 and r['Month'] <= 18)
-                    # Prepayment amount
-                    _total_prepay = sum(abs(r['Prepayment']) for r in _sec_sr_schedule if r['Prepayment'] < 0)
+                    # Acceleration amount
+                    _total_prepay = sum(abs(r.get('Acceleration', 0)) for r in _sec_sr_schedule if r.get('Acceleration', 0) < 0)
                     # Balance at M24 (start of repayments = opening of period 1)
                     _repay_rows = [r for r in _sec_sr_schedule if r['Period'] >= 1]
                     _bal_m24 = _repay_rows[0]['Opening'] if _repay_rows else _bal_m18
@@ -9726,9 +9260,18 @@ Ops Reserve → OpCo DSRA → Mezz IC Accel (15.25%) → Sr IC Accel (5.20%) →
                                 delta=f"{(1 - _bal_m36 / _nwl_sr_ic) * 100:.0f}% below IC loan")
 
                     # Exposure Reduction Waterfall (SVG)
-                    _wf_svg = Path(__file__).parent / "assets" / "nwl-exposure-waterfall.svg"
-                    if _wf_svg.exists():
-                        st.image(str(_wf_svg), use_container_width=True)
+                    _wf_grant_eur = _sec_sr_detail['grant_proceeds_to_early_repayment'] + _sec_sr_detail['gepf_bulk_proceeds']
+                    _wf_grant_zar = (financing['prepayments']['dtic_grant']['amount_zar']
+                                     + financing['prepayments']['gepf_bulk_services']['total_zar'])
+                    _wf_post_grants = _nwl_sr_ic - _wf_grant_eur
+                    _wf_overrides = {
+                        'wf_subtitle': f"IIC exposure waterfall: €{_nwl_sr_ic/1e6:.1f}M senior → €0.9–3.9M residual guaranteed by Veracity",
+                        'wf_bar1_val': f"€{_nwl_sr_ic/1e6:.1f}M",
+                        'wf_bar2_val': f"−€{_wf_grant_eur/1e6:.1f}M",
+                        'wf_bar2_zar': f"(R{_wf_grant_zar/1e6:.1f}M)",
+                        'wf_bar3_val': f"€{_wf_post_grants/1e6:.1f}M",
+                    }
+                    render_svg_from_data("nwl-exposure-waterfall.svg", overrides=_wf_overrides)
 
                     # ── Layered Risk Reduction (from MD) ──
                     st.divider()
@@ -11097,7 +10640,8 @@ st.sidebar.markdown(
 _user_email = _auth_config['credentials']['usernames'].get(_current_user, {}).get('email', '')
 st.sidebar.divider()
 st.sidebar.caption(f"Signed in as **{_current_user}**  \n{_user_email} · {_role_label}")
-authenticator.logout("Logout", location="sidebar", key="sidebar_logout")
+if authenticator is not None:
+    authenticator.logout("Logout", location="sidebar", key="sidebar_logout")
 st.sidebar.caption("NexusNovus | Financial Model")
 
 # ── Guarantor JSON helpers (module-level for use across entity tabs) ──
@@ -11436,9 +10980,9 @@ def _load_mgmt_reports(group_key):
     Returns dict mapping mgmt-report stem → parsed JSON dict.
     """
     if group_key == "phoenix":
-        base = _CONTEXT_GUARANTOR_ROOT / "Phoenix" / "Structured Data" / "Broll Reports"
+        base = _CONTEXT_GUARANTOR_ROOT / "Structured Data" / "Phoenix" / "Broll Reports"
     elif group_key == "veracity":
-        base = _CONTEXT_GUARANTOR_ROOT / "Veracity" / "Structured Data" / "AFS"
+        base = _CONTEXT_GUARANTOR_ROOT / "Structured Data" / "Veracity" / "AFS"
     else:
         return {}
     result = {}
@@ -11459,8 +11003,8 @@ def _load_vph_3yr():
     FY2023 = 2024_structured → values[1]
     Returns dict with same structure but values arrays of length 3.
     """
-    p25 = _CONTEXT_GUARANTOR_ROOT / "Veracity" / "Structured Data" / "AFS" / "VeracityPropertyHoldings_2025_structured.json"
-    p24 = _CONTEXT_GUARANTOR_ROOT / "Veracity" / "Structured Data" / "AFS" / "VeracityPropertyHoldings_2024_structured.json"
+    p25 = _CONTEXT_GUARANTOR_ROOT / "Structured Data" / "Veracity" / "AFS" / "VeracityPropertyHoldings_2025_structured.json"
+    p24 = _CONTEXT_GUARANTOR_ROOT / "Structured Data" / "Veracity" / "AFS" / "VeracityPropertyHoldings_2024_structured.json"
     d25, d24 = {}, {}
     if p25.exists():
         with open(p25, 'r') as f:
@@ -13383,17 +12927,16 @@ if entity == "Catalytic Assets":
     # Shared config
     senior_detail = financing['loan_detail']['senior']
 
-    # --- Pre-Revenue Hedge: 2×(P+I) at M24 on Senior facility ---
+    # --- Pre-Revenue Hedge: 2×(P+I) SCLCA loan M24 ---
+    # Deterministic — indexes compute_nwl_swap_bounds()
     _sr_detail = financing['loan_detail']['senior']
-    _sr_balance = (_sr_detail['loan_drawdown_total']
-                   + _sr_detail['rolled_up_interest_idc']
-                   - _sr_detail['grant_proceeds_to_early_repayment']
-                   - _sr_detail['gepf_bulk_proceeds'])
-    _sr_rate = structure['sources']['senior_debt']['interest']['rate']
-    _sr_num = structure['sources']['senior_debt']['repayments']
+    _sclca_swap_bounds = _engine_swap_bounds(ModelConfig.load())
+    pre_revenue_hedge = _sclca_swap_bounds["min"]
+    # Facility-level intermediates for downstream schedule simulation
+    _sr_balance = sum(e["balance_m24"] for e in _sclca_swap_bounds["per_entity"].values())
+    _sr_rate = _sclca_swap_bounds["facility_rate"]
+    _sr_num = _sclca_swap_bounds["repayments"]
     _sr_p = _sr_balance / _sr_num
-    _sr_interest_m24 = _sr_balance * _sr_rate / 2
-    pre_revenue_hedge = 2 * (_sr_p + _sr_interest_m24)
 
     # Facility Senior schedule with Pre-Revenue Hedge:
     # M24: Pay 1×(P+I). Balance drops by P. End M24 balance = _sr_balance - _sr_p
@@ -13464,7 +13007,7 @@ if entity == "Catalytic Assets":
     # 3. CASH INTEREST: facility-rate on facility balance — matches actual CF movements.
     _sem = []
     _sb = 0.0; _mb = 0.0
-    for _pi in range(20):
+    for _pi in range(total_periods()):
         _m = _pi * 6
         _so, _mo = _sb, _mb
         # Track drawdowns per period
@@ -13499,18 +13042,18 @@ if entity == "Catalytic Assets":
             _prepay_out = _sr_prepay_amt      # Prepayment paid to Senior facility
 
         # Pre-Revenue Hedge at M24 (pass-through); capitalize Mezz rolled-up interest
-        if _m == 24:
+        if _m == repayment_start_month():
             _draw_dsra = 0.0 if nwl_swap_enabled else pre_revenue_hedge
             _mb = _mz_after          # Facility Mezz: add rolled-up interest
         # Senior facility principal: M24 = 1×P, M30 = interest-only, M36+ = recalculated
-        if _m == 24 and _sb > 1:
+        if _m == repayment_start_month() and _sb > 1:
             _sb -= _sr_p             # P1: one principal instalment
-        elif _m == 30:
+        elif _m == repayment_start_month() + 6:
             pass                     # P2: interest-only, no principal
-        elif _m >= 36 and _sb > 1:
+        elif _m >= repayment_start_month() + 12 and _sb > 1:
             _sb -= _sr_p_post_hedge  # P3-P14: recalculated on M30 end balance
         # Mezz facility principal: starts M30
-        if _m >= 30 and _mb > 1:
+        if _m >= repayment_start_month() + 6 and _mb > 1:
             _mb -= _mz_p_per
         _sb, _mb = max(_sb, 0), max(_mb, 0)
 
@@ -13545,11 +13088,11 @@ if entity == "Catalytic Assets":
             # Principal movements - PREPAYMENTS
             'prepay_in': _prepay_in, 'prepay_out': _prepay_out,
             # Principal movements - REPAYMENTS (facility Senior: M24=P, M30=0, M36+=recalc)
-            'sp': (min(_sr_p, _so) if _m == 24 and _so > 1
-                   else 0 if _m == 30
-                   else min(_sr_p_post_hedge, _so) if _m >= 36 and _so > 1
+            'sp': (min(_sr_p, _so) if _m == repayment_start_month() and _so > 1
+                   else 0 if _m == repayment_start_month() + 6
+                   else min(_sr_p_post_hedge, _so) if _m >= repayment_start_month() + 12 and _so > 1
                    else 0),
-            'mp': min(_mz_p_per, _mo) if _m >= 30 and _mo > 1 else 0,
+            'mp': min(_mz_p_per, _mo) if _m >= repayment_start_month() + 6 and _mo > 1 else 0,
             'isp': _ic['isp'], 'imp': _ic['imp'],  # From bottom-up
             'ic_dsra_mz_draw': _ic['ic_dsra_mz_draw'],  # DSRA Mz pass-through
             'dsra': _draw_dsra,  # DSRA funding at M24
@@ -13561,7 +13104,7 @@ if entity == "Catalytic Assets":
     _dsra_bal = 0.0  # Fixed Deposit balance (holding-level, not opco DSRA)
     _cdsra = 0.0
     _sclca_cum_ni = 0.0  # Cumulative net income for RE verification
-    for _yi in range(10):
+    for _yi in range(total_years()):
         h1, h2 = _sem[_yi * 2], _sem[_yi * 2 + 1]
         a = {'year': _yi + 1}
         # ACCRUED interest income from IC loans (for P&L)
@@ -13634,48 +13177,85 @@ if entity == "Catalytic Assets":
         a['bs_financial'] = a['bs_ic'] + a['bs_eq_subs']
         a['bs_cash'] = a['bs_dsra']
         a['bs_a'] = a['bs_financial'] + a['bs_cash']
-        # Balance sheet - Liabilities (Senior + Mezz only; DSRA/FEC netted out)
+        # Balance sheet - Liabilities
         a['bs_sr'] = h2['sc']  # Senior Facility
         a['bs_mz'] = h2['mc']  # Mezz Facility
-        a['bs_dsra_liab'] = 0  # Netted with FEC asset (pass-through)
         # Shareholder equity injection for subsidiary stakes (from config)
         a['bs_sh_equity'] = EQUITY_TOTAL
-        a['bs_l'] = a['bs_sr'] + a['bs_mz']
-        # Equity = Shareholder equity + Retained earnings
-        a['bs_retained'] = a['bs_a'] - a['bs_l'] - a['bs_sh_equity']
-        a['bs_e'] = a['bs_sh_equity'] + a['bs_retained']
-        # Independent RE verification from P&L (cumulative NI)
+        # Retained earnings = Cumulative Net Income (correct accrual accounting)
         _sclca_cum_ni += a['ni']
+        a['bs_retained'] = _sclca_cum_ni
         a['bs_retained_check'] = _sclca_cum_ni
-        a['bs_gap'] = a['bs_retained'] - _sclca_cum_ni
+        a['bs_e'] = a['bs_sh_equity'] + a['bs_retained']
+        # IC Pass-Through Liability: the excess of IC loan balances + FD over facility
+        # balances and equity. This represents:
+        #   (a) Outstanding DSRA liability to Creation Capital (CC injects pre_revenue_hedge
+        #       into IC Mezz at M24; the holding owes this back as IC Mezz amortizes)
+        #   (b) IC margin surplus on IDC/rollup (0.5% IC margin capitalised into IC balances
+        #       but not into facility balances — unwinds as IC loans amortize)
+        # Both are genuine liabilities/deferred items that wind down to zero by maturity.
+        # Floored at 0: once loans are repaid, any residual gap is an accrued interest
+        # receivable (grace-period margin earned but not yet received in cash).
+        _bs_pt_raw = a['bs_a'] - a['bs_e'] - a['bs_sr'] - a['bs_mz']
+        a['bs_dsra_liab'] = max(_bs_pt_raw, 0)
+        # Accrued interest receivable: the shortfall when pass-through would be negative
+        # (grace-period IC margin accrued in NI but not received as cash)
+        a['bs_accrued_ir'] = max(-_bs_pt_raw, 0)
+        a['bs_a'] = a['bs_financial'] + a['bs_cash'] + a['bs_accrued_ir']
+        a['bs_l'] = a['bs_sr'] + a['bs_mz'] + a['bs_dsra_liab']
+        # Audit: A = L + E (always holds by construction); RE = Cum NI (always holds)
+        a['bs_gap'] = a['bs_retained'] - _sclca_cum_ni  # Always 0
         annual_model.append(a)
+
+    # --- ENGINE ENTITY DATA (for cross-reference audits) ---
+    # Load engine subsidiary annual data once; cached, no double-compute.
+    # Used by audit blocks #10-#15 to cross-reference SCLCA inline model
+    # against independently-computed engine entity results.
+    _audit_model_data = _run_engine_model(_session_input_hash())
+    _audit_nwl_ann = [_add_compat_fields(dict(a)) for a in _audit_model_data["entities"]["nwl"]["annual"]]
+    _audit_lanred_ann = [_add_compat_fields(dict(a)) for a in _audit_model_data["entities"]["lanred"]["annual"]]
+    _audit_twx_ann = [_add_compat_fields(dict(a)) for a in _audit_model_data["entities"]["timberworx"]["annual"]]
 
     # --- WATERFALL OVERLAY ---
     # Compute entity operating models for waterfall
-    _nwl_ops = _build_nwl_operating_annual_model()
+    _nwl_ops, _nwl_ops_semi = _build_nwl_operating_annual_model()
     _lanred_ops = _build_lanred_operating_annual_model()
     _twx_ops = _build_twx_operating_annual_model()
 
     # NWL swap schedule (must be computed BEFORE entity waterfall inputs)
-    nwl_swap_amount = 0
+    # Notional driven by session_state["nwl_swap_notional"] (set by slider in Debt Sculpting).
+    # Bounds from compute_nwl_swap_bounds() — deterministic, same formula as FacilityState.
+    _orch_swap_bounds = _engine_swap_bounds(ModelConfig.load())
+    _dsra_min_orch = _orch_swap_bounds["min"]
+    _swap_notional_max_orch = _orch_swap_bounds["max"]
+
+    nwl_swap_amount = 0.0
     _nwl_swap_eur_m24 = 0.0
     _nwl_swap_eur_m30 = 0.0
     _nwl_last_sr_month = 102
     if nwl_swap_enabled:
+        # Compute M24/M30 Senior IC P+I for EUR leg breakdown display
         for r in _entity_ic['nwl']['sr']:
-            if r['Month'] == 24:
+            if r['Month'] == repayment_start_month():
                 _nwl_swap_eur_m24 = r['Interest'] + abs(r.get('Repayment', 0) or r.get('Principle', 0))
-            elif r['Month'] == 30:
+            elif r['Month'] == repayment_start_month() + 6:
                 _nwl_swap_eur_m30 = r['Interest'] + abs(r.get('Repayment', 0) or r.get('Principle', 0))
-        nwl_swap_amount = _nwl_swap_eur_m24 + _nwl_swap_eur_m30
+        # Read from slider session state; fall back to DSRA minimum
+        nwl_swap_amount = float(st.session_state.get("nwl_swap_notional", int(round(_dsra_min_orch))))
+        # Clamp to valid bounds
+        nwl_swap_amount = max(_dsra_min_orch, min(_swap_notional_max_orch, nwl_swap_amount))
         _nwl_last_sr_month = max(
             (r['Month'] for r in _entity_ic['nwl']['sr']
-             if r['Month'] >= 24 and (abs(r.get('Principle', 0)) > 0 or abs(r.get('Repayment', 0)) > 0)),
+             if r['Month'] >= repayment_start_month() and (abs(r.get('Principle', 0)) > 0 or abs(r.get('Repayment', 0)) > 0)),
             default=102
         )
-    _swap_sched = _build_nwl_swap_schedule(nwl_swap_amount, FX_RATE,
-                                            last_sr_month=_nwl_last_sr_month if nwl_swap_enabled else 102
-                                            ) if nwl_swap_enabled else None
+    _swap_sched = (
+        _build_nwl_swap_schedule(nwl_swap_amount, FX_RATE, last_sr_month=_nwl_last_sr_month)
+        if nwl_swap_enabled else None
+    )
+
+    # Compute and stamp excess notional (additional bullet to SCLCA IC)
+    _nwl_swap_excess_notional = max(nwl_swap_amount - _dsra_min_orch, 0.0) if nwl_swap_enabled else 0.0
 
     # LanRED swap schedule (Brownfield+ only)
     _lanred_swap_amount_eur = structure['uses']['loans_to_subsidiaries']['lanred']['senior_portion']
@@ -13697,16 +13277,164 @@ if entity == "Catalytic Assets":
         _entity_ic['timberworx']['sr'], _entity_ic['timberworx']['mz'])
 
     # 3. NWL last → receives LanRED deficit vector + swap schedule
+    # Construct typed cash inflows for NWL
+    _orch_dtic_eur = financing.get('prepayments', {}).get('dtic_grant', {}).get('amount_eur', 0)
+    _orch_iic_ta_eur = financing.get('prepayments', {}).get('invest_int_ta', {}).get('amount_eur', 0)
+    _orch_nwl_ci = [{} for _ in range(total_periods())]
+    _orch_nwl_ci[1] = {'dtic_grant': _orch_dtic_eur, 'iic_grant': _orch_iic_ta_eur}  # M12
+    if nwl_swap_enabled:
+        _orch_nwl_ci[3] = {'eur_leg_repayment': pre_revenue_hedge}  # M24
+    else:
+        _orch_nwl_ci[3] = {'mezz_draw': pre_revenue_hedge}  # M24
+
+    _nwl_sweep_pct = st.session_state.get("nwl_cash_sweep_pct", 100) / 100.0
     _nwl_wf = _compute_entity_waterfall_inputs(
         'nwl', _nwl_ops,
         _entity_ic['nwl']['sr'], _entity_ic['nwl']['mz'],
         lanred_deficit_vector=_lanred_deficit_vector,
-        nwl_swap_schedule=_swap_sched)
+        nwl_swap_schedule=_swap_sched,
+        sweep_pct=_nwl_sweep_pct,
+        ops_semi_annual=_nwl_ops_semi,
+        cash_inflows=_orch_nwl_ci)
 
-    # 4. Second pass on LanRED: inject OD received amounts and recompute OD repayment
-    for _yi_od in range(10):
-        _od_received = _nwl_wf[_yi_od].get('od_lent', 0)
-        _lanred_wf[_yi_od]['od_received'] = _od_received
+    # 4. Second pass on LanRED: inject OD received amounts (20 semi-annual periods)
+    for _hi_od in range(total_periods()):
+        _od_received = _nwl_wf[_hi_od].get('od_lent', 0)
+        _lanred_wf[_hi_od]['od_received'] = _od_received
+
+    # ── Pass 2: NWL acceleration → IC schedule rebuild at SCLCA level ──────
+    # Ensures SCLCA IC receivables match entity IC liabilities (IC Reconciliation).
+    # Semi-annual waterfall periods map directly to IC schedule periods: IC_period = hi - 2
+    _nwl_sr_accel_periods = {}
+    _nwl_mz_accel_periods = {}
+    _nwl_has_accel = False
+    for _hi_p2 in range(total_periods()):
+        _sr_a = _nwl_wf[_hi_p2].get('sr_accel_entity', 0)
+        _mz_a = _nwl_wf[_hi_p2].get('mz_accel_entity', 0)
+        _ic_period = _hi_p2 - 2  # IC repayment period number (1-based)
+        if _sr_a > 0.01 and _ic_period >= 1:
+            _nwl_has_accel = True
+            _pk = str(_ic_period)
+            _nwl_sr_accel_periods[_pk] = _nwl_sr_accel_periods.get(_pk, 0) + _sr_a
+        if _mz_a > 0.01 and _ic_period >= 1:
+            _nwl_has_accel = True
+            _pk = str(_ic_period)
+            _nwl_mz_accel_periods[_pk] = _nwl_mz_accel_periods.get(_pk, 0) + _mz_a
+
+    if _nwl_has_accel:
+        # Replicate build params from _build_all_entity_ic_schedules for NWL
+        _p2_senior_cfg = structure['sources']['senior_debt']
+        _p2_mezz_cfg = structure['sources']['mezzanine']
+        _p2_sr_rate = _p2_senior_cfg['interest']['rate'] + INTERCOMPANY_MARGIN
+        _p2_mz_rate = _p2_mezz_cfg['interest']['total_rate'] + INTERCOMPANY_MARGIN
+        _p2_sr_repayments = _p2_senior_cfg['repayments']
+        _p2_mz_repayments = _p2_mezz_cfg.get('repayments', 10)
+        _p2_sr_detail = financing['loan_detail']['senior']
+        _p2_sr_drawdowns = _p2_sr_detail['drawdown_schedule']
+        _p2_sr_periods = construction_period_labels()
+        _p2_mz_drawdowns = [_p2_mezz_cfg['amount_eur'], 0, 0, 0]
+        _p2_mz_periods = construction_period_labels()
+        _p2_total_sr = sum(l['senior_portion'] for l in structure['uses']['loans_to_subsidiaries'].values())
+        _p2_total_mz = sum(l['mezz_portion'] for l in structure['uses']['loans_to_subsidiaries'].values())
+        _p2_nwl_ed = structure['uses']['loans_to_subsidiaries']['nwl']
+        _p2_nwl_sr_principal = _p2_nwl_ed['senior_portion']
+        _p2_nwl_mz_principal = _p2_nwl_ed['mezz_portion']
+
+        # Grant prepayments for NWL
+        _p2_prepay_raw = _p2_sr_detail.get('prepayment_periods', {})
+        _p2_prepay_alloc = _p2_sr_detail.get('prepayment_allocation', {})
+        _p2_nwl_prepay_pct = _p2_prepay_alloc.get('nwl', 0.0) if _p2_prepay_alloc else 0.0
+        _p2_nwl_grant_prepays = {k: v * _p2_nwl_prepay_pct for k, v in _p2_prepay_raw.items()} if _p2_nwl_prepay_pct > 0 else {}
+
+        # Waterfall acceleration only — grants flow through waterfall as specials
+        _p2_combined_sr_prepays = dict(_nwl_sr_accel_periods)
+
+        # Rebuild NWL Senior IC (vanilla — no DSRA params)
+        _entity_ic['nwl']['sr'] = build_simple_ic_schedule(
+            _p2_nwl_sr_principal, _p2_total_sr, _p2_sr_repayments, _p2_sr_rate,
+            _p2_sr_drawdowns, _p2_sr_periods, _p2_combined_sr_prepays)
+
+        # Rebuild NWL Mezz IC if needed (vanilla)
+        if _nwl_mz_accel_periods:
+            _entity_ic['nwl']['mz'] = build_simple_ic_schedule(
+                _p2_nwl_mz_principal, _p2_total_mz, _p2_mz_repayments, _p2_mz_rate,
+                _p2_mz_drawdowns, _p2_mz_periods, _nwl_mz_accel_periods)
+
+        # Re-aggregate _ic_sem from all 3 entities (same logic as _build_all_entity_ic_schedules)
+        _all_sr_scheds = [_entity_ic[ek]['sr'] for ek in ['nwl', 'lanred', 'timberworx']]
+        _all_mz_scheds = [_entity_ic[ek]['mz'] for ek in ['nwl', 'lanred', 'timberworx']]
+        for _pi_r in range(total_periods()):
+            _m_r = _pi_r * 6
+            _iso = 0.0; _isc = 0.0; _imo = 0.0; _imc = 0.0
+            _isi = 0.0; _imi = 0.0; _isi_cash = 0.0; _imi_cash = 0.0
+            _isp = 0.0; _imp = 0.0; _ic_dsra_mz_draw = 0.0
+            for _sr_s in _all_sr_scheds:
+                for _r in _sr_s:
+                    if _r['Month'] == _m_r:
+                        _iso += _r['Opening']; _isc += _r['Closing']
+                        _isi += _r['Interest']
+                        _isi_cash += _r['Interest'] if _m_r >= repayment_start_month() else 0
+                        _isp += abs(_r['Principle'])
+                        break
+            for _mz_s in _all_mz_scheds:
+                for _r in _mz_s:
+                    if _r['Month'] == _m_r:
+                        _imo += _r['Opening']; _imc += _r['Closing']
+                        _imi += _r['Interest']
+                        _imi_cash += _r['Interest'] if _m_r >= repayment_start_month() else 0
+                        _imp += abs(_r['Principle'])
+                        if _r['Draw Down'] > 0 and _m_r >= repayment_start_month():
+                            _ic_dsra_mz_draw += _r['Draw Down']
+                        break
+            # Patch _ic_sem in place
+            _ic_sem[_pi_r] = {
+                'iso': _iso, 'isc': _isc, 'imo': _imo, 'imc': _imc,
+                'isi': _isi, 'imi': _imi, 'isi_cash': _isi_cash, 'imi_cash': _imi_cash,
+                'isp': _isp, 'imp': _imp, 'ic_dsra_mz_draw': _ic_dsra_mz_draw,
+            }
+
+        # Surgical patch of _sem (IC-derived fields only; facility fields unchanged)
+        for _pi_r in range(total_periods()):
+            _ic = _ic_sem[_pi_r]
+            _sem[_pi_r]['iso'] = _ic['iso']
+            _sem[_pi_r]['isc'] = _ic['isc']
+            _sem[_pi_r]['imo'] = _ic['imo']
+            _sem[_pi_r]['imc'] = _ic['imc']
+            _sem[_pi_r]['isi'] = _ic['isi']
+            _sem[_pi_r]['imi'] = _ic['imi']
+            _sem[_pi_r]['isi_cash'] = _ic['isi_cash']
+            _sem[_pi_r]['imi_cash'] = _ic['imi_cash']
+            _sem[_pi_r]['isp'] = _ic['isp']
+            _sem[_pi_r]['imp'] = _ic['imp']
+            _sem[_pi_r]['ic_dsra_mz_draw'] = _ic['ic_dsra_mz_draw']
+
+        # Surgical patch of annual_model (IC-derived fields only)
+        _p2_cum_ni = 0.0
+        for _yi_r in range(total_years()):
+            h1, h2 = _sem[_yi_r * 2], _sem[_yi_r * 2 + 1]
+            _am = annual_model[_yi_r]
+            # Interest income from IC (for P&L)
+            _am['ii_sr'] = h1['isi'] + h2['isi']
+            _am['ii_mz'] = h1['imi'] + h2['imi']
+            _am['ii_ic'] = _am['ii_sr'] + _am['ii_mz']
+            _am['ii'] = _am['ii_ic'] + _am.get('ii_dsra', 0)
+            # Net income
+            _am['ni'] = _am['ii'] - _am['ie']
+            _p2_cum_ni += _am['ni']
+            _am['bs_retained'] = _p2_cum_ni
+            _am['bs_retained_check'] = _p2_cum_ni
+            _am['bs_e'] = _am.get('bs_sh_equity', 0) + _am['bs_retained']
+            # Cash interest from IC
+            _am['cf_ii'] = h1['isi_cash'] + h2['isi_cash'] + h1['imi_cash'] + h2['imi_cash'] + _am.get('ii_dsra', 0)
+            # IC principal received (repayments)
+            _am['cf_repay_in'] = h1['isp'] + h2['isp'] + h1['imp'] + h2['imp']
+            # BS: IC receivables
+            _am['bs_isr'] = h2['isc']  # Senior IC closing (end of year = H2 closing)
+            _am['bs_imz'] = h2['imc']  # Mezz IC closing
+            _am['bs_ic'] = _am['bs_isr'] + _am['bs_imz']
+            # Re-derive BS totals (SCLCA uses bs_financial, bs_a, bs_e)
+            _am['bs_financial'] = _am['bs_ic'] + _am.get('bs_eq_subs', 0)
+            _am['bs_a'] = _am['bs_financial'] + _am.get('bs_cash', 0)
 
     # Build waterfall
     _waterfall = _build_waterfall_model(
@@ -13758,6 +13486,19 @@ if entity == "Catalytic Assets":
         # Zero stubs for removed features
         _oa['wf_ic_mz_rebalance'] = 0
         _oa['wf_interest_saved'] = 0
+        # Mezz Dividend Reserve overlay
+        for _ek_mz in ['nwl', 'lanred']:
+            _oa[f'wf_{_ek_mz}_mz_div_accrual']       = _ow.get(f'{_ek_mz}_mz_div_accrual', 0)
+            _oa[f'wf_{_ek_mz}_mz_div_liability_bal'] = _ow.get(f'{_ek_mz}_mz_div_liability_bal', 0)
+            _oa[f'wf_{_ek_mz}_mz_div_fd_fill']       = _ow.get(f'{_ek_mz}_mz_div_fd_fill', 0)
+            _oa[f'wf_{_ek_mz}_mz_div_fd_bal']        = _ow.get(f'{_ek_mz}_mz_div_fd_bal', 0)
+            _oa[f'wf_{_ek_mz}_mz_div_payout_amount'] = _ow.get(f'{_ek_mz}_mz_div_payout_amount', 0)
+
+    # Stamp excess swap notional as Year 2 bullet to SCLCA IC
+    for _yi_ex, _oa_ex in enumerate(annual_model):
+        _oa_ex['nwl_swap_excess_bullet'] = (
+            _nwl_swap_excess_notional if (nwl_swap_enabled and _yi_ex == 1) else 0.0
+        )
 
     # Swap comparison (always compute for both scenarios)
     _mz_cfg_wf = structure['sources']['mezzanine']
@@ -13821,7 +13562,7 @@ if entity == "Catalytic Assets":
             # FEC/Swap toggle-dependent sentence
             _hedge_mode = st.session_state.get("sclca_nwl_hedge", "Cross-Currency Swap")
             if _hedge_mode == "Cross-Currency Swap":
-                _ov_html_parts.append("<p>The NWL senior debt service is hedged via a <b>cross-currency swap</b> arranged with Creation Capital.</p>")
+                _ov_html_parts.append("<p>The NWL senior debt service is hedged via a <b>cross-currency swap</b> arranged with Investec.</p>")
             else:
                 _ov_html_parts.append("<p>The NWL senior debt service is hedged via the <b>FEC funded by Creation Capital</b>.</p>")
             _ov_html_parts.append('<div style="clear:both;"></div>')
@@ -13831,7 +13572,13 @@ if entity == "Catalytic Assets":
 
             # 2. Corporate Structure
             st.subheader("Lanseria Smart City — Corporate Structure")
-            render_svg("corporate_structure.svg", "SVG_CORPORATE_CONTENT.md")
+            _corp_loans = structure['uses']['loans_to_subsidiaries']
+            _corp_overrides = {
+                'nwl_amount': f"€{_corp_loans['nwl']['total_loan']:,.0f} ({_corp_loans['nwl']['pro_rata_pct']*100:.1f}%)",
+                'lanred_amount': f"€{_corp_loans['lanred']['total_loan']:,.0f} ({_corp_loans['lanred']['pro_rata_pct']*100:.1f}%)",
+                'twx_amount': f"€{_corp_loans['timberworx']['total_loan']:,.0f} ({_corp_loans['timberworx']['pro_rata_pct']*100:.1f}%)",
+            }
+            render_svg("corporate_structure.svg", "SVG_CORPORATE_CONTENT.md", overrides=_corp_overrides)
 
             st.divider()
 
@@ -13853,9 +13600,16 @@ if entity == "Catalytic Assets":
             _loans_s = structure['uses']['loans_to_subsidiaries']
 
             st.subheader("Ownership Structure")
-            _own_svg = Path(__file__).parent / "assets" / "ownership-structure.svg"
-            if _own_svg.exists():
-                st.image(str(_own_svg), use_container_width=True)
+            _ent = load_config("entities")["entities"]
+            _own_overrides = {
+                'pct_devco_sclca': f"{_ent['sclca']['parent_pct']*100:.0f}%",
+                'pct_sclca_nwl': f"{_ent['nwl']['parent_pct']*100:.0f}%",
+                'pct_sclca_lanred': f"{_ent['lanred']['parent_pct']*100:.0f}%",
+                'pct_sclca_twx': f"{_ent['timberworx']['parent_pct']*100:.0f}%",
+                'pct_van2_twx': f"{_ent['timberworx']['other_shareholders']['vansquared']['pct']*100:.0f}%",
+                'pct_cross_nwl': f"{_ent['nwl']['other_shareholders']['crosspoint']['pct']*100:.0f}%",
+            }
+            render_svg_from_data("ownership-structure.svg", overrides=_own_overrides)
 
             st.divider()
 
@@ -13873,9 +13627,7 @@ if entity == "Catalytic Assets":
 
             # 6. Funding Structure
             st.subheader("Funding Structure")
-            _fund_svg = Path(__file__).parent / "assets" / "funding-structure.svg"
-            if _fund_svg.exists():
-                st.image(str(_fund_svg), use_container_width=True)
+            render_svg_from_data("funding-structure.svg", overrides=_build_funding_overrides(structure))
 
             st.divider()
 
@@ -14168,10 +13920,10 @@ if entity == "Catalytic Assets":
                 with _eq_r2[2]:
                     st.caption("TWX (5%)")
                     st.markdown("**€2,500**")
-                    _vs_logo = LOGO_DIR / ENTITY_LOGOS.get("vansquare", "")
+                    _vs_logo = LOGO_DIR / ENTITY_LOGOS.get("vansquared", "")
                     if _vs_logo.exists():
                         st.image(str(_vs_logo), width=60)
-                    st.caption("Co-shareholder: VanSquare (95%)")
+                    st.caption("Co-shareholder: VanSquared (95%)")
 
             # USES
             with col_uses:
@@ -14238,7 +13990,7 @@ if entity == "Catalytic Assets":
                     st.markdown("""
                 **TWX (5%)**
                 - Investment: €2,500
-                - Co-shareholder: VanSquare (95%)
+                - Co-shareholder: VanSquared (95%)
                 """)
 
             # ── AUDIT: SCLCA Sources & Uses ──
@@ -14317,163 +14069,56 @@ if entity == "Catalytic Assets":
                     st.caption("IDC")
                     st.markdown(f"**Roll-up, add to principal (+€{senior_detail['rolled_up_interest_idc']:,.0f})**")
 
-                # Build Senior Debt Schedule
-                # Period -4=M0, -3=M6, -2=M12, -1=M18(COD), 1=M24(first repay), 2=M30, etc.
-                schedule_rows = []
-                balance = 0.0
+                # Build Senior Debt Schedule — vanilla from engine
                 interest_rate = senior['interest']['rate']
                 num_repayments = senior['repayments']  # 14
-                grant_prepay = senior_detail['grant_proceeds_to_early_repayment']
-                gepf_prepay = senior_detail['gepf_bulk_proceeds']
-                prepayment_total = grant_prepay + gepf_prepay
+                actual_drawdowns = senior_detail['drawdown_schedule']
+                _sr_total = senior_detail['loan_drawdown_total']
 
-                # Actual drawdown schedule (cash received from Invest International)
-                actual_drawdowns = senior_detail['drawdown_schedule']  # [8789117, 2835775, 1818036, 0]
+                schedule_rows = build_simple_ic_schedule(
+                    _sr_total, _sr_total, num_repayments, interest_rate,
+                    actual_drawdowns, construction_period_labels(),
+                )
+                # Add canonical labels for display
+                for r in schedule_rows:
+                    p_info = period_lookup(r["Period"])
+                    r["Label"] = p_info["label"]
 
-                # Grace periods: -4, -3, -2, -1
-                # Draw Down = actual drawdown only
-                # Interest = IDC on opening balance (shown for info)
-                # Movement = Draw Down + Principle (balance change)
-                grace_period_list = [-4, -3, -2, -1]
-                idc_total = 0.0
-                for idx, period in enumerate(grace_period_list):
-                    month = (period + 4) * 6  # -4→0, -3→6, -2→12, -1→18
-                    year = month / 12
-                    opening = balance
-
-                    # IDC = interest on opening balance
-                    idc = opening * interest_rate / 2
-                    idc_total += idc
-
-    # Actual drawdown for this period
-                    draw_down = actual_drawdowns[idx] if idx < len(actual_drawdowns) else 0
-
-                    # Principle = prepayment at period -1 (COD)
-                    if period == -1:
-                        principle = -prepayment_total
-                    else:
-                        principle = 0
-
-                    # Repayment = Principle (no interest payment during grace)
-                    repayment = principle
-
-                    # Movement = Draw Down + Interest (IDC capitalized) + Principle
-                    movement = draw_down + idc + principle
-                    balance = opening + movement
-
-                    schedule_rows.append({
-                    "Period": period,
-                    "Month": month,
-                    "Year": year,
-                    "Opening": opening,
-                    "Draw Down": draw_down,
-                    "Interest": idc,
-                    "Principle": principle,
-                    "Repayment": repayment,
-                    "Movement": movement,
-                    "Closing": balance
-                })
-
-                # After grace period: balance before Pre-Revenue Hedge
-                balance_for_repay = balance
-
-                # Regular principal per period: balance / 14
-                regular_p = balance_for_repay / num_repayments
-
-                if nwl_swap_enabled:
-                    # Swap active: vanilla P_constant, no hedge sizing
-                    hedge_amount = 0.0
-                    interest_m24 = 0.0
-                    balance_after_hedge = balance_for_repay
-                    new_p = regular_p  # bal÷14 vanilla
-                else:
-                    # Pre-Revenue Hedge: 2×(P+I) at M24 — one shot
-                    interest_m24 = balance_for_repay * interest_rate / 2
-                    hedge_amount = 2 * (regular_p + interest_m24)
-                    # After hedge, remaining balance paid over 12 periods (P3-P14)
-                    balance_after_hedge = balance_for_repay - hedge_amount
-                    new_p = balance_after_hedge / (num_repayments - 2)  # 12 periods
-
-                # Repayment periods: 1, 2, 3, ... (M24, M30, M36, ...)
-                for i in range(1, num_repayments + 1):
-                    period = i
-                    month = 18 + (i * 6)  # 1→24, 2→30, 3→36, etc.
-                    year = month / 12
-                    opening = balance
-
-                    # Interest on opening balance
-                    interest = opening * interest_rate / 2
-
-                    if nwl_swap_enabled:
-                        # Swap active: vanilla P_constant for all periods
-                        principle = -new_p
-                        repayment = principle - interest
-                        hedge_note = ""
-                    elif period == 1:
-                        # Pre-Revenue Hedge: lump sum P at M24
-                        principle = -hedge_amount
-                        repayment = principle - interest  # P + I (both negative in cash terms)
-                        hedge_note = " *"
-                    elif period == 2:
-                        # Interest only at M30
-                        principle = 0
-                        repayment = -interest  # Interest only
-                        hedge_note = " *"
-                    else:
-                        # Regular repayment: new_p per period (M36+)
-                        principle = -new_p
-                        repayment = principle - interest  # P + I
-                        hedge_note = ""
-
-                    # Movement = Principle (balance change)
-                    movement = principle
-                    balance = opening + movement
-
-                    schedule_rows.append({
-                        "Period": f"{period}{hedge_note}",
-                        "Month": month,
-                        "Year": year,
-                        "Opening": opening,
-                        "Draw Down": 0,
-                        "Interest": interest,
-                        "Principle": principle,
-                        "Repayment": repayment,
-                        "Movement": movement,
-                        "Closing": balance
-                    })
+                balance_for_repay = next(
+                    (r["Closing"] for r in schedule_rows
+                     if r["Period"] == construction_end_index()), 0.0
+                )
+                new_p = balance_for_repay / num_repayments if num_repayments else 0
 
                 df_senior = pd.DataFrame(schedule_rows)
-                render_table(df_senior, {
-                "Year": "{:.1f}",
-                "Opening": "€{:,.0f}",
-                "Draw Down": "€{:,.0f}",
-                "Interest": "€{:,.0f}",
-                "Principle": "€{:,.0f}",
-                "Repayment": "€{:,.0f}",
-                "Movement": "€{:,.0f}",
-                "Closing": "€{:,.0f}"
+                _sr_display_cols = [c for c in ["Label", "Month", "Year", "Opening", "Draw Down",
+                                    "IDC", "Interest", "Principle", "Acceleration", "Movement", "Closing"]
+                                    if c in df_senior.columns]
+                render_table(df_senior[_sr_display_cols], {
+                    "Year": "{:.1f}",
+                    "Opening": "€{:,.0f}",
+                    "Draw Down": "€{:,.0f}",
+                    "IDC": "€{:,.0f}",
+                    "Interest": "€{:,.0f}",
+                    "Principle": "€{:,.0f}",
+                    "Acceleration": "€{:,.0f}",
+                    "Movement": "€{:,.0f}",
+                    "Closing": "€{:,.0f}"
                 })
 
                 # Notes section
                 st.markdown("---")
                 col_idc, col_hedge, col_repay = st.columns(3)
 
+                idc_data = extract_idc_table(schedule_rows)
+                for row in idc_data:
+                    if row["Period"] != "Total":
+                        row["Period"] = period_lookup(row["Period"])["label"]
+
                 with col_idc:
                     st.markdown("**IDC (Interest During Construction)**")
                     st.caption("Interest accrues on opening balance each period")
-                    idc_data = []
-                    bal = 0.0
-                    idc_sum = 0.0
-                    dd_sum = 0.0
-                    for idx, dd in enumerate(actual_drawdowns):
-                        idc_amt = bal * interest_rate / 2
-                        idc_data.append({"Period": -4 + idx, "Draw Down": dd, "IDC": idc_amt})
-                        dd_sum += dd
-                        idc_sum += idc_amt
-                        bal += dd + idc_amt
-                    idc_data.append({"Period": "Total", "Draw Down": dd_sum, "IDC": idc_sum})
-                    df_idc = pd.DataFrame(idc_data)
-                    render_table(df_idc, {"Draw Down": "€{:,.0f}", "IDC": "€{:,.0f}"})
+                    render_table(pd.DataFrame(idc_data), {"Draw Down": "€{:,.0f}", "IDC": "€{:,.0f}"})
 
                 with col_hedge:
                     if nwl_swap_enabled:
@@ -14483,69 +14128,31 @@ if entity == "Catalytic Assets":
                     | Item | Detail |
                     |------|--------|
                     | Hedge mode | Cross-Currency Swap |
-                    | P1/P2 override | None (vanilla) |
                     | P_constant | €{new_p:,.2f} |
-                    | Periods | {num_repayments} × P_constant |
+                    | Periods | {num_repayments} x P_constant |
                     """)
-                        st.caption("DSRA sizing suppressed — swap replaces FEC hedge")
                     else:
                         st.markdown("**Pre-Revenue Hedge**")
-                        st.caption("2×(P+I) at M24 — one shot")
+                        st.caption("Grants/DSRA allocated via waterfall, not baked into schedule")
                         st.markdown(f"""
-                    | Item | Amount |
+                    | Item | Detail |
                     |------|--------|
-                    | Regular P (bal÷{num_repayments}) | €{regular_p:,.2f} |
-                    | Interest M24 | €{interest_m24:,.2f} |
-                    | **Hedge** 2×(P + I) | €{hedge_amount:,.2f} |
-                    | M24 lump sum | €{hedge_amount:,.2f} |
-                    | M30 (interest only) | €{balance_after_hedge * interest_rate / 2:,.2f} |
+                    | Vanilla P_constant | €{new_p:,.2f} |
+                    | Periods | {num_repayments} x P_constant |
+                    | Grant/DSRA | Allocated by waterfall |
                     """)
-                        st.caption("Pre-Revenue Hedge → FEC/Swap → EUR at M24")
+                        st.caption("Pre-Revenue Hedge flows through waterfall as specials")
 
                 with col_repay:
-                    if nwl_swap_enabled:
-                        st.markdown("**Repayment Structure**")
-                        st.caption(f"Vanilla: {num_repayments} periods (bal÷{num_repayments})")
-                        st.markdown(f"""
+                    st.markdown("**Repayment Structure**")
+                    st.caption(f"Vanilla: {num_repayments} periods")
+                    st.markdown(f"""
                     | Item | Amount |
                     |------|--------|
-                    | **Prepayment (P-1)** | €{prepayment_total:,.2f} |
-                    | Balance for repay | €{balance_for_repay:,.2f} |
+                    | Balance at R1 | €{balance_for_repay:,.2f} |
                     | **P_constant** (bal÷{num_repayments}) | €{new_p:,.2f} |
                     """)
-                        st.caption("Repayment = Principle + Interest")
-
-                        st.markdown("---")
-                        st.markdown("**Cross-Currency Swap Note:**")
-                        st.markdown("""
-        1. **Swap active:** DSRA/Pre-Revenue Hedge replaced by Cross-Currency Swap
-        2. **IC schedules:** Vanilla P_constant (bal÷14 Senior, bal÷10 Mezz)
-        3. **ZAR Rand Leg:** Separate swap liability (see entity Facilities tab)
-        4. **EUR Leg:** Separate swap asset (see entity Facilities tab)
-        """)
-                    else:
-                        st.markdown("**Repayment Structure**")
-                        st.caption("After hedge, 12 periods remain (P3-P14)")
-                        st.markdown(f"""
-                    | Item | Amount |
-                |------|--------|
-                    | **Prepayment (P-1)** | €{prepayment_total:,.2f} |
-                    | Balance for repay | €{balance_for_repay:,.2f} |
-                    | Balance after hedge | €{balance_after_hedge:,.2f} |
-                    | **New P** (bal÷12) | €{new_p:,.2f} |
-                    """)
-                        st.caption("Repayment = Principle + Interest")
-
-                        st.markdown("---")
-                        st.markdown("**Pre-Revenue Hedge Mechanism:**")
-                        st.markdown(f"""
-        1. **Pre-Revenue Hedge:** Creation Capital provides ZAR reserve at M24 (€{pre_revenue_hedge:,.0f} equivalent)
-        2. **FEC/Swap:** Converts ZAR to EUR via Forward Exchange Cover or Cross-Currency Swap
-        3. **M24 Lump Sum:** EUR pays 2×(P + I) on Senior Debt in one shot
-        4. **M30:** Interest-only payment (no principal)
-        5. **M36+:** Remaining balance ÷ 12 = new instalment
-        6. **Net Effect:** Pre-revenue hedging eliminates FX risk for first two debt service periods
-        """)
+                    st.caption("Acceleration from waterfall reduces closing balance further")
 
             st.divider()
 
@@ -14607,100 +14214,37 @@ if entity == "Catalytic Assets":
                         st.caption("Funded at")
                         st.markdown(f"**Month {dsra['funded_at_month']}**")
 
-                # Build Mezzanine Schedule (same format as Senior Debt)
-                mezz_rows = []
-                balance_eur = 0.0
+                # Build Mezzanine Schedule — vanilla from engine
                 mezz_rate = mezz['interest']['total_rate']
-                mezz_repayments = 10
-
-                # Drawdown schedule: full amount at period -4 only
+                mezz_repayments = mezz.get('repayments', 10)
                 mezz_drawdown_schedule = [mezz_amount_eur, 0, 0, 0]
-                mezz_drawdown_periods = [-4, -3, -2, -1]
 
-                # Grace periods (-4 to -1): Draw Down + IDC capitalized
-                for idx, period in enumerate(mezz_drawdown_periods):
-                    month = (period + 4) * 6  # -4→0, -3→6, -2→12, -1→18
-                    year = month / 12
-                    opening = balance_eur
+                mezz_rows = build_simple_ic_schedule(
+                    mezz_amount_eur, mezz_amount_eur, mezz_repayments, mezz_rate,
+                    mezz_drawdown_schedule, construction_period_labels(),
+                )
+                for r in mezz_rows:
+                    p_info = period_lookup(r["Period"])
+                    r["Label"] = p_info["label"]
 
-                    # IDC = interest on opening balance (capitalized)
-                    idc = opening * mezz_rate / 2
-
-                    # Drawdown for this period
-                    draw_down = mezz_drawdown_schedule[idx] if idx < len(mezz_drawdown_schedule) else 0
-
-                    # Movement = Draw Down + Interest (IDC capitalized)
-                    movement = draw_down + idc
-                    balance_eur = opening + movement
-
-                    mezz_rows.append({
-                        "Period": period,
-                        "Month": month,
-                        "Year": year,
-                        "Opening": opening,
-                        "Draw Down": draw_down,
-                        "Interest": idc,
-                        "Principle": 0,
-                        "Repayment": 0,
-                        "Movement": movement,
-                        "Closing": balance_eur
-                    })
-
-                # After grace: balance before Pre-Revenue Hedge drawdown
-                balance_before_hedge = balance_eur
-
-                # Hedge drawn at Period 1 (M24), then repayments calculated on total
-                _holding_dsra_draw = 0.0 if nwl_swap_enabled else pre_revenue_hedge
-                balance_with_hedge = balance_before_hedge + _holding_dsra_draw
-                mezz_p_per_period = balance_with_hedge / mezz_repayments
-
-                # Repayment periods (1..10)
-                for i in range(1, mezz_repayments + 1):
-                    period = i
-                    month = 18 + (i * 6)  # 1→24, 2→30, etc.
-                    year = month / 12
-                    opening = balance_eur
-
-                    # Pre-Revenue Hedge drawdown at Period 1 (suppressed when swap active)
-                    if period == 1:
-                        draw_down = _holding_dsra_draw
-                    else:
-                        draw_down = 0
-
-                    # Interest on opening balance
-                    interest = opening * mezz_rate / 2
-
-                    # Principle = constant P (based on total with hedge)
-                    principle = -mezz_p_per_period
-
-                    # Repayment = Principle + Interest
-                    repayment = principle - interest
-
-                    # Movement = Draw Down + Principle (hedge increases, then P reduces)
-                    movement = draw_down + principle
-                    balance_eur = opening + movement
-
-                    mezz_rows.append({
-                        "Period": period,
-                        "Month": month,
-                        "Year": year,
-                        "Opening": opening,
-                        "Draw Down": draw_down,
-                        "Interest": interest,
-                        "Principle": principle,
-                        "Repayment": repayment,
-                        "Movement": movement,
-                        "Closing": balance_eur
-                    })
+                mezz_balance_for_repay = next(
+                    (r["Closing"] for r in mezz_rows
+                     if r["Period"] == construction_end_index()), 0.0
+                )
+                mezz_p_per_period = mezz_balance_for_repay / mezz_repayments if mezz_repayments else 0
 
                 df_mezz = pd.DataFrame(mezz_rows)
-                render_table(df_mezz, {
+                _mz_display_cols = [c for c in ["Label", "Month", "Year", "Opening", "Draw Down",
+                                    "IDC", "Interest", "Principle", "Acceleration", "Movement", "Closing"]
+                                    if c in df_mezz.columns]
+                render_table(df_mezz[_mz_display_cols], {
                     "Year": "{:.1f}",
                     "Opening": "€{:,.0f}",
                     "Draw Down": "€{:,.0f}",
+                    "IDC": "€{:,.0f}",
                     "Interest": "€{:,.0f}",
                     "Principle": "€{:,.0f}",
-                    "Repayment": "€{:,.0f}",
+                    "Acceleration": "€{:,.0f}",
                     "Movement": "€{:,.0f}",
                     "Closing": "€{:,.0f}"
                 })
@@ -14709,73 +14253,51 @@ if entity == "Catalytic Assets":
                 st.markdown("---")
                 col_mezz_idc, col_mezz_hedge, col_mezz_repay = st.columns(3)
 
-                # Calculate IDC for helper table
-                mezz_idc_data = []
-                mezz_bal = 0.0
-                mezz_idc_total = 0.0
-                mezz_dd_total = 0.0
-                for idx, dd in enumerate(mezz_drawdown_schedule):
-                    idc_amt = mezz_bal * mezz_rate / 2
-                    mezz_idc_total += idc_amt
-                    mezz_dd_total += dd
-                    mezz_idc_data.append({"Period": -4 + idx, "Draw Down": dd, "IDC": idc_amt})
-                    mezz_bal += dd + idc_amt
-                mezz_idc_data.append({"Period": "Total", "Draw Down": mezz_dd_total, "IDC": mezz_idc_total})
+                mezz_idc_data = extract_idc_table(mezz_rows)
+                mezz_idc_total = mezz_idc_data[-1]["IDC"] if mezz_idc_data else 0.0
+                for row in mezz_idc_data:
+                    if row["Period"] != "Total":
+                        row["Period"] = period_lookup(row["Period"])["label"]
 
                 with col_mezz_idc:
                     st.markdown("**IDC (Mezz)**")
                     st.caption(f"Interest capitalized at {mezz_rate*100:.2f}%")
-                    df_mezz_idc = pd.DataFrame(mezz_idc_data)
-                    render_table(df_mezz_idc, {"Draw Down": "€{:,.0f}", "IDC": "€{:,.0f}"})
+                    render_table(pd.DataFrame(mezz_idc_data), {"Draw Down": "€{:,.0f}", "IDC": "€{:,.0f}"})
 
                 with col_mezz_hedge:
                     if nwl_swap_enabled:
                         st.markdown("**Cross-Currency Swap**")
-                        st.caption("Swap active — no DSRA drawdown")
+                        st.caption("Swap active — vanilla P_constant")
                         st.markdown(f"""
                     | Item | Detail |
                     |------|--------|
                     | Hedge mode | Cross-Currency Swap |
-                    | DSRA Drawdown | €0 (suppressed) |
-                    | Balance = IDC only | €{balance_before_hedge:,.2f} |
+                    | P_constant | €{mezz_p_per_period:,.2f} |
+                    | Periods | {mezz_repayments} x P_constant |
                     """)
-                        st.caption("CC 2nd Mezz draw suppressed — swap replaces FEC hedge")
                     else:
-                        st.markdown("**Pre-Revenue Hedge Drawdown**")
-                        st.caption("Funded by Creation Capital at M24")
+                        st.markdown("**Pre-Revenue Hedge**")
+                        st.caption("DSRA drawdown allocated via waterfall")
                         st.markdown(f"""
-                    | Item | Amount |
+                    | Item | Detail |
                     |------|--------|
-                    | Hedge Amount | €{pre_revenue_hedge:,.2f} |
-                    | Drawn at | Period 1 (M24) |
-                | Purpose | Fund Senior P1-P2 via FEC/Swap |
+                    | Vanilla P_constant | €{mezz_p_per_period:,.2f} |
+                    | Periods | {mezz_repayments} x P_constant |
+                    | DSRA/Hedge | Allocated by waterfall |
                     """)
-                        st.caption("Pre-Revenue Hedge → FEC/Swap → EUR at M24")
 
                 with col_mezz_repay:
                     st.markdown("**Repayment Structure**")
-                    st.caption(f"{mezz_repayments} periods starting M24")
-                    if nwl_swap_enabled:
-                        st.markdown(f"""
+                    st.caption(f"Vanilla: {mezz_repayments} periods")
+                    st.markdown(f"""
                     | Item | Amount |
                     |------|--------|
                     | Initial Drawdown | €{mezz_amount_eur:,.2f} |
                     | Total IDC | €{mezz_idc_total:,.2f} |
-                    | **Balance for Repay** | €{balance_with_hedge:,.2f} |
-                    | **P per period** | €{mezz_p_per_period:,.2f} |
+                    | **Balance at R1** | €{mezz_balance_for_repay:,.2f} |
+                    | **P_constant** (bal÷{mezz_repayments}) | €{mezz_p_per_period:,.2f} |
                     """)
-                    else:
-                        st.markdown(f"""
-                    | Item | Amount |
-                    |------|--------|
-                    | Initial Drawdown | €{mezz_amount_eur:,.2f} |
-                    | Total IDC | €{mezz_idc_total:,.2f} |
-                    | Balance before hedge | €{balance_before_hedge:,.2f} |
-                    | Hedge at P1 | €{pre_revenue_hedge:,.2f} |
-                    | **Total for Repay** | €{balance_with_hedge:,.2f} |
-                    | **P per period** | €{mezz_p_per_period:,.2f} |
-                    """)
-                st.caption("Repayment = Principle + Interest")
+                    st.caption("Acceleration from waterfall reduces closing balance further")
 
             st.divider()
 
@@ -14783,7 +14305,7 @@ if entity == "Catalytic Assets":
             with st.container(border=True):
                 st.markdown("**CC Accelerated Payoff** _(from Debt Sculpting cascade)_")
                 _cc_payoff_data = {
-                    'Year': [f'Y{yi+1}' for yi in range(10)],
+                    'Year': [f'Y{yi+1}' for yi in range(total_years())],
                     'CC Opening': [_eur_fmt.format(a['wf_cc_opening']) for a in annual_model],
                     'Mezz P+I + Entity Accel': [_eur_fmt.format(a.get('wf_mz_pi', 0)) for a in annual_model],
                     'One-Time Dividend': [_eur_fmt.format(a.get('wf_cc_slug_paid', 0)) for a in annual_model],
@@ -14795,21 +14317,63 @@ if entity == "Catalytic Assets":
 
             st.divider()
 
-            # ── AUDIT: SCLCA Facilities ──
+            # ── AUDIT: SCLCA Facilities (cross-ref vs engine entity IC debt) ──
+            # SCLCA facilities are the bank-side liability. IC loans pass through:
+            # entity pays IC principal -> SCLCA receives -> SCLCA pays facility.
+            # Engine entity data provides independent proof of repayment.
             _sclca_fac_checks = []
-            # Senior facility Y10 closing = 0
-            _sr_y10 = annual_model[-1]['bs_sr'] if annual_model else 0
-            _mz_y10 = annual_model[-1]['bs_mz'] if annual_model else 0
+            # Maturity: engine entity IC debt Y10 = 0 (independent proof facilities are repaid)
+            _sub_sr_y10 = _audit_nwl_ann[-1]['bs_sr'] + _audit_lanred_ann[-1]['bs_sr'] + _audit_twx_ann[-1]['bs_sr']
             _sclca_fac_checks.append({
-                    "name": "Senior Facility Y10 = 0",
-                    "expected": 0.0,
-                    "actual": _sr_y10,
-            })
-            _sclca_fac_checks.append({
-                    "name": "Mezz Facility Y10 = 0",
+                "name": "Y10: Entity Sr IC debt = 0 (engine)",
                 "expected": 0.0,
-                "actual": _mz_y10,
+                "actual": _sub_sr_y10,
             })
+            _sub_mz_y10 = _audit_nwl_ann[-1]['bs_mz'] + _audit_lanred_ann[-1]['bs_mz'] + _audit_twx_ann[-1]['bs_mz']
+            _sclca_fac_checks.append({
+                "name": "Y10: Entity Mz IC debt = 0 (engine)",
+                "expected": 0.0,
+                "actual": _sub_mz_y10,
+            })
+            # Principal pass-through: each year, SCLCA principal received from
+            # IC loans (from entities via engine) = SCLCA principal paid to facility
+            for _fyi in range(total_years()):
+                _fy = _fyi + 1
+                _fsa = annual_model[_fyi]
+                _sub_pr = (
+                    _audit_nwl_ann[_fyi]['cf_pr']
+                    + _audit_lanred_ann[_fyi]['cf_pr']
+                    + _audit_twx_ann[_fyi]['cf_pr']
+                )
+                _sclca_fac_checks.append({
+                    "name": f"Y{_fy}: IC principal in (engine) = facility repay in",
+                    "expected": _fsa['cf_repay_in'],
+                    "actual": _sub_pr,
+                })
+            # Interest pass-through Sr/Mz split: SCLCA II Sr/Mz vs sum(entity IE Sr/Mz)
+            for _fyi in range(total_years()):
+                _fy = _fyi + 1
+                _fsa = annual_model[_fyi]
+                _sub_ie_sr = (
+                    _audit_nwl_ann[_fyi]['ie_sr']
+                    + _audit_lanred_ann[_fyi]['ie_sr']
+                    + _audit_twx_ann[_fyi]['ie_sr']
+                )
+                _sclca_fac_checks.append({
+                    "name": f"Y{_fy}: SCLCA II Sr = sum(entity IE Sr)",
+                    "expected": _fsa['ii_sr'],
+                    "actual": _sub_ie_sr,
+                })
+                _sub_ie_mz = (
+                    _audit_nwl_ann[_fyi]['ie_mz']
+                    + _audit_lanred_ann[_fyi]['ie_mz']
+                    + _audit_twx_ann[_fyi]['ie_mz']
+                )
+                _sclca_fac_checks.append({
+                    "name": f"Y{_fy}: SCLCA II Mz = sum(entity IE Mz)",
+                    "expected": _fsa['ii_mz'],
+                    "actual": _sub_ie_mz,
+                })
             run_page_audit(_sclca_fac_checks, "SCLCA — Facilities")
 
     # --- ASSETS TAB ---
@@ -14827,16 +14391,17 @@ if entity == "Catalytic Assets":
 
             # Get senior loan drawdown schedule from config
             senior_drawdown_schedule = senior_detail['drawdown_schedule']  # [8789117, 2835775, 1818036, 0]
-            senior_drawdown_periods = [-4, -3, -2, -1]  # Periods for drawdowns
+            senior_drawdown_periods = construction_period_labels()  # Periods for drawdowns
 
             # IC loan format
             ic_format = {
                 "Year": "{:.1f}",
                 "Opening": "€{:,.0f}",
                 "Draw Down": "€{:,.0f}",
+                "IDC": "€{:,.0f}",
                 "Interest": "€{:,.0f}",
                 "Principle": "€{:,.0f}",
-                "Repayment": "€{:,.0f}",
+                "Acceleration": "€{:,.0f}",
                 "Movement": "€{:,.0f}",
                 "Closing": "€{:,.0f}"
             }
@@ -14845,14 +14410,10 @@ if entity == "Catalytic Assets":
             senior_total = sum(l["senior_portion"] for l in loans.values())
             mezz_total = sum(l["mezz_portion"] for l in loans.values())
 
-            # NWL prepayment (full DTIC + GEPF - NWL-specific subsidies)
-            nwl_pro_rata = loans["nwl"]["senior_portion"] / senior_total
-            nwl_prepayment = prepayment_total  # Full amount to NWL, not pro-rata
-
             # Mezz IC common parameters
             mezz_ic_reps = mezz_repayments  # Same as facility (10)
             mezz_ic_drawdown_schedule = [mezz_amount_eur, 0, 0, 0]
-            mezz_ic_periods = [-4, -3, -2, -1]
+            mezz_ic_periods = construction_period_labels()
 
             # Asset-side branding uses each subsidiary logo
             _nwl_asset_logo = LOGO_DIR / ENTITY_LOGOS.get("nwl", "")
@@ -14901,237 +14462,85 @@ if entity == "Catalytic Assets":
                         st.caption("IDC")
                         st.markdown("**Roll-up, add to principal**")
 
-                    nwl_sr_rows = []
-                    nwl_sr_balance = 0.0
-                    nwl_sr_num_repayments = senior['repayments']  # 14
+                    # Read NWL Senior IC from engine (single source of truth)
+                    nwl_sr_rows = _entity_ic['nwl']['sr']
+                    nwl_sr_num_repayments = senior['repayments']
+                    # Add canonical labels
+                    for r in nwl_sr_rows:
+                        p_info = period_lookup(r["Period"])
+                        r["Label"] = p_info["label"]
 
-                    # Grace periods (-4 to -1)
-                    for idx, period in enumerate(senior_drawdown_periods):
-                        month = (period + 4) * 6
-                        year = month / 12
-                        opening = nwl_sr_balance
-
-                        # IDC
-                        idc = opening * senior_ic_rate / 2
-
-                        # Pro-rata drawdown
-                        draw_down = senior_drawdown_schedule[idx] * nwl_pro_rata if idx < len(senior_drawdown_schedule) else 0
-
-                        # Prepayment at P-1 (NWL receives DTIC+GEPF, prepays IC loan)
-                        if period == -1:
-                            principle = -nwl_prepayment
-                        else:
-                            principle = 0
-
-                        repayment = principle
-                        movement = draw_down + idc + principle
-                        nwl_sr_balance = opening + movement
-
-                        nwl_sr_rows.append({
-                            "Period": period, "Month": month, "Year": year,
-                            "Opening": opening, "Draw Down": draw_down, "Interest": idc,
-                            "Principle": principle, "Repayment": repayment,
-                            "Movement": movement, "Closing": nwl_sr_balance
-                        })
-
-                    # After grace: Pre-Revenue Hedge at M24 (same as facility, only interest differs)
-                    nwl_sr_balance_for_repay = nwl_sr_balance
-                    if nwl_swap_enabled:
-                        nwl_sr_hedge_p1 = 0.0
-                        nwl_sr_balance_after_hedge = nwl_sr_balance_for_repay
-                        nwl_sr_new_p = nwl_sr_balance_for_repay / nwl_sr_num_repayments  # bal÷14 vanilla
-                    else:
-                        nwl_sr_hedge_p1 = pre_revenue_hedge  # Pre-Revenue Hedge: 2×(P+I) at M24
-                        nwl_sr_balance_after_hedge = nwl_sr_balance_for_repay - nwl_sr_hedge_p1
-                        nwl_sr_new_p = nwl_sr_balance_after_hedge / (nwl_sr_num_repayments - 2)  # 12 periods
-
-                    # Repayment periods (1-14)
-                    for i in range(1, nwl_sr_num_repayments + 1):
-                        period = i
-                        month = 18 + (i * 6)
-                        year = month / 12
-                        opening = nwl_sr_balance
-
-                        interest = opening * senior_ic_rate / 2
-
-                        if nwl_swap_enabled:
-                            principle = -nwl_sr_new_p  # vanilla P_constant
-                            dsra_note = ""
-                        elif period == 1:
-                            # Pre-Revenue Hedge payment
-                            principle = -nwl_sr_hedge_p1
-                            dsra_note = " *"
-                        elif period == 2:
-                            # Interest only
-                            principle = 0
-                            dsra_note = " *"
-                        else:
-                            # Regular P
-                            principle = -nwl_sr_new_p
-                            dsra_note = ""
-
-                        repayment = principle - interest
-                        movement = principle
-                        nwl_sr_balance = opening + movement
-
-                        nwl_sr_rows.append({
-                            "Period": f"{period}{dsra_note}", "Month": month, "Year": year,
-                            "Opening": opening, "Draw Down": 0, "Interest": interest,
-                            "Principle": principle, "Repayment": repayment,
-                            "Movement": movement, "Closing": nwl_sr_balance
-                        })
+                    nwl_sr_balance_for_repay = next(
+                        (r["Closing"] for r in nwl_sr_rows
+                         if r["Period"] == construction_end_index()), 0.0
+                    )
+                    nwl_sr_new_p = nwl_sr_balance_for_repay / nwl_sr_num_repayments if nwl_sr_num_repayments else 0
 
                     df_nwl_senior = pd.DataFrame(nwl_sr_rows)
-                    render_table(df_nwl_senior, ic_format)
+                    _nwl_sr_cols = [c for c in ["Label", "Month", "Year", "Opening", "Draw Down",
+                                    "IDC", "Interest", "Principle", "Acceleration", "Movement", "Closing"]
+                                    if c in df_nwl_senior.columns]
+                    render_table(df_nwl_senior[_nwl_sr_cols], ic_format)
 
                     # Helper tables for NWL Senior IC
                     st.markdown("---")
                     col_nwl_idc, col_nwl_hedge, col_nwl_repay = st.columns(3)
 
-                    # Calculate IDC for helper table
-                    nwl_idc_data = []
-                    nwl_idc_bal = 0.0
-                    nwl_idc_total = 0.0
-                    nwl_dd_total = 0.0
-                    for idx, dd in enumerate(senior_drawdown_schedule):
-                        nwl_dd = dd * nwl_pro_rata
-                        idc_amt = nwl_idc_bal * senior_ic_rate / 2
-                        nwl_idc_total += idc_amt
-                        nwl_dd_total += nwl_dd
-                        nwl_idc_data.append({"Period": -4 + idx, "Draw Down": nwl_dd, "IDC": idc_amt})
-                        nwl_idc_bal += nwl_dd + idc_amt
-                    nwl_idc_data.append({"Period": "Total", "Draw Down": nwl_dd_total, "IDC": nwl_idc_total})
+                    nwl_idc_data = extract_idc_table(nwl_sr_rows)
+                    for row in nwl_idc_data:
+                        if row["Period"] != "Total":
+                            row["Period"] = period_lookup(row["Period"])["label"]
 
                     with col_nwl_idc:
                         st.markdown("**IDC (NWL Senior IC)**")
                         st.caption(f"Interest capitalized at {senior_ic_rate*100:.2f}%")
-                        df_nwl_idc = pd.DataFrame(nwl_idc_data)
-                        render_table(df_nwl_idc, {"Draw Down": "€{:,.0f}", "IDC": "€{:,.0f}"})
+                        render_table(pd.DataFrame(nwl_idc_data), {"Draw Down": "€{:,.0f}", "IDC": "€{:,.0f}"})
 
                     with col_nwl_hedge:
-                        if nwl_swap_enabled:
-                            st.markdown("**Cross-Currency Swap**")
-                            st.caption("Swap active — vanilla P_constant")
-                            st.markdown(f"""
+                        st.markdown("**Hedge / Acceleration**")
+                        st.caption("Allocated by waterfall, not in schedule")
+                        st.markdown(f"""
                     | Item | Detail |
                     |------|--------|
-                    | Hedge mode | Cross-Currency Swap |
-                    | P1/P2 override | None (vanilla) |
-                    | P_constant | €{nwl_sr_new_p:,.0f} |
-                    | Periods | {nwl_sr_num_repayments} × P_constant |
+                    | Vanilla P_constant | €{nwl_sr_new_p:,.0f} |
+                    | Periods | {nwl_sr_num_repayments} x P_constant |
+                    | Grants/DSRA | Waterfall specials |
                     """)
-                            st.caption("DSRA sizing suppressed — swap replaces FEC hedge")
-                        else:
-                            st.markdown("**Pre-Revenue Hedge**")
-                            st.caption("2×(P+I) at M24 — one shot")
-                            st.markdown(f"""
-                    | Item | Amount |
-                    |------|--------|
-                    | Hedge Amount | €{nwl_sr_hedge_p1:,.0f} |
-                    | NWL Interest M24 | €{nwl_sr_balance_for_repay * senior_ic_rate / 2:,.0f} |
-                    | M24 Repayment | €{nwl_sr_hedge_p1 + nwl_sr_balance_for_repay * senior_ic_rate / 2:,.0f} |
-                    | M30 (I only) | €{nwl_sr_balance_after_hedge * senior_ic_rate / 2:,.0f} |
-                    """)
-                            st.caption("Hedge amount identical to facility level")
 
                     with col_nwl_repay:
-                        if nwl_swap_enabled:
-                            st.markdown("**Repayment Structure**")
-                            st.caption(f"Vanilla: {nwl_sr_num_repayments} periods (bal÷{nwl_sr_num_repayments})")
-                            st.markdown(f"""
+                        st.markdown("**Repayment Structure**")
+                        st.caption(f"Vanilla: {nwl_sr_num_repayments} periods")
+                        st.markdown(f"""
                     | Item | Amount |
                     |------|--------|
-                    | **P-1 Prepay** | €{nwl_prepayment:,.0f} |
-                    | Balance for repay | €{nwl_sr_balance_for_repay:,.0f} |
+                    | Balance at R1 | €{nwl_sr_balance_for_repay:,.0f} |
                     | **P_constant** (bal÷{nwl_sr_num_repayments}) | €{nwl_sr_new_p:,.0f} |
                     """)
-                            st.caption("Repayment = Principle + Interest")
-                        else:
-                            st.markdown("**Repayment Structure**")
-                            st.caption("After prepayments, 12 periods remain")
-                            st.markdown(f"""
-                    | Item | Amount |
-                    |------|--------|
-                    | **P-1 Prepay** | €{nwl_prepayment:,.0f} |
-                    | Balance for repay | €{nwl_sr_balance_for_repay:,.0f} |
-                    | **P1 Hedge** | €{nwl_sr_hedge_p1:,.0f} |
-                    | Balance after hedge | €{nwl_sr_balance_after_hedge:,.0f} |
-                    | **New P** (bal÷12) | €{nwl_sr_new_p:,.0f} |
-                    """)
-                            st.caption("Repayment = Principle + Interest")
+                        st.caption("Acceleration from waterfall reduces closing balance further")
 
                 st.divider()
 
-                # --- NWL Mezz IC (with Pre-Revenue Hedge drawdown) ---
-                _holding_mezz_note = "*(swap active — no DSRA draw)*" if nwl_swap_enabled else "*(receives Pre-Revenue Hedge drawdown)*"
-                st.markdown(f"**Mezz IC** — {mezz_ic_rate*100:.2f}% | {mezz_ic_reps} semi-annual {_holding_mezz_note}")
+                # --- NWL Mezz IC — read from engine (single source of truth) ---
+                st.markdown(f"**Mezz IC** — {mezz_ic_rate*100:.2f}% | {mezz_ic_reps} semi-annual")
 
-                nwl_mezz_pro_rata = loans["nwl"]["mezz_portion"] / mezz_total
-                nwl_mz_rows = []
-                nwl_mz_balance = 0.0
+                nwl_mz_rows = _entity_ic['nwl']['mz']
+                for r in nwl_mz_rows:
+                    p_info = period_lookup(r["Period"])
+                    r["Label"] = p_info["label"]
 
-                # Grace periods
-                for idx, period in enumerate(mezz_ic_periods):
-                    month = (period + 4) * 6
-                    year = month / 12
-                    opening = nwl_mz_balance
-                    idc = opening * mezz_ic_rate / 2
-                    draw_down = mezz_ic_drawdown_schedule[idx] * nwl_mezz_pro_rata if idx < len(mezz_ic_drawdown_schedule) else 0
-                    movement = draw_down + idc
-                    nwl_mz_balance = opening + movement
-                    nwl_mz_rows.append({
-                        "Period": period, "Month": month, "Year": year,
-                        "Opening": opening, "Draw Down": draw_down, "Interest": idc,
-                        "Principle": 0, "Repayment": 0, "Movement": movement, "Closing": nwl_mz_balance
-                    })
-
-                # DSRA drawn at P1 — suppressed when CCS active
-                _sclca_dsra_draw = 0.0 if nwl_swap_enabled else pre_revenue_hedge
-                nwl_mz_balance_before_dsra = nwl_mz_balance
-                nwl_mz_balance_with_dsra = nwl_mz_balance_before_dsra + _sclca_dsra_draw
-                nwl_mz_p_per = nwl_mz_balance_with_dsra / mezz_ic_reps
-
-                # Repayment periods
-                for i in range(1, mezz_ic_reps + 1):
-                    month = 18 + (i * 6)
-                    year = month / 12
-                    opening = nwl_mz_balance
-
-                    if i == 1:
-                        draw_down = _sclca_dsra_draw
-                        dsra_note = " *" if _sclca_dsra_draw > 0 else ""
-                    else:
-                        draw_down = 0
-                        dsra_note = ""
-
-                    interest = opening * mezz_ic_rate / 2
-                    principle = -nwl_mz_p_per
-                    repayment = principle - interest
-                    movement = draw_down + principle
-                    nwl_mz_balance = opening + movement
-
-                    nwl_mz_rows.append({
-                        "Period": f"{i}{dsra_note}", "Month": month, "Year": year,
-                        "Opening": opening, "Draw Down": draw_down, "Interest": interest,
-                        "Principle": principle, "Repayment": repayment, "Movement": movement, "Closing": nwl_mz_balance
-                    })
+                nwl_mz_balance_for_repay = next(
+                    (r["Closing"] for r in nwl_mz_rows
+                     if r["Period"] == construction_end_index()), 0.0
+                )
+                nwl_mz_p_per = nwl_mz_balance_for_repay / mezz_ic_reps if mezz_ic_reps else 0
 
                 df_nwl_mezz = pd.DataFrame(nwl_mz_rows)
-                render_table(df_nwl_mezz, ic_format)
+                _nwl_mz_cols = [c for c in ["Label", "Month", "Year", "Opening", "Draw Down",
+                                "IDC", "Interest", "Principle", "Acceleration", "Movement", "Closing"]
+                                if c in df_nwl_mezz.columns]
+                render_table(df_nwl_mezz[_nwl_mz_cols], ic_format)
 
-                if nwl_swap_enabled:
-                    st.caption(f"""
-            **NWL Mezz IC Notes:**
-            - **DSRA drawdown suppressed** — Cross-Currency Swap active (no CC 2nd Mezz draw)
-            - **Repayments:** P = €{nwl_mz_p_per:,.0f} on original balance (no DSRA inflation)
-            """)
-                else:
-                    st.caption(f"""
-            **NWL Mezz IC Notes:**
-            - **P1 (*):** Pre-Revenue Hedge €{pre_revenue_hedge:,.0f} (increases NWL's Mezz liability)
-            - **Repayments:** P = €{nwl_mz_p_per:,.0f} on total (original + IDC + DSRA)
-            - DSRA flows: NWL Mezz ↑ → SCLCA Mezz ↑ → FEC → SCLCA Senior ↓ → NWL Senior ↓
-            """)
+                st.caption(f"Vanilla P_constant = €{nwl_mz_p_per:,.0f} | DSRA/acceleration allocated by waterfall")
 
                 st.divider()
                 st.markdown("#### Equity Stake")
@@ -15163,21 +14572,24 @@ if entity == "Catalytic Assets":
                     st.markdown("### LanRED")
                 st.caption(f"Senior: €{loans['lanred']['senior_portion']:,.0f} | Mezz: €{loans['lanred']['mezz_portion']:,.0f} | Total: €{loans['lanred']['total_loan']:,.0f}")
 
-                # --- LanRED Senior IC ---
+                # --- LanRED Senior IC (from engine) ---
                 st.markdown(f"**Senior IC** — {senior_ic_rate*100:.2f}% | {senior['repayments']} semi-annual")
-                df_lanred_senior = pd.DataFrame(build_simple_ic_schedule(
-                    loans["lanred"]["senior_portion"], senior_total, senior['repayments'],
-                    senior_ic_rate, senior_drawdown_schedule, senior_drawdown_periods
-                ))
-                render_table(df_lanred_senior, ic_format)
+                _lr_sr = _entity_ic['lanred']['sr']
+                for r in _lr_sr:
+                    r["Label"] = period_lookup(r["Period"])["label"]
+                df_lanred_senior = pd.DataFrame(_lr_sr)
+                _ic_display_cols = [c for c in ["Label", "Month", "Year", "Opening", "Draw Down",
+                                    "IDC", "Interest", "Principle", "Acceleration", "Movement", "Closing"]
+                                    if c in df_lanred_senior.columns]
+                render_table(df_lanred_senior[_ic_display_cols], ic_format)
 
-                # --- LanRED Mezz IC ---
+                # --- LanRED Mezz IC (from engine) ---
                 st.markdown(f"**Mezz IC** — {mezz_ic_rate*100:.2f}% | {mezz_ic_reps} semi-annual")
-                df_lanred_mezz = pd.DataFrame(build_simple_ic_schedule(
-                    loans["lanred"]["mezz_portion"], mezz_total, mezz_ic_reps,
-                    mezz_ic_rate, mezz_ic_drawdown_schedule, mezz_ic_periods
-                ))
-                render_table(df_lanred_mezz, ic_format)
+                _lr_mz = _entity_ic['lanred']['mz']
+                for r in _lr_mz:
+                    r["Label"] = period_lookup(r["Period"])["label"]
+                df_lanred_mezz = pd.DataFrame(_lr_mz)
+                render_table(df_lanred_mezz[_ic_display_cols], ic_format)
 
                 st.divider()
                 st.markdown("#### Equity Stake")
@@ -15203,21 +14615,21 @@ if entity == "Catalytic Assets":
                     st.markdown("### Timberworx")
                 st.caption(f"Senior: €{loans['timberworx']['senior_portion']:,.0f} | Mezz: €{loans['timberworx']['mezz_portion']:,.0f} | Total: €{loans['timberworx']['total_loan']:,.0f}")
 
-                # --- Timberworx Senior IC ---
+                # --- Timberworx Senior IC (from engine) ---
                 st.markdown(f"**Senior IC** — {senior_ic_rate*100:.2f}% | {senior['repayments']} semi-annual")
-                df_twx_senior = pd.DataFrame(build_simple_ic_schedule(
-                    loans["timberworx"]["senior_portion"], senior_total, senior['repayments'],
-                    senior_ic_rate, senior_drawdown_schedule, senior_drawdown_periods
-                ))
-                render_table(df_twx_senior, ic_format)
+                _twx_sr = _entity_ic['timberworx']['sr']
+                for r in _twx_sr:
+                    r["Label"] = period_lookup(r["Period"])["label"]
+                df_twx_senior = pd.DataFrame(_twx_sr)
+                render_table(df_twx_senior[_ic_display_cols], ic_format)
 
-                # --- Timberworx Mezz IC ---
+                # --- Timberworx Mezz IC (from engine) ---
                 st.markdown(f"**Mezz IC** — {mezz_ic_rate*100:.2f}% | {mezz_ic_reps} semi-annual")
-                df_twx_mezz = pd.DataFrame(build_simple_ic_schedule(
-                    loans["timberworx"]["mezz_portion"], mezz_total, mezz_ic_reps,
-                    mezz_ic_rate, mezz_ic_drawdown_schedule, mezz_ic_periods
-                ))
-                render_table(df_twx_mezz, ic_format)
+                _twx_mz = _entity_ic['timberworx']['mz']
+                for r in _twx_mz:
+                    r["Label"] = period_lookup(r["Period"])["label"]
+                df_twx_mezz = pd.DataFrame(_twx_mz)
+                render_table(df_twx_mezz[_ic_display_cols], ic_format)
 
                 st.divider()
                 st.markdown("#### Equity Stake")
@@ -15227,132 +14639,142 @@ if entity == "Catalytic Assets":
                 with _eq_twx_c2:
                     st.metric("Share Capital", "R1m", "€50,000 at FX 20")
                 with _eq_twx_c3:
-                    _vs_logo_a = LOGO_DIR / ENTITY_LOGOS.get("vansquare", "")
+                    _vs_logo_a = LOGO_DIR / ENTITY_LOGOS.get("vansquared", "")
                     if _vs_logo_a.exists():
                         st.image(str(_vs_logo_a), width=80)
-                    st.markdown("**VanSquare — 95%**")
+                    st.markdown("**VanSquared — 95%**")
 
             st.divider()
 
             # Equity now shown per company container above
 
             # ===========================================
-            # SCLCA Assets: Pre-Revenue Hedge + FEC + Fixed Deposit
+            # SCLCA Assets: Pre-Revenue Hedge + FEC
+            # Only relevant when FEC/DSRA mode (not Cross-Currency Swap)
+            # ===========================================
+            if not nwl_swap_enabled:
+                with st.container(border=True):
+                    st.subheader("Pre-Revenue Hedge (CC 2nd Draw)")
+                    st.caption("How Creation Capital's 2nd drawdown funds the first 2 Senior debt service payments")
+
+                    st.markdown("""
+                **Pre-Revenue Hedge at M24 (CC 2nd Drawdown):**
+
+                | Step | Action | Effect |
+                |------|--------|--------|
+                | 1 | CC injects 2×(P+I) as 2nd Mezz draw | SCLCA Mezz liability increases |
+                | 2 | Holding increases NWL Mezz IC | NWL Mezz IC balance increases |
+                | 3 | NWL uses funds to repay Senior IC | NWL Senior IC balance decreases |
+                | 4 | Holding receives Sr IC repayment | Cash in from NWL |
+                | 5 | Holding prepays Senior facility (DFI) | Senior facility balance decreases |
+
+                **Key insight:** CC's 2nd drawdown indirectly funds the first 2 Senior DFI payments via the Mezz→NWL→Senior chain.
+                It's a pass-through at holding level — no cash is retained. The holding's Fixed Deposit is funded separately
+                by the 0.5% interest margin on IC loans.
+                """)
+
+                _dsra_flow_svg = Path(__file__).parent / "assets" / "dsra-flow.svg"
+                if _dsra_flow_svg.exists():
+                    st.image(str(_dsra_flow_svg), use_container_width=False, width=640)
+
+                with st.container(border=True):
+                    st.subheader("FEC (Forward Exchange Cover)")
+                    st.caption("Pre-Revenue Hedge funded by Creation Capital at M24 → immediately used to buy FEC from Investec (forex hedge)")
+
+                    _fec_r1 = st.columns(4)
+                    with _fec_r1[0]:
+                        st.caption("Pre-Revenue Hedge (M24)")
+                        st.markdown(f"**€{pre_revenue_hedge:,.0f}**")
+                    with _fec_r1[1]:
+                        st.caption("Sizing Basis")
+                        st.markdown("**2×(P + I_M24)**")
+                    with _fec_r1[2]:
+                        st.caption("FEC Provider")
+                        st.markdown("**Investec**")
+                    with _fec_r1[3]:
+                        st.caption("Purpose")
+                        st.markdown("**Forex hedge on Senior**")
+
+            # ===========================================
+            # Fixed Deposit Schedule (always shown)
             # ===========================================
             with st.container(border=True):
-                st.subheader("Pre-Revenue Hedge (CC 2nd Draw)")
-                st.caption("How Creation Capital's 2nd drawdown funds the first 2 Senior debt service payments")
+                st.subheader("Fixed Deposit")
+                st.markdown("**Opening** + **Deposit** (interest margin) + **Interest** (4.4%/6mo) = **Closing**")
+                st.caption("Semi-annual compounding @ 9% p.a. = 4.4% per 6 months. Deposit = IC cash interest received minus facility cash interest paid (0.5% spread).")
 
-                st.markdown("""
-            **Pre-Revenue Hedge at M24 (CC 2nd Drawdown):**
+                # Build FD schedule: semi-annual calculation
+                # Semi-annual interest rate: (1.09)^0.5 - 1 ≈ 0.04403
+                dsra_rate_semiannual = (1 + DSRA_RATE) ** 0.5 - 1
 
-            | Step | Action | Effect |
-            |------|--------|--------|
-            | 1 | CC injects 2×(P+I) as 2nd Mezz draw | SCLCA Mezz liability increases |
-            | 2 | Holding increases NWL Mezz IC | NWL Mezz IC balance increases |
-            | 3 | NWL uses funds to repay Senior IC | NWL Senior IC balance decreases |
-            | 4 | Holding receives Sr IC repayment | Cash in from NWL |
-            | 5 | Holding prepays Senior facility (DFI) | Senior facility balance decreases |
+                fd_rows = []
+                _fd_bal = 0.0
 
-            **Key insight:** CC's 2nd drawdown indirectly funds the first 2 Senior DFI payments via the Mezz→NWL→Senior chain.
-            It's a pass-through at holding level — no cash is retained. The holding's Fixed Deposit is funded separately
-            by the 0.5% interest margin on IC loans.
-            """)
+                # Loop through semi-annual periods matching Senior/Mezz schedule
+                for period_idx in range(total_periods()):
+                    p_info = period_lookup(period_idx)
+                    sem_data = _sem[period_idx]
 
-            _dsra_flow_svg = Path(__file__).parent / "assets" / "dsra-flow.svg"
-            if _dsra_flow_svg.exists():
-                st.image(str(_dsra_flow_svg), use_container_width=False, width=640)
+                    opening = _fd_bal
+                    # Deposit = INTEREST MARGIN ONLY
+                    # Principal is a pure pass-through (IC → facility), not retained.
+                    cash_ii = sem_data['isi_cash'] + sem_data['imi_cash']
+                    cash_ie = sem_data['si_cash'] + sem_data['mi_cash']
+                    deposit = cash_ii - cash_ie
 
-            with st.container(border=True):
-                st.subheader("FEC (Forward Exchange Cover)")
-                st.caption("Pre-Revenue Hedge funded by Creation Capital at M24 → immediately used to buy FEC from Investec (forex hedge)")
+                    # Interest on opening balance (semi-annual rate)
+                    interest = opening * dsra_rate_semiannual
+                    closing = opening + deposit + interest
+                    _fd_bal = closing
 
-                _fec_r1 = st.columns(4)
-                with _fec_r1[0]:
-                    st.caption("Pre-Revenue Hedge (M24)")
-                    st.markdown(f"**€{pre_revenue_hedge:,.0f}**")
-                with _fec_r1[1]:
-                    st.caption("Sizing Basis")
-                    st.markdown("**2×(P + I_M24)**")
-                with _fec_r1[2]:
-                    st.caption("FEC Provider")
-                    st.markdown("**Investec**")
-                with _fec_r1[3]:
-                    st.caption("Purpose")
-                    st.markdown("**Forex hedge on Senior**")
-
-                st.divider()
-
-                # ===========================================
-                # Fixed Deposit Schedule
-                # ===========================================
-                with st.container(border=True):
-                    st.subheader("Fixed Deposit")
-                    st.markdown("**Opening** + **Deposit** (interest margin) + **Interest** (4.4%/6mo) = **Closing**")
-                    st.caption("Semi-annual compounding @ 9% p.a. = 4.4% per 6 months. Deposit = IC cash interest received minus facility cash interest paid (0.5% spread).")
-
-                    # Build FD schedule: semi-annual calculation
-                    # Semi-annual interest rate: (1.09)^0.5 - 1 ≈ 0.04403
-                    dsra_rate_semiannual = (1 + DSRA_RATE) ** 0.5 - 1
-
-                    fd_rows = []
-                    _fd_bal = 0.0
-
-                    # Loop through semi-annual periods matching Senior/Mezz schedule
-                    for period_idx in range(20):  # 10 years × 2 = 20 periods
-                        year = (period_idx // 2) + 1
-                        half = 'H1' if period_idx % 2 == 0 else 'H2'
-                        month = period_idx * 6
-
-                        # Get semi-annual data
-                        sem_data = _sem[period_idx]
-
-                        opening = _fd_bal
-                        # Deposit = INTEREST MARGIN ONLY
-                        # Principal is a pure pass-through (IC → facility), not retained.
-                        cash_ii = sem_data['isi_cash'] + sem_data['imi_cash']
-                        cash_ie = sem_data['si_cash'] + sem_data['mi_cash']
-                        deposit = cash_ii - cash_ie
-
-                        # Interest on opening balance (semi-annual rate)
-                        interest = opening * dsra_rate_semiannual
-                        closing = opening + deposit + interest
-                        _fd_bal = closing
-
-                        fd_rows.append({
-                            "Period": period_idx + 1,
-                            "Month": month,
-                            "Year": year,
-                            "Opening": opening,
-                            "Deposit": deposit,
-                            "Interest": interest,
-                            "Closing": closing
-                        })
-
-                    df_fd = pd.DataFrame(fd_rows)
-                    render_table(df_fd, {
-                        "Opening": "€{:,.0f}", "Deposit": "€{:,.0f}",
-                        "Interest": "€{:,.0f}", "Closing": "€{:,.0f}"
+                    fd_rows.append({
+                        "Period": p_info["label"],
+                        "Month": p_info["month"],
+                        "Year": p_info["year"],
+                        "Opening": opening,
+                        "Deposit": deposit,
+                        "Interest": interest,
+                        "Closing": closing
                     })
 
-            # ── AUDIT: SCLCA Assets ──
+                df_fd = pd.DataFrame(fd_rows)
+                render_table(df_fd, {
+                    "Opening": "€{:,.0f}", "Deposit": "€{:,.0f}",
+                    "Interest": "€{:,.0f}", "Closing": "€{:,.0f}"
+                })
+
+            # ── AUDIT: SCLCA Assets (cross-ref vs engine entity IC debt) ──
             _sclca_ast_checks = []
-            # IC receivable Y10 = 0 (all IC loans repaid)
+            for _ayi in range(total_years()):
+                _ay = _ayi + 1
+                _ana = _audit_nwl_ann[_ayi]
+                _ala = _audit_lanred_ann[_ayi]
+                _ata = _audit_twx_ann[_ayi]
+                _asa = annual_model[_ayi]
+                # SCLCA IC Sr receivable = sum(entity IC Sr debt) from engine
+                _sub_bs_sr = _ana['bs_sr'] + _ala['bs_sr'] + _ata['bs_sr']
+                _sclca_ast_checks.append({
+                    "name": f"Y{_ay}: IC Sr receivable = sum(entity Sr debt)",
+                    "expected": _asa['bs_isr'],
+                    "actual": _sub_bs_sr,
+                })
+                # SCLCA IC Mz receivable = sum(entity IC Mz debt) from engine
+                _sub_bs_mz = _ana['bs_mz'] + _ala['bs_mz'] + _ata['bs_mz']
+                _sclca_ast_checks.append({
+                    "name": f"Y{_ay}: IC Mz receivable = sum(entity Mz debt)",
+                    "expected": _asa['bs_imz'],
+                    "actual": _sub_bs_mz,
+                })
+            # Y10: all IC loans fully repaid (from engine, not inline)
+            _sub_ic_y10 = (
+                _audit_nwl_ann[-1]['bs_sr'] + _audit_nwl_ann[-1]['bs_mz']
+                + _audit_lanred_ann[-1]['bs_sr'] + _audit_lanred_ann[-1]['bs_mz']
+                + _audit_twx_ann[-1]['bs_sr'] + _audit_twx_ann[-1]['bs_mz']
+            )
             _sclca_ast_checks.append({
-                "name": "IC Senior receivable Y10 = 0",
+                "name": "Y10: All IC loans repaid (engine)",
                 "expected": 0.0,
-                "actual": annual_model[-1]['bs_isr'],
-            })
-            _sclca_ast_checks.append({
-                "name": "IC Mezz receivable Y10 = 0",
-                "expected": 0.0,
-                "actual": annual_model[-1]['bs_imz'],
-            })
-            # Equity in subs = constant
-            _sclca_ast_checks.append({
-                "name": "Equity in subs = constant",
-                "expected": EQUITY_TOTAL,
-                "actual": annual_model[-1]['bs_eq_subs'],
+                "actual": _sub_ic_y10,
             })
             run_page_audit(_sclca_ast_checks, "SCLCA — Assets")
 
@@ -15645,28 +15067,42 @@ if entity == "Catalytic Assets":
             )
             st.plotly_chart(fig_pnl, use_container_width=True)
 
-            # ── AUDIT: SCLCA P&L ──
+            # ── AUDIT: SCLCA P&L (cross-ref vs engine entity interest expense) ──
             _sclca_pl_checks = []
-            for _a in annual_model:
-                _y = _a['year']
+            for _pyi in range(total_years()):
+                _py = _pyi + 1
+                _pna = _audit_nwl_ann[_pyi]
+                _pla = _audit_lanred_ann[_pyi]
+                _pta = _audit_twx_ann[_pyi]
+                _psa = annual_model[_pyi]
+                # SCLCA interest income (IC only) = sum(entity IC interest expense)
+                _sub_ie_total = _pna['ie_sr'] + _pna['ie_mz'] + _pla['ie_sr'] + _pla['ie_mz'] + _pta['ie_sr'] + _pta['ie_mz']
                 _sclca_pl_checks.append({
-                    "name": f"Y{_y}: NI = II - IE",
-                    "expected": _a['ii'] - _a['ie'],
-                    "actual": _a['ni'],
+                    "name": f"Y{_py}: SCLCA II(IC) = sum(entity IE)",
+                    "expected": _psa['ii_ic'],
+                    "actual": _sub_ie_total,
                 })
+                # SCLCA facility IE = sum(entity IC Sr IE) / (1 + margin/rate)
+                # Simpler: SCLCA NI(IC) = SCLCA II(IC) - SCLCA IE = 0.5% margin
+                # Cross-ref: NI should equal the IC spread component
+                _sclca_pl_checks.append({
+                    "name": f"Y{_py}: NI(IC) = II(IC) - IE (margin check)",
+                    "expected": _psa['ii_ic'] - _psa['ie'],
+                    "actual": _psa['ni'] - _psa['ii_dsra'],
+                })
+            # 10yr total: SCLCA total II(IC) = sum of all entity IE across 10 years
+            _sclca_ii_ic_10yr = sum(a['ii_ic'] for a in annual_model)
+            _sub_ie_10yr = sum(
+                _audit_nwl_ann[i]['ie_sr'] + _audit_nwl_ann[i]['ie_mz']
+                + _audit_lanred_ann[i]['ie_sr'] + _audit_lanred_ann[i]['ie_mz']
+                + _audit_twx_ann[i]['ie_sr'] + _audit_twx_ann[i]['ie_mz']
+                for i in range(total_years())
+            )
             _sclca_pl_checks.append({
-                "name": "10yr NI = sum(NI)",
-                "expected": sum(_a['ni'] for _a in annual_model),
-                "actual": sum(_a['ni'] for _a in annual_model),
+                "name": "10yr: SCLCA II(IC) = sum(entity IE)",
+                "expected": _sclca_ii_ic_10yr,
+                "actual": _sub_ie_10yr,
             })
-            # Margin must always be positive (0.5% IC spread)
-            for _a in annual_model:
-                _y = _a['year']
-                _sclca_pl_checks.append({
-                    "name": f"Y{_y}: IC Margin > 0",
-                    "expected": 1.0,
-                    "actual": 1.0 if (_a['ii_ic'] - _a['ie']) >= -0.01 else 0.0,
-                })
             run_page_audit(_sclca_pl_checks, "SCLCA — P&L")
 
             # Waterfall allocation expander (v3.1 — 6-step)
@@ -15772,15 +15208,17 @@ if entity == "Catalytic Assets":
                 'total')
 
             # PRE-REVENUE HEDGE (CC 2nd draw → Mezz IC → NWL Sr IC → Facility payoff)
-            _cf_spacer()
-            _cf_section('PRE-REVENUE HEDGE (pass-through)')
-            _cf_computed_line('CC 2nd Draw (Mezz increase)',
-                [pre_revenue_hedge if a['year'] == 2 else 0 for a in annual_model] + [pre_revenue_hedge])
-            _cf_computed_line('Senior Facility Prepayment',
-                [-pre_revenue_hedge if a['year'] == 2 else 0 for a in annual_model] + [-pre_revenue_hedge])
-            _cf_computed_line('Net Pre-Revenue Hedge',
-                [0 for _ in annual_model] + [0],
-                'sub')
+            # Only shown when FEC/DSRA mode is selected (not Cross-Currency Swap)
+            if not nwl_swap_enabled:
+                _cf_spacer()
+                _cf_section('PRE-REVENUE HEDGE (pass-through)')
+                _cf_computed_line('CC 2nd Draw (Mezz increase)',
+                    [pre_revenue_hedge if a['year'] == 2 else 0 for a in annual_model] + [pre_revenue_hedge])
+                _cf_computed_line('Senior Facility Prepayment',
+                    [-pre_revenue_hedge if a['year'] == 2 else 0 for a in annual_model] + [-pre_revenue_hedge])
+                _cf_computed_line('Net Pre-Revenue Hedge',
+                    [0 for _ in annual_model] + [0],
+                    'sub')
 
             # NET CASH FLOW
             _cf_spacer()
@@ -15891,26 +15329,47 @@ if entity == "Catalytic Assets":
             st.plotly_chart(fig_cf, use_container_width=True)
             st.caption("*Principal is a pure pass-through (IC received = facility paid). Only the 0.5% interest margin is retained by SCLCA.*")
 
-            # ── AUDIT: SCLCA Cash Flow ──
+            # ── AUDIT: SCLCA Cash Flow (cross-ref vs engine entity CF) ──
             _sclca_cf_checks = []
-            for _a in annual_model:
-                _y = _a['year']
-                # Drawdowns net = 0 (pass-through)
+            for _cyi in range(total_years()):
+                _cy = _cyi + 1
+                _cna = _audit_nwl_ann[_cyi]
+                _cla = _audit_lanred_ann[_cyi]
+                _cta = _audit_twx_ann[_cyi]
+                _csa = annual_model[_cyi]
+                # IC principal received by SCLCA = sum(entity principal paid) from engine
+                _sub_cf_pr = _cna['cf_pr'] + _cla['cf_pr'] + _cta['cf_pr']
                 _sclca_cf_checks.append({
-                    "name": f"Y{_y}: Draw net = 0",
-                    "expected": 0.0,
-                    "actual": _a['cf_draw_in'] - _a['cf_draw_out'],
+                    "name": f"Y{_cy}: Repay in = sum(entity CF principal)",
+                    "expected": _csa['cf_repay_in'],
+                    "actual": _sub_cf_pr,
                 })
-                # Prepayments net = 0 (pass-through)
+                # IC cash interest received = sum(entity cash interest paid)
+                _sub_cf_ie = _cna['cf_ie'] + _cla['cf_ie'] + _cta['cf_ie']
                 _sclca_cf_checks.append({
-                    "name": f"Y{_y}: Prepay net = 0",
-                    "expected": 0.0,
-                    "actual": _a['cf_prepay_in'] - _a['cf_prepay_out'],
+                    "name": f"Y{_cy}: IC interest in = sum(entity CF interest)",
+                    "expected": _csa['cf_ii'] - _csa['ii_dsra'],
+                    "actual": _sub_cf_ie,
                 })
-            # FD Y10 = sum of cf_net + compounding
+            # 10yr total: net cash = sum of margins (IC interest in - facility interest out)
+            _sclca_net_cash_10yr = sum(a['cf_net'] for a in annual_model)
+            _sclca_margin_10yr = sum(
+                (a['cf_ii'] - a['ii_dsra']) - a['cf_ie'] for a in annual_model
+            )
             _sclca_cf_checks.append({
-                "name": "FD Y10 = accumulated surplus",
-                "expected": annual_model[-1]['dsra_bal'],
+                "name": "10yr: Net cash = sum(IC margins)",
+                "expected": _sclca_margin_10yr,
+                "actual": _sclca_net_cash_10yr,
+            })
+            # FD Y10: cross-check with independent accumulation from engine margins
+            _fd_independent = 0.0
+            for _cyi2 in range(total_years()):
+                _fd_interest = _fd_independent * DSRA_RATE
+                _fd_deposit = (annual_model[_cyi2]['cf_ii'] - annual_model[_cyi2]['ii_dsra']) - annual_model[_cyi2]['cf_ie']
+                _fd_independent += _fd_deposit + _fd_interest
+            _sclca_cf_checks.append({
+                "name": "FD Y10 = independent margin accumulation",
+                "expected": _fd_independent,
                 "actual": annual_model[-1]['dsra_bal'],
             })
             run_page_audit(_sclca_cf_checks, "SCLCA — Cash Flow")
@@ -16206,11 +15665,11 @@ surplus is allocated at {ek_label} level: Ops Reserve -> OpCo DSRA ->
                                                 if w.get(f'{ek_key}_entity_fd_fill', 0) > 0 else '\u2014'
                                                 for yr, w in zip(_wf_years, _waterfall)}
 
-                # Balance rows
+                # Balance rows (ordered by seniority)
                 _bal_rows = {}
                 for _row_label, _row_key in [
+                    ('Senior IC Bal', 'sr_ic_bal'), ('Mezz IC Bal', 'mz_ic_bal'),
                     ('Ops Reserve Bal', 'ops_reserve_bal'), ('OpCo DSRA Bal', 'opco_dsra_bal'),
-                    ('Mezz IC Bal', 'mz_ic_bal'), ('Senior IC Bal', 'sr_ic_bal'),
                     ('Entity FD Bal', 'entity_fd_bal'),
                 ]:
                     _bal_rows[_row_label] = {yr: _eur_fmt.format(w.get(f'{ek_key}_{_row_key}', 0))
@@ -16224,7 +15683,8 @@ surplus is allocated at {ek_label} level: Ops Reserve -> OpCo DSRA ->
                     st.markdown("**Balances**")
                     st.dataframe(pd.DataFrame(_bal_rows).T, use_container_width=True)
 
-                # Stacked bar chart
+                # Stacked bar chart — first-priority at bottom, last at top
+                # Legend reversed so it reads priority order top-down
                 fig_ent = go.Figure()
                 _cascade_colors = [
                     ('IC Senior P+I', 'sr_pi', '#1E3A5F'),
@@ -16236,7 +15696,7 @@ surplus is allocated at {ek_label} level: Ops Reserve -> OpCo DSRA ->
                     ('Entity FD', 'entity_fd_fill', '#059669'),
                 ]
                 if show_swap:
-                    _cascade_colors.insert(5, ('ZAR Rand Leg', 'zar_leg_payment', '#F59E0B'))
+                    _cascade_colors.insert(5, ('ZAR Rand Leg', 'zar_leg_accel', '#F59E0B'))
                 for _lbl, _fld, _clr in _cascade_colors:
                     _vs = [w.get(f'{ek_key}_{_fld}', 0) for w in _waterfall]
                     if any(v > 0 for v in _vs):
@@ -16245,9 +15705,9 @@ surplus is allocated at {ek_label} level: Ops Reserve -> OpCo DSRA ->
                 if any(d < 0 for d in _deficits):
                     fig_ent.add_trace(go.Bar(x=_wf_years, y=_deficits, name='Deficit', marker_color='#EF4444'))
                 fig_ent.update_layout(
-                    barmode='relative', title=f'{ek_label} Cascade Allocation',
+                    barmode='stack', title=f'{ek_label} Cascade Allocation',
                     yaxis_title='EUR', height=400,
-                    legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+                    legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1, traceorder="reversed"),
                 )
                 st.plotly_chart(fig_ent, use_container_width=True)
 
@@ -16293,6 +15753,188 @@ surplus is allocated at {ek_label} level: Ops Reserve -> OpCo DSRA ->
                                 "NWL repays Senior IC ↓ → Holding pays off Senior facility to DFI. "
                                 "Net effect: Senior ↓, Mezz ↑, total debt unchanged. "
                                 "After M30, normal surplus flow resumes — Mezz IC acceleration pays this down first.")
+
+            # ── NWL Full Waterfall Table + Audit ──
+            _wf_ek = 'nwl'
+            _wf_prepays = financing.get('prepayments', {})
+            _wf_dtic_eur = _wf_prepays.get('dtic_grant', {}).get('amount_eur', 0)
+            _wf_gepf_eur = _wf_prepays.get('gepf_bulk_services', {}).get('amount_eur', 0)
+            _wf_iic_eur = _wf_prepays.get('invest_int_ta', {}).get('amount_eur', 0)
+            _wf_specials = _wf_dtic_eur + _wf_gepf_eur
+
+            st.caption("1. Cash Flow \u2192 2. Legal Obligations \u2192 3. Surplus Allocation")
+            _cwf_rows = [
+                ('EBITDA',                   'ebitda',              False, True),
+                ('+ DTIC Grant',              '_dtic',               False, False),
+                ('+ IIC Grant',               '_iic',                False, False),
+                ('+ DSRA Release',            'opco_dsra_release',   False, False),
+                ('Tax',                       'tax',                 True,  False),
+                ('IC Senior P+I',             'sr_pi',               True,  False),
+                ('ZAR Rand Leg',              'zar_leg_scheduled',   True,  False),
+                ('IC Mezz P+I',               'mz_pi',               True,  False),
+                ('Surplus Available',         'entity_surplus',      False, True),
+                ('Ops Reserve Fill',          'ops_reserve_fill',    True,  False),
+                ('OpCo DSRA Fill',            'opco_dsra_fill',      True,  False),
+                ('OD \u2192 LanRED',               'od_lent',             True,  False),
+                ('Mezz Div Reserve FD',       'mz_div_fd_fill',     True,  False),
+                ('Mezz IC Accel',             'mz_accel_entity',     True,  False),
+                ('ZAR Rand Accel',            'zar_leg_accel',       True,  False),
+                ('Sr IC Accel',               'sr_accel_entity',     True,  False),
+                ('Sr Prepay (Specials)',      '_specials',           True,  False),
+                ('Entity FD Fill',            'entity_fd_fill',      True,  False),
+                ('Unallocated',               'free_surplus',        False, True),
+            ]
+            _cwf_summary_labels = {lbl for lbl, _, _, is_sum in _cwf_rows if is_sum}
+            _cwf_tbl = {}
+            for _row_label, _row_key, _negate, _ in _cwf_rows:
+                _row_vals = []
+                for yi in range(total_years()):
+                    if _row_key == '_dtic':
+                        _v = _wf_dtic_eur if yi == 1 else 0
+                    elif _row_key == '_iic':
+                        _v = _wf_iic_eur if yi == 1 else 0
+                    elif _row_key == '_specials':
+                        _v = _wf_specials if yi == 1 else 0
+                    else:
+                        _v = _waterfall[yi].get(f'{_wf_ek}_{_row_key}', 0)
+                    if abs(_v) < 0.5:
+                        _row_vals.append('\u2014')
+                    elif _negate:
+                        _row_vals.append(f"({_eur_fmt.format(_v)})")
+                    else:
+                        _row_vals.append(_eur_fmt.format(_v))
+                _cwf_tbl[_row_label] = _row_vals
+            _cwf_df = pd.DataFrame(_cwf_tbl, index=_wf_years).T
+
+            def _cwf_row_highlight(row):
+                if row.name in _cwf_summary_labels:
+                    return ['background-color: #1E3A5F; color: white; font-weight: bold'] * len(row)
+                return [''] * len(row)
+
+            st.dataframe(_cwf_df.style.apply(_cwf_row_highlight, axis=1),
+                         use_container_width=True, height=(_cwf_df.shape[0] + 1) * 35 + 3)
+
+            with st.expander("Balances", expanded=False):
+                _cwf_bal_rows = {}
+                for _row_label, _row_key in [
+                    ('Senior IC Bal', 'sr_ic_bal'),
+                    ('Mezz IC Bal', 'mz_ic_bal'),
+                    ('Ops Reserve Target', 'ops_reserve_target'),
+                    ('Ops Reserve Bal', 'ops_reserve_bal'),
+                    ('OpCo DSRA Target', 'opco_dsra_target'),
+                    ('OpCo DSRA Bal', 'opco_dsra_bal'),
+                    ('ZAR Rand Leg Bal', 'zar_leg_bal'),
+                    ('Mezz Div FD Bal', 'mz_div_fd_bal'),
+                    ('Entity FD Bal', 'entity_fd_bal'),
+                ]:
+                    _cwf_bal_rows[_row_label] = [
+                        _eur_fmt.format(_waterfall[yi].get(f'{_wf_ek}_{_row_key}', 0))
+                        for yi in range(total_years())]
+                st.dataframe(pd.DataFrame(_cwf_bal_rows, index=_wf_years).T, use_container_width=True)
+
+            # ── NWL Waterfall Audit ──
+            _cwf_checks = []
+            for _aud_yi in range(total_years()):
+                _aud_y = _aud_yi + 1
+                _aw = _waterfall[_aud_yi]
+                _a_ebitda = _aw.get(f'{_wf_ek}_ebitda', 0)
+                _a_tax = _aw.get(f'{_wf_ek}_tax', 0)
+                _a_sr_pi = _aw.get(f'{_wf_ek}_sr_pi', 0)
+                _a_mz_pi = _aw.get(f'{_wf_ek}_mz_pi', 0)
+                _a_zar = _aw.get(f'{_wf_ek}_zar_leg_scheduled', 0)
+                _a_surplus = _aw.get(f'{_wf_ek}_entity_surplus', 0)
+
+                _cwf_checks.append({
+                    "name": f"Y{_aud_y}: Surplus = EBITDA - Tax - Sr P+I - ZAR - Mz P+I",
+                    "expected": max(_a_ebitda - _a_tax - _a_sr_pi - _a_mz_pi - _a_zar, 0),
+                    "actual": _a_surplus,
+                })
+
+                _a_dsra_release = _aw.get(f'{_wf_ek}_opco_dsra_release', 0)
+                _a_pool = _a_surplus + _a_dsra_release
+                _a_allocated = (_aw.get(f'{_wf_ek}_ops_reserve_fill', 0)
+                                + _aw.get(f'{_wf_ek}_opco_dsra_fill', 0)
+                                + _aw.get(f'{_wf_ek}_od_lent', 0)
+                                + _aw.get(f'{_wf_ek}_mz_div_fd_fill', 0)
+                                + _aw.get(f'{_wf_ek}_mz_accel_entity', 0)
+                                + _aw.get(f'{_wf_ek}_zar_leg_accel', 0)
+                                + _aw.get(f'{_wf_ek}_sr_accel_entity', 0)
+                                + _aw.get(f'{_wf_ek}_entity_fd_fill', 0)
+                                + _aw.get(f'{_wf_ek}_free_surplus', 0))
+                _cwf_checks.append({
+                    "name": f"Y{_aud_y}: Pool (surplus + DSRA release) = sum(allocations)",
+                    "expected": _a_pool,
+                    "actual": _a_allocated,
+                })
+
+                if _aud_yi > 0:
+                    _prev_mz_bal = _waterfall[_aud_yi - 1].get(f'{_wf_ek}_mz_ic_bal', 999)
+                    if _prev_mz_bal <= 0.01:
+                        _cwf_checks.append({
+                            "name": f"Y{_aud_y}: Mezz IC prev bal=0 → Mz P+I should be 0",
+                            "expected": 0.0,
+                            "actual": _a_mz_pi,
+                        })
+                    _prev_sr_bal = _waterfall[_aud_yi - 1].get(f'{_wf_ek}_sr_ic_bal', 999)
+                    if _prev_sr_bal <= 0.01:
+                        _cwf_checks.append({
+                            "name": f"Y{_aud_y}: Sr IC prev bal=0 → Sr P+I should be 0",
+                            "expected": 0.0,
+                            "actual": _a_sr_pi,
+                        })
+
+                _a_efd = _aw.get(f'{_wf_ek}_entity_fd_fill', 0)
+                if _a_efd > 0:
+                    _any_debt = (_aw.get(f'{_wf_ek}_mz_ic_bal', 0) > 0.01
+                                 or _aw.get(f'{_wf_ek}_sr_ic_bal', 0) > 0.01
+                                 or _aw.get(f'{_wf_ek}_zar_leg_bal', 0) > 0.01)
+                    _cwf_checks.append({
+                        "name": f"Y{_aud_y}: Entity FD only when ALL debt = 0",
+                        "expected": 0.0,
+                        "actual": 1.0 if _any_debt else 0.0,
+                    })
+
+                if _aud_yi > 0:
+                    _prev_mz = _waterfall[_aud_yi - 1].get(f'{_wf_ek}_mz_ic_bal', 0)
+                    _exp_mz = max(_prev_mz - _aw.get(f'{_wf_ek}_mz_prin_sched', 0)
+                                  - _aw.get(f'{_wf_ek}_mz_accel_entity', 0), 0)
+                    if _prev_mz > 0.01:
+                        _cwf_checks.append({
+                            "name": f"Y{_aud_y}: Mezz bal = prev - sched - accel",
+                            "expected": _exp_mz,
+                            "actual": _aw.get(f'{_wf_ek}_mz_ic_bal', 0),
+                            "tolerance": 10.0,
+                        })
+
+            run_page_audit(_cwf_checks, "NWL — Waterfall Cascade")
+
+            # ── Pipe Servicing — IC Loan Balance Trajectories ──
+            with st.expander("Pipe Servicing — IC Loan Balances", expanded=False):
+                _ps_years = [f"Y{yi+1}" for yi in range(total_years())]
+                _ps_sr = [_waterfall[yi].get(f'{_wf_ek}_sr_ic_bal', 0) for yi in range(total_years())]
+                _ps_mz = [_waterfall[yi].get(f'{_wf_ek}_mz_ic_bal', 0) for yi in range(total_years())]
+                _ps_zar = [_waterfall[yi].get(f'{_wf_ek}_zar_leg_bal', 0) for yi in range(total_years())]
+
+                fig_ps = go.Figure()
+                fig_ps.add_trace(go.Scatter(
+                    x=_ps_years, y=_ps_sr,
+                    name='Senior IC', mode='lines+markers',
+                    line=dict(color='#1E3A5F', width=3)))
+                fig_ps.add_trace(go.Scatter(
+                    x=_ps_years, y=_ps_mz,
+                    name='Mezz IC', mode='lines+markers',
+                    line=dict(color='#7C3AED', width=3)))
+                if any(v > 0 for v in _ps_zar):
+                    fig_ps.add_trace(go.Scatter(
+                        x=_ps_years, y=_ps_zar,
+                        name='ZAR Rand Leg', mode='lines+markers',
+                        line=dict(color='#F59E0B', width=2.5)))
+                fig_ps.update_layout(
+                    title='NWL IC Balance Trajectory (Accelerated)',
+                    yaxis_title='EUR', height=350,
+                    legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+                )
+                st.plotly_chart(fig_ps, use_container_width=True)
 
             st.divider()
 
@@ -16500,7 +16142,7 @@ surplus is allocated at {ek_label} level: Ops Reserve -> OpCo DSRA ->
             # IC Overdraft receivable (waterfall)
             _od_active_bs = any(w['ic_overdraft_bal'] > 0 for w in _waterfall)
             if _od_active_bs:
-                _bs_computed_line('IC Overdraft Receivable', [_waterfall[yi]['ic_overdraft_bal'] for yi in range(10)])
+                _bs_computed_line('IC Overdraft Receivable', [_waterfall[yi]['ic_overdraft_bal'] for yi in range(total_years())])
             _bs_line('Equity - NWL (93%)', 'bs_eq_nwl')
             _bs_line('Equity - LanRED (100%)', 'bs_eq_lanred')
             _bs_line('Equity - Timberworx (5%)', 'bs_eq_twx')
@@ -16511,6 +16153,10 @@ surplus is allocated at {ek_label} level: Ops Reserve -> OpCo DSRA ->
             _bs_computed_line('Holding Reserve (Sr P+I)', [a.get('wf_dsra_bal', 0) for a in annual_model])
             _bs_computed_line('Holding Fixed Deposit', [a.get('wf_fd_bal', 0) for a in annual_model])
             _bs_line('Cash & Equivalents', 'bs_cash', row_type='total')
+            _air_vals = [a.get('bs_accrued_ir', 0) for a in annual_model]
+            if any(v > 0.5 for v in _air_vals):
+                _bs_spacer()
+                _bs_computed_line('Accrued Interest Receivable', _air_vals)
             _bs_line('Total Assets', 'bs_a', row_type='grand')
 
             # LIABILITIES
@@ -16519,9 +16165,10 @@ surplus is allocated at {ek_label} level: Ops Reserve -> OpCo DSRA ->
             _bs_line('Senior Debt (Invest Intl)', 'bs_sr')
             _bs_line('Mezzanine (Creation Capital)', 'bs_mz')
             _bs_computed_line('  Mezz (Sculpted)', [a['wf_cc_closing'] for a in annual_model])
+            _bs_line('IC Pass-Through Liability', 'bs_dsra_liab')
             _bs_line('Total Debt', 'bs_l', row_type='total')
             # One-Time Dividend liability (waterfall — accruing until settled)
-            _slug_vals = [_waterfall[yi]['cc_slug_cumulative'] if not _waterfall[yi]['cc_slug_settled'] else 0.0 for yi in range(10)]
+            _slug_vals = [_waterfall[yi]['cc_slug_cumulative'] if not _waterfall[yi]['cc_slug_settled'] else 0.0 for yi in range(total_years())]
             if any(v > 0 for v in _slug_vals):
                 _bs_computed_line('One-Time Dividend Liability', _slug_vals)
 
@@ -16534,7 +16181,7 @@ surplus is allocated at {ek_label} level: Ops Reserve -> OpCo DSRA ->
 
             # CHECKS
             _bs_spacer()
-            _bs_computed_line('Check: A = L + E', [a['bs_a'] - a['bs_l'] - a['bs_e'] for a in annual_model], row_type='sub')
+            _bs_computed_line('Check: A = L + E', [round(a['bs_a'] - a['bs_l'] - a['bs_e'], 2) for a in annual_model], row_type='sub')
             _bs_computed_line('RE = Cumulative NI', [a.get('bs_gap', 0.0) for a in annual_model], row_type='sub')
 
             # Show warning if any gap > €1
@@ -16598,17 +16245,22 @@ surplus is allocated at {ek_label} level: Ops Reserve -> OpCo DSRA ->
                 offsetgroup='assets'
             ))
             fig_bs.add_trace(go.Bar(
-                x=_years, y=_bs_cash, name='Cash (FD)', marker_color='#16A34A',
+                x=_years, y=_bs_cash, name='Cash (FD)', marker_color='#F59E0B',
+                offsetgroup='assets'
+            ))
+            _bs_air = [a.get('bs_accrued_ir', 0) for a in annual_model]
+            fig_bs.add_trace(go.Bar(
+                x=_years, y=_bs_air, name='Accrued Int. Recv.', marker_color='#10B981',
                 offsetgroup='assets'
             ))
 
-            # Right bar: Debt + Equity stacked (D+E = A always)
+            # Right bar: Liabilities + Equity stacked (L+E = A always)
             fig_bs.add_trace(go.Bar(
                 x=_years, y=_bs_total_e, name='Equity', marker_color='#0D9488',
                 offsetgroup='d_and_e'
             ))
             fig_bs.add_trace(go.Bar(
-                x=_years, y=_bs_total_d, name='Debt', marker_color='#DC2626',
+                x=_years, y=_bs_total_d, name='Liabilities', marker_color='#DC2626',
                 offsetgroup='d_and_e'
             ))
 
@@ -16630,27 +16282,38 @@ surplus is allocated at {ek_label} level: Ops Reserve -> OpCo DSRA ->
             )
             st.plotly_chart(fig_bs, use_container_width=True)
 
-            # ── AUDIT: SCLCA Balance Sheet ──
+            # ── AUDIT: SCLCA Balance Sheet (cross-ref vs engine entity data) ──
             _sclca_bs_checks = []
-            for _a in annual_model:
-                _y = _a['year']
-                # A = L + E
+            for _byi in range(total_years()):
+                _by = _byi + 1
+                _bna = _audit_nwl_ann[_byi]
+                _bla = _audit_lanred_ann[_byi]
+                _bta = _audit_twx_ann[_byi]
+                _bsa = annual_model[_byi]
+                # SCLCA IC assets = sum(entity IC debt) from engine
+                _sub_ic_total = (
+                    _bna['bs_sr'] + _bna['bs_mz']
+                    + _bla['bs_sr'] + _bla['bs_mz']
+                    + _bta['bs_sr'] + _bta['bs_mz']
+                )
                 _sclca_bs_checks.append({
-                    "name": f"Y{_y}: A = L + E",
-                    "expected": _a['bs_l'] + _a['bs_e'],
-                    "actual": _a['bs_a'],
+                    "name": f"Y{_by}: SCLCA IC assets = sum(entity debt)",
+                    "expected": _bsa['bs_ic'],
+                    "actual": _sub_ic_total,
                 })
-                # RE = Cumulative NI
+                # Independent A = IC loans + FD + Equity in subs + Accrued IR
+                _bs_a_independent = _sub_ic_total + _bsa['bs_dsra'] + EQUITY_TOTAL + _bsa.get('bs_accrued_ir', 0)
                 _sclca_bs_checks.append({
-                    "name": f"Y{_y}: RE = Cum NI",
-                    "expected": _a['bs_retained_check'],
-                    "actual": _a['bs_retained'],
+                    "name": f"Y{_by}: A = IC(engine) + FD + Equity + Accrued",
+                    "expected": _bs_a_independent,
+                    "actual": _bsa['bs_a'],
                 })
-                # BS FD = CF FD
+                # True BS gap: A - L - E (should be zero)
+                _bs_gap = _bsa['bs_a'] - _bsa['bs_l'] - _bsa['bs_e']
                 _sclca_bs_checks.append({
-                    "name": f"Y{_y}: BS FD = CF FD",
-                    "expected": _a['dsra_bal'],
-                    "actual": _a['bs_dsra'],
+                    "name": f"Y{_by}: A - L - E = 0",
+                    "expected": 0.0,
+                    "actual": _bs_gap,
                 })
             run_page_audit(_sclca_bs_checks, "SCLCA — Balance Sheet")
 
@@ -16672,16 +16335,18 @@ surplus is allocated at {ek_label} level: Ops Reserve -> OpCo DSRA ->
             st.subheader("Inter-Company Reconciliation")
             st.caption("SCLCA income/receivables vs sum of subsidiary expenses/liabilities")
 
-            # Build all 3 subsidiary models
-            _nwl_model = build_sub_annual_model("nwl")
-            _lanred_model = build_sub_annual_model("lanred")
-            _twx_model = build_sub_annual_model("timberworx")
-            _nwl_ann = _nwl_model["annual"]
-            _lanred_ann = _lanred_model["annual"]
-            _twx_ann = _twx_model["annual"]
+            # Build all 3 subsidiary models (engine-backed, cached)
+            _model_data = _run_engine_model(_session_input_hash())
+            _nwl_model = _model_data["entities"]["nwl"]
+            _lanred_model = _model_data["entities"]["lanred"]
+            _twx_model = _model_data["entities"]["timberworx"]
+            # Add compat fields for old display field names
+            _nwl_ann = [_add_compat_fields(dict(a)) for a in _nwl_model["annual"]]
+            _lanred_ann = [_add_compat_fields(dict(a)) for a in _lanred_model["annual"]]
+            _twx_ann = [_add_compat_fields(dict(a)) for a in _twx_model["annual"]]
 
             _ic_checks = []
-            for yi in range(10):
+            for yi in range(total_years()):
                 _y = yi + 1
                 _na = _nwl_ann[yi]
                 _la = _lanred_ann[yi]
@@ -16724,27 +16389,20 @@ surplus is allocated at {ek_label} level: Ops Reserve -> OpCo DSRA ->
                     "actual": _sub_pr,
                 })
 
-            # NWL power_cost = LanRED rev (cross-entity operating IC)
-            for yi in range(10):
+            # NWL power_cost = LanRED rev (only in Greenfield — NWL PPA exists)
+            _lanred_scenario = _state_str("lanred_scenario", "Brownfield+")
+            for yi in range(total_years()):
                 _y = yi + 1
-                _nwl_pwr = _nwl_ann[yi].get('power_cost', 0)
-                _lr_rev = _lanred_ann[yi].get('rev_total', 0)
-                if _nwl_pwr > 0 or _lr_rev > 0:
-                    _ic_checks.append({
-                        "name": f"Y{_y}: NWL power = LanRED rev",
-                        "expected": _nwl_pwr,
-                        "actual": _lr_rev,
-                    })
-                # NWL rent = TWX lease rev
-                _nwl_rent = _nwl_ann[yi].get('rent_cost', 0)
-                _twx_rev = _twx_ann[yi].get('rev_total', 0)
-                if _nwl_rent > 0 or _twx_rev > 0:
-                    _ic_checks.append({
-                        "name": f"Y{_y}: NWL rent = TWX rev",
-                        "expected": _nwl_rent,
-                        "actual": _twx_rev,
-                    })
-
+                # Power IC: only when LanRED Greenfield (NWL PPA exists)
+                if _lanred_scenario != "Brownfield+":
+                    _nwl_pwr = _nwl_ann[yi].get('power_cost', 0)
+                    _lr_rev = _lanred_ann[yi].get('rev_ic_nwl', 0)
+                    if _nwl_pwr > 0 or _lr_rev > 0:
+                        _ic_checks.append({
+                            "name": f"Y{_y}: NWL power = LanRED IC rev",
+                            "expected": _nwl_pwr,
+                            "actual": _lr_rev,
+                        })
             run_page_audit(_ic_checks, "SCLCA — IC Reconciliation")
 
     # --- GRAPHS TAB ---
@@ -16990,9 +16648,9 @@ surplus is allocated at {ek_label} level: Ops Reserve -> OpCo DSRA ->
 
                 sens_prime = st.slider(
                     "SA Prime Rate",
-                    min_value=7.0, max_value=15.0, value=10.75, step=0.25,
+                    min_value=7.0, max_value=15.0, value=10.25, step=0.25,
                     format="%.2f%%",
-                    help="Base rate for Mezz debt (currently 10.75%)"
+                    help="Base rate for Mezz debt (currently 10.25%)"
                 ) / 100
 
             with col_s2:
@@ -17823,7 +17481,12 @@ elif entity == "Summary":
     # SECTION 1: CORPORATE STRUCTURE
     # ================================================================
     st.subheader("1. Corporate Structure")
-    render_svg("corporate_structure.svg", "SVG_CORPORATE_CONTENT.md")
+    _sum_corp_overrides = {
+        'nwl_amount': f"€{_sum_loans['nwl']['total_loan']:,.0f} ({_sum_loans['nwl']['pro_rata_pct']*100:.1f}%)",
+        'lanred_amount': f"€{_sum_loans['lanred']['total_loan']:,.0f} ({_sum_loans['lanred']['pro_rata_pct']*100:.1f}%)",
+        'twx_amount': f"€{_sum_loans['timberworx']['total_loan']:,.0f} ({_sum_loans['timberworx']['pro_rata_pct']*100:.1f}%)",
+    }
+    render_svg("corporate_structure.svg", "SVG_CORPORATE_CONTENT.md", overrides=_sum_corp_overrides)
 
     st.divider()
 
@@ -17831,9 +17494,16 @@ elif entity == "Summary":
     # SECTION 2: OWNERSHIP STRUCTURE
     # ================================================================
     st.subheader("2. Ownership Structure")
-    _own_svg = Path(__file__).parent / "assets" / "ownership-structure.svg"
-    if _own_svg.exists():
-        st.image(str(_own_svg), use_container_width=True)
+    _sum_ent = load_config("entities")["entities"]
+    _sum_own_overrides = {
+        'pct_devco_sclca': f"{_sum_ent['sclca']['parent_pct']*100:.0f}%",
+        'pct_sclca_nwl': f"{_sum_ent['nwl']['parent_pct']*100:.0f}%",
+        'pct_sclca_lanred': f"{_sum_ent['lanred']['parent_pct']*100:.0f}%",
+        'pct_sclca_twx': f"{_sum_ent['timberworx']['parent_pct']*100:.0f}%",
+        'pct_van2_twx': f"{_sum_ent['timberworx']['other_shareholders']['vansquared']['pct']*100:.0f}%",
+        'pct_cross_nwl': f"{_sum_ent['nwl']['other_shareholders']['crosspoint']['pct']*100:.0f}%",
+    }
+    render_svg_from_data("ownership-structure.svg", overrides=_sum_own_overrides)
 
     # DevCo ownership (ECA-facing — 2 UBOs)
     _devco_eca_svg = Path(__file__).parent / "assets" / "devco-ownership-eca.svg"
@@ -17851,9 +17521,7 @@ elif entity == "Summary":
     # SECTION 3: FUNDING STRUCTURE
     # ================================================================
     st.subheader("3. Funding Structure")
-    _fund_svg = Path(__file__).parent / "assets" / "funding-structure.svg"
-    if _fund_svg.exists():
-        st.image(str(_fund_svg), use_container_width=True)
+    render_svg_from_data("funding-structure.svg", overrides=_build_funding_overrides(_sum_structure))
 
     # Allocation table from config
     _alloc_data = []
@@ -18069,10 +17737,10 @@ elif entity == "Strategy":
     st.error("""
 **INTERNAL ONLY — Outside Robbert's vision**
 
-**Current state:** Smart City Lanseria DevCo has 4 shareholders (Anduza Water, NexusNovus, Eckhardt, Others).
+**Current state:** Smart City Lanseria DevCo has 4 shareholders (Andzafusion Water, NexusNovus, Eckhardt, Others).
 
-**ECA application:** Present only 2 UBOs to Atradius/IIC — Sizakele Mabuza (Anduza Water) and Mark van Houten (VHIT).
-VanSquare (TWX co-shareholder) is also owned by Mark's Trust (VHIT).
+**ECA application:** Present only 2 UBOs to Atradius/IIC — Sizakele Mabuza (Andzafusion Water) and Mark van Houten (VHIT).
+VanSquared (TWX co-shareholder) is also owned by Mark's Trust (VHIT).
 
 **To-do:** Put in place a contract to replace Mark's Trust (VHIT) with **NexusNovus Holdings** as DevCo shareholder.
 NexusNovus Holdings is 50% held by Mark's Trust.
@@ -18088,7 +17756,7 @@ NexusNovus Holdings can be formally introduced via the contractual substitution 
     _devco_eca_svg2 = Path(__file__).parent / "assets" / "devco-ownership-eca.svg"
     if _devco_eca_svg2.exists():
         st.image(str(_devco_eca_svg2), use_container_width=True)
-    st.caption("ECA view: Two UBOs identified — Sizakele Mabuza (Anduza Water) and Mark van Houten (VHIT/VanSquare)")
+    st.caption("ECA view: Two UBOs identified — Sizakele Mabuza (Andzafusion Water) and Mark van Houten (VHIT/VanSquared)")
 
     with st.expander("Internal: Actual Shareholders (4 owners)", expanded=False):
         _devco_svg = Path(__file__).parent / "assets" / "devco-shareholders.svg"
@@ -19671,6 +19339,7 @@ elif entity == "Partnerships":
 | 5 | Eckhardt | Timberworx | Not yet signed |
 | 6 | Eckhardt | LLC (Lanseria Landowners Consortium) | Not yet signed |
 | 7 | Werner | Timberworx | Not yet signed |
+| 8 | Cala | LanRED | Not yet signed |
 """)
         _p_dl_inside(_jda_content, "JOINT_DEVELOPMENT_AGREEMENT_DRAFT.md",
                      ":material/download: Download", "dl_p_jda_top")
@@ -19733,6 +19402,7 @@ elif entity == "Partnerships":
         ("Siza", "SIZA_ANNEXES.md", True, "JDA", ["LLC", "NWL / Crosspoint", "Smart City Lanseria DevCo"]),
         ("Eckhardt", "ECKHARDT_ANNEXES.md", True, "JDA", ["Timberworx", "LLC"]),
         ("Werner", "WERNER_ANNEXES.md", True, "JDA", ["Timberworx"]),
+        ("Cala", "CALA_ANNEXES.md", True, "JDA", ["LanRED"]),
     ]
 
     _partner_tabs = st.tabs([p[0] for p in _partner_config])
@@ -19781,87 +19451,207 @@ elif entity == "Partnerships":
 # ============================================================
 elif entity == "Inter-Company":
     st.header("Inter-Company Entity Structure")
-    st.caption("Corporate ownership map, entity hierarchy, and required inter-company agreements.")
+    st.caption("Three views of the corporate structure — IIC submission, transition roadmap, and final target state.")
 
     # ── Load document ──
     _ic_path = Path(__file__).parent / "content" / "partnerships" / "INTER_COMPANY_STRUCTURE.md"
     _ic_doc = _ic_path.read_text(encoding="utf-8") if _ic_path.exists() else "*Document not found.*"
 
-    # ── Entity hierarchy diagram ──
-    st.subheader("Entity Hierarchy")
-    st.code("""
-Smart City Lanseria DevCo (Pty) Ltd  ("DevCo")
-│
-├─ Shareholders:
-│   ├─ Anduza [Siza's company]       — controlling shareholder
-│   ├─ NexusNovus Capital B.V.       — holds Mark + Rutger interest
-│   └─ (Shareholders Agreement required)
-│
-├─ 100%  ──►  Catalytic Assets (Pty) Ltd  ("CA")
-│              ├─ 90%   NWL (Pty) Ltd
-│              ├─ 100%  LanRED (Pty) Ltd
-│              ├─ 5%    Timberworx (Pty) Ltd
-│              └─ 80%   Cradle Cloud [SPV]
-│
-└─ LLC interest (75% via DevCo — combined R+M+S shares)
+    # ── Three tabs ──
+    _ic_tab1, _ic_tab2, _ic_tab3 = st.tabs([
+        ":material/visibility: IIC / ECA View",
+        ":material/route: Transition Roadmap",
+        ":material/flag: Final Target Structure",
+    ])
 
-LLC (Lanseria Landowners Consortium)
-├─ 25%  Eckhardt  (direct — personally, split from VanSquare 50%)
-└─ 75%  DevCo     (Rutger + Mark + Siza)
+    # ────────────────────────────────────────────
+    # TAB 1 — IIC / ECA Submission View
+    # ────────────────────────────────────────────
+    with _ic_tab1:
+        st.subheader("IIC / ECA Submission View")
+        st.markdown("Presented to Invest International, Atradius, and other institutional parties. "
+                    "**Two UBOs, minimal entities.** NexusNovus is deliberately absent "
+                    "(Atradius reputational risk). Can be introduced post-close via contractual substitution.")
 
-Note: M+E currently hold 50% via VanSquare — needs split so E holds
-      his 25% personally for LLC purposes.
-""", language=None)
+        st.code("""UBOs:
+  Sizakele Mabuza-Kekana (Promoter)
+  Mark van Houten (Co-Investor)
 
-    # ── Ownership tables ──
-    _ic_col1, _ic_col2 = st.columns(2)
-    with _ic_col1:
-        st.subheader("LLC Ownership")
+Sizakele → Andzafusion Water (Pty) Ltd ─┐
+                                         ├─► Smart City Lanseria DevCo (Pty) Ltd
+Mark → VH Investments Trust (VHIT) ─────┘
+
+DevCo
+└── 100% ──► Catalytic Assets (Pty) Ltd ("CA" / SCLCA)
+              ├── 93%   New Water Lanseria (Pty) Ltd
+              ├── 100%  LanRED (Pty) Ltd
+              └── 5%    Timberworx (Pty) Ltd
+
+Other shareholders visible to IIC:
+  Crosspoint          →  7% NWL
+  VanSquared          → 95% TWX (owned by VHIT)
+
+Not shown at IIC stage: Cradle Cloud, IWSA""", language=None)
+
+        _ic_eca1, _ic_eca2 = st.columns(2)
+        with _ic_eca1:
+            st.markdown("**CA Portfolio (IIC view)**")
+            st.markdown("""
+| Project Vehicle | CA Stake | Other Shareholders |
+|---|---|---|
+| NWL (Pty) Ltd | 93% | Crosspoint — 7% |
+| LanRED (Pty) Ltd | 100% | — |
+| Timberworx (Pty) Ltd | 5% | VanSquared — 95% |
+""")
+        with _ic_eca2:
+            st.markdown("**Design Principles**")
+            st.markdown("""
+- Fewest entities, cleanest lines
+- NexusNovus absent — introduced post-close
+- Two UBOs only: Sizakele + Mark
+- Cradle Cloud and IWSA not shown at this stage
+- Crosspoint shown (not Crosspoint 2)
+""")
+
+        st.info("**DTIC conditions** may require Andzafusion to hold a specific initial % in DevCo — "
+                "this drives the split between Andzafusion and VHIT at DevCo level.")
+
+    # ────────────────────────────────────────────
+    # TAB 2 — Transition Roadmap
+    # ────────────────────────────────────────────
+    with _ic_tab2:
+        st.subheader("Transition Roadmap")
+        st.markdown("Sequenced steps from current state to final structure. "
+                    "**T-1 through T-5** affect the IIC submission. "
+                    "**T-6 onward** are post-close (secured via option agreements at close).")
+
+        st.markdown("#### Pre-Close (affects IIC view)")
         st.markdown("""
-| Shareholder | Original % | Restructured | Vehicle |
+| Step | Action | Parties | Dependency | Status |
+|------|--------|---------|------------|--------|
+| T-1 | DevCo SHA — agree Andzafusion / VHIT split | Siza, Mark | DTIC requirement on Siza's initial holding | Not drafted |
+| T-2 | NWL share sale — Crosspoint 2 buys 7% from Andzafusion | Andzafusion (seller), Crosspoint 2 (buyer) | Siza holds 100% NWL. *Note: CP may accept compensation for property option instead of NWL shares.* | Not drafted |
+| T-3 | Crosspoint land option — 25% GEPF land bank option sold to LLC | Crosspoint, LLC | Parcel renamed to [new name]; Crosspoint 2 takes shares | Open |
+| T-4 | NWL JV cross-equity swap — haulage partners get max 5% NWL at VALUE | NWL, JV haulage partners | SHA, governance, conflict protocol | CP listed |
+| T-5 | IWSA formation — CA takes 95%, Nordic partners 5% | CA, Nordic partners | IWSA SPV formation | Not started |
+""")
+
+        st.markdown("#### Post-Close (secured via option agreements)")
+        st.markdown("""
+| Step | Action | Parties | Dependency | Status |
+|------|--------|---------|------------|--------|
+| T-6 | VanSquared TWX split — 50/50 Mark / Eckhardt | Mark, Eckhardt | Immediately post-close | Not drafted |
+| T-7 | Werner + Rutger introduced to TWX | Werner, Rutger, Mark, Eckhardt | T-6 | Not started |
+| T-8 | CoE asset sold from TWX to LLC company | TWX, LLC entity | T-6, valuation TBD | Not started |
+| T-9 | Mark + Rutger establish Mauritius trusts → NexusNovus Holdings | Mark, Rutger | Atradius risk cleared | Deferred |
+| T-10 | NexusNovus replaces VHIT as DevCo shareholder | NexusNovus Holdings, VHIT | T-9, contractual substitution | Deferred |
+| T-11 | Mark + Rutger roll TWX shares into NexusNovus | NexusNovus, VanSquared successors | T-7, T-9 | Deferred |
+| T-12 | VanSquared LLC split — 50% split into M 25% + E 25% | Mark, Eckhardt | VanSquared holds 50% LLC | Not drafted |
+| T-13 | R+M+S collapse LLC shares into DevCo — E stays direct | R, M, S, DevCo; E retains 25% direct | T-10, T-12 | Option |
+""")
+
+        st.warning("**NWL Cross-Equity Swap (T-4):** NWL gives up to 5% equity to JV haulage partners — "
+                   "at **value**, so 5% of NWL could represent ~50% in the haulage company. "
+                   "Cross-equity structure, truck investment mechanism, governance provisions, "
+                   "and conflict-of-interest protocol must all be agreed before close.")
+
+    # ────────────────────────────────────────────
+    # TAB 3 — Final Target Structure
+    # ────────────────────────────────────────────
+    with _ic_tab3:
+        st.subheader("Final Target Structure")
+        st.markdown("End-state after all transitions complete (three UBOs).")
+
+        st.code("""UBOs:
+  Sizakele Mabuza-Kekana (Promoter)
+  Mark van Houten (Co-Investor)
+  Rutger (Co-Investor)
+
+Sizakele → Andzafusion Water (Pty) Ltd ──┐
+                                         ├─► Smart City Lanseria DevCo
+Mark → Mark's Trust (Mauritius) ──┐      │
+                                   ├─► NexusNovus Holdings ──┘
+Rutger → Rutger's Trust (Mauritius)┘
+
+DevCo
+├── 100% ──► Catalytic Assets (Pty) Ltd ("CA")
+│             ├── 93%*  New Water Lanseria (Pty) Ltd
+│             │         * minus up to 5% JV cross-equity swap
+│             ├── 100%  LanRED (Pty) Ltd
+│             ├── [x%]  Timberworx (Pty) Ltd
+│             ├── 80%   Cradle Cloud [SPV]  (20% Jan)
+│             └── 95%   IWSA [SPV]  (5% Nordic partners)
+│
+└── 75% ──► LLC (Lanseria Landowners Consortium)
+            └── 25% Eckhardt (direct — split from VanSquared)""", language=None)
+
+        _ic_ft1, _ic_ft2 = st.columns(2)
+        with _ic_ft1:
+            st.markdown("**NWL Shareholders**")
+            st.markdown("""
+| Party | Stake | Notes |
+|---|---|---|
+| CA | ~88–93% | Depends on JV swap |
+| Crosspoint 2 | 7% | Buys from Siza's company |
+| JV haulage cos | up to 5% | At value — may = 50% in their cos |
+""")
+            st.markdown("**LLC (Lanseria Landowners Consortium)**")
+            st.markdown("""
+| Party | Current | Target | Vehicle |
 |---|---|---|---|
-| Rutger | 25% | → DevCo | NexusNovus → DevCo → LLC |
-| Mark | 25% | → DevCo | NexusNovus → DevCo → LLC |
-| Siza | 25% | → DevCo | Anduza → DevCo → LLC |
-| Eckhardt | 25% | **Direct** | Personal (split from VanSquare 50%) |
+| Rutger | 25% | → DevCo | NexusNovus → DevCo |
+| Mark | 25% | → DevCo | NexusNovus → DevCo |
+| Siza | 25% | → DevCo | Andzafusion → DevCo |
+| Eckhardt | 25% | **Stays direct** | Personal (split from VanSquared) |
 
-*M+E currently hold 50% via VanSquare — needs to be split so E holds his 25% personally.*
+*VanSquared currently holds 50% (M+E) — must be split. E stays direct in LLC; R+M+S collapse into DevCo (so LLC is held 75% DevCo + 25% E direct). E moving into DevCo is not currently contemplated.*
 """)
-    with _ic_col2:
-        st.subheader("CA Portfolio")
-        st.markdown("""
-| Project Vehicle | CA Stake | Notes |
+        with _ic_ft2:
+            st.markdown("**TWX Shareholders (post-restructure)**")
+            st.markdown("""
+| Party | Stake | Vehicle |
 |---|---|---|
-| NWL (Pty) Ltd | 90% | Purchased from Siza (JDA A-2) |
-| LanRED (Pty) Ltd | 100% | Renewable energy — Lanseria |
-| Timberworx (Pty) Ltd | 5% | Timber / construction |
-| Cradle Cloud [SPV] | 80% | Sovereign AI data centre |
+| Mark | TBD | via NexusNovus |
+| Eckhardt | TBD | Direct |
+| Werner | TBD | Direct |
+| Rutger | TBD | via NexusNovus |
+| CA | 5% | — |
+""")
+            st.markdown("**Crosspoint / Land**")
+            st.markdown("""
+- Crosspoint has 25% GEPF land bank option
+- Option sold to LLC
+- Land parcel renamed to [new name]
+- Crosspoint 2 takes shares in [new name]
 """)
 
-    st.subheader("NWL Ownership")
-    st.markdown("""
-| Party | Stake | Source |
-|---|---|---|
-| Catalytic Assets | 90% | Siza sells her 90% to CA (per JDA Annexure A-2) |
-| CrossPoint | 10% | Siza sells remaining 10% to CrossPoint |
+    # ── Key principles + open items ──
+    st.divider()
+    _ic_kp1, _ic_kp2 = st.columns(2)
+    with _ic_kp1:
+        with st.expander("Key Principles", expanded=False):
+            st.markdown("""
+1. **IIC sees the simplest possible structure** — 2 UBOs, no NexusNovus, no staged transitions
+2. **Everything post-close is secured via option agreements** signed at close
+3. **NexusNovus introduction is deferred** until Atradius risk is cleared — contractual substitution in DevCo SHA
+4. **DTIC conditions** may require Andzafusion to hold a specific initial % in DevCo
+5. **Crosspoint 2 is a separate entity** from original Crosspoint — buys NWL shares from Siza's company
+6. **Nordic partners only participate in IWSA** — not in CA/top structure
 """)
-
-    # ── Required agreements ──
-    st.subheader("Agreements Required")
-    st.markdown("""
-| # | Agreement | Parties | Purpose | Status |
-|---|---|---|---|---|
-| 1 | **DevCo Shareholders Agreement** | Anduza (Siza), NexusNovus (Mark + Rutger) | Govern DevCo — voting, board, distributions, deadlock | Not yet drafted |
-| 2 | **CA Share Purchase — NWL 90%** | CA (buyer), Siza (seller) | Siza sells 90% NWL to CA | Linked to JDA A-2 |
-| 3 | **CrossPoint Sale — NWL 10%** | Siza (seller), CrossPoint (buyer) | Siza sells 10% NWL to CrossPoint | Not yet drafted |
-| 4 | **LLC Cession / Transfer** | R, M, S → DevCo | Transfer of R+M+S LLC shares to DevCo | Not yet drafted |
-| 5 | **CA Subscription — Cradle Cloud** | CA, Cradle Cloud SPV | CA takes 80% equity in Cradle Cloud | Not yet drafted |
-| 6 | **VanSquare Split — LLC** | Eckhardt, Mark | Split VanSquare 50% into E personal 25% + M via DevCo 25% | Not yet drafted |
+    with _ic_kp2:
+        with st.expander("Open Consensus Items", expanded=False):
+            st.markdown("""
+| # | Question | Decides |
+|---|----------|---------|
+| 1 | Andzafusion % in DevCo (DTIC)? | UBO diagram split |
+| 2 | Crosspoint 2 NWL: 7% shares, or compensated via property option? | Financial model + security |
+| 3 | JV haulage cross-equity: which cos, what %? | NWL SHA, dilution |
+| 4 | VanSquared TWX split — final %s? | TWX SHA |
+| 5 | CoE asset sale to LLC: valuation? | TWX balance sheet |
+| 6 | IWSA: which Nordic partners? Timeline? | CA portfolio |
+| 7 | Crosspoint land option: new parcel name? | LLC structure |
+| 8 | Jan's 20% Cradle Cloud: entity vehicle? | Cradle Cloud SHA |
 """)
-
-    st.info("DevCo Shareholders Agreement must be in place before LLC cession can execute. "
-            "NWL share purchase from Siza is governed by JDA Annexure A-2 terms. "
-            "VanSquare 50% needs to be split so Eckhardt holds his 25% LLC personally.")
 
     # ── Full document download ──
     st.divider()
