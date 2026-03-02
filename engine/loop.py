@@ -650,7 +650,7 @@ def build_annual(
         a["cf_sr_accel"] = a["cf_accel_sr"]
         a["cf_mz_accel"] = a["cf_accel_mz"]
 
-        # Backward compat
+        # Backward-compat: cf_prepay_* aliases for cf_grant_accel_* (used in app.py CF displays)
         a["cf_prepay_sr"] = a["cf_grant_accel_sr"]
         a["cf_prepay"] = a["cf_grant_accel"]
         if a["cf_grant_accel"] > 0 and (dtic_grant_entity + gepf_grant_entity) > 0:
@@ -683,7 +683,7 @@ def build_annual(
         a["wf_mz_div_fd"] = w.get("mz_div_fd_bal", 0)
         a["wf_entity_fd"] = w.get("entity_fd_bal", 0)
 
-        # Backward-compat: bs_ prefixed reserve balance keys (app.py L6704-6707)
+        # Backward-compat: bs_ prefixed reserve balance keys (used in app.py RESERVE BALANCES section)
         a["bs_ops_reserve"] = a["wf_ops_reserve"]
         a["bs_opco_dsra"] = a["wf_opco_dsra"]
         a["bs_mz_div_fd"] = a["wf_mz_div_fd"]
@@ -700,7 +700,7 @@ def build_annual(
                        + a["cf_ops"] - a["cf_ie"] - a["cf_pr"]
                        - a["cf_dividend"])
 
-        # Backward-compat: old-style DSRA/FD roll-forward keys (app.py L6711-6714)
+        # Backward-compat: old-style DSRA/FD roll-forward keys (used in app.py FIXED DEPOSIT section)
         # Identity: dsra_opening + dsra_deposit + dsra_interest = dsra_bal
         a["dsra_opening"] = _cash_bal
         a["dsra_interest"] = a["ii_dsra"]

@@ -33,6 +33,7 @@ from engine.swap import extract_swap_vectors as _engine_extract_swap_vectors
 from engine.swap import compute_nwl_swap_bounds as _engine_swap_bounds
 from engine.pnl import build_semi_annual_pnl as _engine_build_pnl
 from engine.pnl import extract_tax_vector as _engine_extract_tax
+from engine.depreciation import build_tranche_s12c_vector as _engine_tranche_s12c
 from engine.periods import (
     annual_month_range, construction_end_index, construction_period_labels,
     period_lookup, period_start_month, repayment_start_index,
@@ -1089,6 +1090,32 @@ country_allocation = load_config("country_allocation")
 financing = load_config("financing")
 structure = load_config("structure")
 operations_config = load_config("operations")
+rates_config = load_config("rates")
+entities_config = load_config("entities")["entities"]
+_SR_FACILITY_RATE = rates_config["senior_debt"]["facility_rate"]
+_MZ_FACILITY_RATE = rates_config["mezzanine"]["total_rate"]
+_SR_IC_RATE = _SR_FACILITY_RATE + INTERCOMPANY_MARGIN
+_MZ_IC_RATE = _MZ_FACILITY_RATE + INTERCOMPANY_MARGIN
+_OD_RATE = rates_config["ic_overdraft"]["rate"]
+_ZAR_SWAP_RATE = rates_config["swap"]["zar_rate"]
+_TAX_RATE = rates_config["tax"]["corporate_rate"]
+_CC_IRR_TARGET = rates_config["cc_irr"]["target"]
+_CC_CONTRACTUAL = rates_config["cc_irr"]["contractual"]
+_CC_DIV_GAP = rates_config["cc_irr"]["gap"]
+_FD_RATE_ZAR = rates_config["fixed_deposits"]["zar"]["rate"]
+_OWN_NWL = entities_config["nwl"]["parent_pct"]
+_OWN_LANRED = entities_config["lanred"]["parent_pct"]
+_OWN_TWX = entities_config["timberworx"]["parent_pct"]
+_OWN_NWL_OTHER = entities_config["nwl"].get("other_shareholders", {}).get("crosspoint", {}).get("pct", 0.07)
+_OWN_TWX_OTHER = entities_config["timberworx"].get("other_shareholders", {}).get("vansquared", {}).get("pct", 0.95)
+_EQ_BASE_ZAR = project["model_parameters"]["equity_in_subsidiaries"].get("nwl_base_zar", 1000000)
+_LR_SOLAR_CFG = operations_config["lanred"].get("solar_capacity", {})
+_LR_PV_BUDGET = load_config("assets")["assets"]["solar"]["line_items"][0]["budget"]
+_LR_COST_PER_KWP = float(_LR_SOLAR_CFG.get("cost_per_kwp_eur", 728))
+_LR_CAPACITY_MWP = (_LR_PV_BUDGET / _LR_COST_PER_KWP / 1000.0) if _LR_COST_PER_KWP > 0 else 0.0
+_LR_BESS_BUDGET = load_config("assets")["assets"]["solar"]["line_items"][1]["budget"]
+_LR_BESS_COST_KWH = float(operations_config["lanred"].get("battery_storage", {}).get("cost_per_kwh_eur", 364))
+_LR_BESS_MWH = (_LR_BESS_BUDGET / _LR_BESS_COST_KWH / 1000.0) if _LR_BESS_COST_KWH > 0 else 0.0
 
 
 # ============================================================
@@ -1259,8 +1286,8 @@ def _render_entity_cascade_diagram(entity_label, show_swap=False, show_od_lend=F
         S1   [label="Ops Reserve FD", fillcolor="{fd}"];
         S2   [label="OpCo DSRA", fillcolor="{fd}"];
         SURP [label="Surplus", fillcolor="{gn}"];
-        P1   [label="Mezz IC Accel\\n(15.25%)", fillcolor="{mz}"];
-        P4   [label="Sr IC Accel\\n(5.20%)", fillcolor="{sr}"];
+        P1   [label="Mezz IC Accel\\n({_CC_IRR_TARGET:.0%} eff.)", fillcolor="{mz}"];
+        P4   [label="Sr IC Accel\\n({_SR_IC_RATE:.2%})", fillcolor="{sr}"];
         EFD  [label="Entity FD", fillcolor="{fd}"];
         SRPIPE [label="Senior Pipe →\\nSCLCA → IIC", fillcolor="{sr}"];
         MZPIPE [label="Mezz Pipe →\\nSCLCA → CC", fillcolor="{mz}"];
@@ -1273,17 +1300,17 @@ def _render_entity_cascade_diagram(entity_label, show_swap=False, show_od_lend=F
         dot += f'        S3 [label="LanRED OD\\nLending", fillcolor="#F59E0B", fontcolor="#1a1a1a", shape=diamond];\n'
         dot += '        S2 -> S3 -> SURP;\n'
     elif show_od_repay:
-        dot += f'        P3 [label="OD Repay\\n(10%)", fillcolor="#F59E0B", fontcolor="#1a1a1a"];\n'
+        dot += f'        P3 [label="OD Repay\\n({_OD_RATE:.0%})", fillcolor="#F59E0B", fontcolor="#1a1a1a"];\n'
         dot += '        S2 -> SURP;\n'
     else:
         dot += '        S2 -> SURP;\n'
     dot += '        SURP -> P1;\n'
     if show_swap and show_od_repay:
         # Both swap and OD repay: P1 → P2 (ZAR) → P3 (OD) → P4
-        dot += f'        P2 [label="ZAR Rand Leg\\n(9.69%)", fillcolor="#F59E0B", fontcolor="#1a1a1a"];\n'
+        dot += f'        P2 [label="ZAR Rand Leg\\n({_ZAR_SWAP_RATE:.2%})", fillcolor="#F59E0B", fontcolor="#1a1a1a"];\n'
         dot += '        P1 -> P2 -> P3 -> P4;\n'
     elif show_swap:
-        dot += f'        P2 [label="ZAR Rand Leg\\n(9.69%)", fillcolor="#F59E0B", fontcolor="#1a1a1a"];\n'
+        dot += f'        P2 [label="ZAR Rand Leg\\n({_ZAR_SWAP_RATE:.2%})", fillcolor="#F59E0B", fontcolor="#1a1a1a"];\n'
         dot += '        P1 -> P2 -> P4;\n'
     elif show_od_repay:
         dot += '        P1 -> P3 -> P4;\n'
@@ -1316,7 +1343,7 @@ def _render_holding_passthrough_diagram():
         MZ      [label="Mezz\\nReceived", fillcolor="{mz}"];
         IIC     [label="Invest\\nInternational", fillcolor="{sr}"];
         CC      [label="Creation\\nCapital", fillcolor="{mz}"];
-        MARGIN  [label="0.5%\\nMargin", fillcolor="{fd}"];
+        MARGIN  [label="{INTERCOMPANY_MARGIN:.1%}\\nMargin", fillcolor="{fd}"];
         HFD     [label="Holding FD", fillcolor="{fd}"];
 
         NWL_SR -> SR; LR_SR -> SR; TWX_SR -> SR;
@@ -1364,10 +1391,26 @@ def _compute_entity_waterfall_inputs(entity_key, ops_annual, entity_sr_sched, en
         # Need depreciable base for P&L — use entity total_loan as proxy
         entity_data = cfg.entity_loans().get(entity_key, {})
         depreciable_base = entity_data.get("total_loan", 0.0)
+        # Per-tranche S12C: each construction drawdown gets its own 40/20/20/20
+        _rep_month = repayment_start_month()
+        n_constr = len([r for r in entity_sr_sched if r.get("Month", 999) < _rep_month])
+        if n_constr == 0:
+            n_constr = min(4, len(entity_sr_sched))
+        _sr_draws = [entity_sr_sched[i].get("Draw Down", 0) for i in range(n_constr)]
+        _mz_draws = [entity_mz_sched[i].get("Draw Down", 0) for i in range(min(n_constr, len(entity_mz_sched)))]
+        _mz_draws += [0.0] * (n_constr - len(_mz_draws))
+        _total_draws = [s + m for s, m in zip(_sr_draws, _mz_draws)]
+        _draw_sum = sum(_total_draws)
+        if _draw_sum > 0 and depreciable_base > 0:
+            _s12c_draws = [d * depreciable_base / _draw_sum for d in _total_draws]
+        else:
+            _s12c_draws = _total_draws
+        _depr_vector = _engine_tranche_s12c(_s12c_draws, total_periods())
         semi_annual_pl = _engine_build_pnl(
             ops_annual, ops_semi_annual,
             entity_sr_sched, entity_mz_sched,
             depreciable_base, tax_rate=cfg.tax_rate,
+            depr_vector=_depr_vector,
         )
         semi_annual_tax = _engine_extract_tax(semi_annual_pl)
 
@@ -2690,7 +2733,7 @@ def render_subsidiary(entity_key, icon, name):
     # Header - meaningful descriptions per entity
     entity_taglines = {
         'nwl': "2 MLD MABR wastewater treatment plant with water reuse for irrigation and construction",
-        'lanred': "2.4 MWp solar PV with battery storage powering the water treatment facility",
+        'lanred': f"{_LR_CAPACITY_MWP:.2f} MWp solar PV with battery storage powering the water treatment facility",
         'timberworx': "Centre of Excellence — CLT training, demonstration, and commercial tenants",
     }
 
@@ -3342,7 +3385,7 @@ This means:
                     st.markdown(f"**€{loans['nwl']['senior_portion']:,.0f}**")
                 with _nwl_sr_r1[1]:
                     st.caption("Interest")
-                    st.markdown(f"**{senior['interest']['rate']*100:.2f}% + 0.5% = {senior_ic_rate*100:.2f}%**")
+                    st.markdown(f"**{senior['interest']['rate']*100:.2f}% + {INTERCOMPANY_MARGIN*100:.1f}% = {senior_ic_rate*100:.2f}%**")
                 with _nwl_sr_r1[2]:
                     st.caption("Tenure")
                     st.markdown(f"**{senior['loan_holiday_months']} + {senior['repayment_months']} = {_nwl_sr_tenure} months**")
@@ -3697,9 +3740,9 @@ This means:
                 st.markdown("#### Equity Stake")
                 _eq_lr_c1, _eq_lr_c2 = st.columns(2)
                 with _eq_lr_c1:
-                    st.metric("SCLCA Ownership", "100%", "€50,000")
+                    st.metric("SCLCA Ownership", f"{_OWN_LANRED:.0%}", f"\u20ac{EQUITY_LANRED:,.0f}")
                 with _eq_lr_c2:
-                    st.metric("Share Capital", "R1m", "Wholly owned subsidiary")
+                    st.metric("Share Capital", f"R{_EQ_BASE_ZAR/1e6:.0f}m", "Wholly owned subsidiary")
             elif entity_key == "timberworx":
                 if _facility_logo.exists():
                     _tl, _tt = st.columns([1, 12])
@@ -3747,14 +3790,14 @@ This means:
                 st.markdown("#### Equity Stake")
                 _eq_twx_c1, _eq_twx_c2, _eq_twx_c3 = st.columns(3)
                 with _eq_twx_c1:
-                    st.metric("SCLCA Ownership", "5%", "€2,500")
+                    st.metric("SCLCA Ownership", f"{_OWN_TWX:.0%}", f"\u20ac{EQUITY_TWX:,.0f}")
                 with _eq_twx_c2:
-                    st.metric("Share Capital", "R1m", "€50,000 at FX 20")
+                    st.metric("Share Capital", f"R{_EQ_BASE_ZAR/1e6:.0f}m", f"\u20ac{_EQ_BASE_ZAR/FX_RATE:,.0f} at FX {FX_RATE:.0f}")
                 with _eq_twx_c3:
                     _vs_logo_a = LOGO_DIR / ENTITY_LOGOS.get("vansquared", "")
                     if _vs_logo_a.exists():
                         st.image(str(_vs_logo_a), width=80)
-                    st.markdown("**VanSquared — 95%**")
+                    st.markdown(f"**VanSquared — {_OWN_TWX_OTHER:.0%}**")
 
             # ── AUDIT: Facilities ──
             _fac_checks = []
@@ -5041,7 +5084,7 @@ This means:
                         {"Item": "Equity issued", "Value": "Yes"},
                         {"Item": "Equity value / acceleration", "Value": "ZAR 44,720,857"},
                         {"Item": "EPC contract issued", "Value": "No"},
-                        {"Item": "Opex starts with CoD (month)", "Value": 12},
+                        {"Item": "Opex starts at CoD (end M12 / start M13, semi-annual period 2)", "Value": 12},
                     ])
                     render_table(_om_assumptions)
 
@@ -5079,7 +5122,7 @@ This means:
                 st.divider()
                 with st.container(border=True):
                     st.subheader("Power / Electricity")
-                    st.caption("Inter-company electricity from LanRED solar plant. MABR technology consumes ~0.4 kWh/m3.")
+                    st.caption(f"Inter-company electricity from LanRED solar plant. MABR technology consumes ~{operations_config['nwl']['power']['kwh_per_m3']} kWh/m3.")
                     with st.expander("Power assumptions", expanded=False):
                         _pw_c1, _pw_c2, _pw_c3 = st.columns(3)
                         with _pw_c1:
@@ -5118,7 +5161,7 @@ This means:
                     _daily_m3 = _capacity_mld * 1000.0
 
                     st.markdown(
-                        f"OxyMem's MABR achieves up to **95% oxygen transfer efficiency** vs <30% for conventional bubble "
+                        f"OxyMem's MABR achieves **high oxygen transfer efficiency** (design specification) vs <30% for conventional bubble "
                         f"diffusion — delivering **{_saving_pct:.0f}% lower energy consumption** at {_mabr_kwh_m3} kWh/m\u00b3 "
                         f"vs ~{_cas_kwh_m3} kWh/m\u00b3 for conventional activated sludge (CAS). "
                         f"At NWL's {_capacity_mld} MLD capacity, this translates to significant lifetime cost savings — "
@@ -5213,9 +5256,12 @@ This means:
                     _fig_pw.update_yaxes(title_text="Cumulative Saving (R millions)", secondary_y=True)
                     st.plotly_chart(_fig_pw, use_container_width=True)
 
+                    _mabr_kwh = operations_config['nwl']['power']['kwh_per_m3']
+                    _cas_kwh = operations_config['nwl']['power'].get('cas_benchmark_kwh_per_m3', 1.2)
+                    _ic_disc = operations_config['nwl']['power']['ic_discount_pct']
                     st.caption(
-                        "Conventional CAS benchmark: ~1.6 kWh/m\u00b3 at full Eskom tariff. "
-                        "MABR (OxyMem): 0.4 kWh/m\u00b3 at inter-company rate (Eskom -10%). "
+                        f"Conventional CAS benchmark: ~{_cas_kwh} kWh/m\u00b3 at full Eskom tariff. "
+                        f"MABR (OxyMem): {_mabr_kwh} kWh/m\u00b3 at inter-company rate (Eskom -{_ic_disc:.0f}%). "
                         "Sources: [OxyMem](https://www.oxymem.com/blog/bubble-less-mabr-system-can-reduce-energy-costs), "
                         "[Springer Nature](https://link.springer.com/chapter/10.1007/978-3-030-13068-8_128)"
                     )
@@ -6143,12 +6189,12 @@ split is well-balanced: BESS provides grid independence and peak shaving while P
             if entity_key == "lanred":
                 _pl_lr_scenario = _state_str("lanred_scenario", "Brownfield+")
                 if _pl_lr_scenario == "Brownfield+":
-                    st.caption(f"{name} — Annual P&L (EUR) | SA corporate tax: 27% | Scenario: **Brownfield+** (Northlands Portfolio)")
+                    st.caption(f"{name} — Annual P&L (EUR) | SA corporate tax: {_TAX_RATE:.0%} | Scenario: **Brownfield+** (Northlands Portfolio)")
                 else:
                     _pl_bess_pct = _state_float("lanred_bess_alloc_pct", 14)
-                    st.caption(f"{name} — Annual P&L (EUR) | SA corporate tax: 27% | PV/BESS: {100 - _pl_bess_pct:.0f}/{_pl_bess_pct:.0f}% (set on Assets tab)")
+                    st.caption(f"{name} — Annual P&L (EUR) | SA corporate tax: {_TAX_RATE:.0%} | PV/BESS: {100 - _pl_bess_pct:.0f}/{_pl_bess_pct:.0f}% (set on Assets tab)")
             else:
-                st.caption(f"{name} — Annual P&L (EUR) | SA corporate tax: 27%")
+                st.caption(f"{name} — Annual P&L (EUR) | SA corporate tax: {_TAX_RATE:.0%}")
 
             total_rev = sum(a.get('rev_total', 0.0) for a in _sub_annual)
             total_ebitda = sum(a.get('ebitda', 0.0) for a in _sub_annual)
@@ -6316,7 +6362,7 @@ split is well-balanced: BESS provides grid independence and peak shaving while P
             _pnl_spacer()
             _pnl_section('BOTTOM LINE')
             _pnl_line('Profit Before Tax', 'pbt', row_type='total')
-            _pnl_line('Tax (27%)', 'tax', -1.0)
+            _pnl_line(f'Tax ({_TAX_RATE:.0%})', 'tax', -1.0)
             _pnl_line('Net Result', 'pat', row_type='grand')
 
             # Build styled HTML table
@@ -6378,16 +6424,16 @@ split is well-balanced: BESS provides grid independence and peak shaving while P
                     "actual": _a['pbt'],
                 })
                 # Tax uses semi-annual loss carry-forward (engine calc_tax),
-                # so naive max(PBT*27%,0) doesn't hold. Verify bounds instead:
-                # (a) tax >= 0  (b) tax <= max(PBT,0) * 27%
-                _tax_ceiling = max(_a['pbt'], 0.0) * 0.27
+                # so naive max(PBT*rate,0) doesn't hold. Verify bounds instead:
+                # (a) tax >= 0  (b) tax <= max(PBT,0) * tax_rate
+                _tax_ceiling = max(_a['pbt'], 0.0) * _TAX_RATE
                 _pl_checks.append({
                     "name": f"Y{_y}: Tax >= 0",
                     "expected": max(_a['tax'], 0.0),
                     "actual": _a['tax'],
                 })
                 _pl_checks.append({
-                    "name": f"Y{_y}: Tax <= max(PBT,0)*27%",
+                    "name": f"Y{_y}: Tax <= max(PBT,0)*{_TAX_RATE:.0%}",
                     "expected": min(_a['tax'], _tax_ceiling),
                     "actual": _a['tax'],
                 })
@@ -6670,6 +6716,8 @@ split is well-balanced: BESS provides grid independence and peak shaving while P
                 _cf_spacer()
 
             # --- NET CASH FLOW ---
+            # cf_after_debt_service = EBITDA - debt service (- swap if active): surplus available for waterfall allocation
+            # cf_net = final cash flow after all waterfall allocations (reserves, acceleration, entity FD)
             _cf_section('NET CASH FLOW')
             _cf_line('Free CF (Ops − DS − Swap)', 'cf_after_debt_service', row_type='total') if _sub_swap_active else _cf_line('Free CF (Ops − DS)', 'cf_after_debt_service', row_type='total')
             _cf_line('Period Cash Flow', 'cf_net', row_type='total')
@@ -6915,6 +6963,10 @@ NWL benefits from **two grant-funded accelerations** that reduce Senior IC expos
                         )
                         _sweep_pct = _sweep_val / 100.0
                     with _cs_c2:
+                        st.caption(
+                            "Cash sweep: configurable share of surplus (after all reserve obligations "
+                            "are met) used for IC loan prepayment. Remainder retained in Entity FD."
+                        )
                         if _sweep_pct < 1.0:
                             st.caption(
                                 f"{_sweep_val}% surplus to IC acceleration, "
@@ -6992,7 +7044,6 @@ NWL benefits from **two grant-funded accelerations** that reduce Senior IC expos
                                     min_value=_slider_min,
                                     max_value=_slider_max,
                                     step=1000,
-                                    value=int(st.session_state.get("nwl_swap_notional", _slider_min)),
                                     key="nwl_swap_notional",
                                     help=(
                                         f"Min = 2×(P+I) SCLCA loan M24 (€{_slider_min:,.0f}). "
@@ -7079,7 +7130,7 @@ NWL benefits from **two grant-funded accelerations** that reduce Senior IC expos
 - NWL buys FEC from Investec (ZAR → EUR hedge)
 - NWL uses EUR to repay Senior IC → Holding → IIC Senior facility payoff
 - **One shot at M24** — Senior IC ↓, Mezz IC ↑, total debt unchanged
-- **Cost**: 14.75% (CC rate) + 5.25% (dividend accrual) = **20% effective**
+- **Cost**: {_CC_CONTRACTUAL:.2%} (CC rate) + {_CC_DIV_GAP:.2%} (dividend accrual) = **{_CC_IRR_TARGET:.0%} effective**
 """)
 
                     # ── RIGHT: Cross-Currency Swap ──
@@ -7139,8 +7190,8 @@ NWL benefits from **two grant-funded accelerations** that reduce Senior IC expos
                             )
                             st.plotly_chart(_fig_zar, use_container_width=True, key="zar_leg_timeline")
 
-                            st.markdown("**Cost**: 9.69% — below Mezz (14.75%), no dividend accrual. "
-                                        "Paid contractually on schedule, or accelerated from NWL surplus (P2 priority).")
+                            st.markdown(f"**Cost**: {_ZAR_SWAP_RATE:.2%} — below Mezz effective cost ({_CC_IRR_TARGET:.0%}: {_CC_CONTRACTUAL:.2%} CC rate + {_CC_DIV_GAP:.2%} dividend accrual), no dividend obligation. "
+                                        "Paid contractually on schedule, or accelerated from NWL surplus.")
 
                 st.divider()
 
@@ -7185,9 +7236,9 @@ After contractual IC debt service (Senior + Mezz), **{name}** allocates surplus 
 1. **Ops Reserve FD** — 1× semi-annual operating costs (1 period)
 2. **OpCo DSRA** — 1× next Senior IC P+I
 3. **LanRED Overdraft** — lending to cover LanRED early-year deficits
-4. **Mezz IC Acceleration** (15.25%) — highest-rate debt first
-{'5. **ZAR Rand Leg** (9.69%) — swap liability repayment' if _ds_swap_active else ''}
-{'6' if _ds_swap_active else '5'}. **Senior IC Acceleration** (5.20%)
+4. **Mezz IC Acceleration** ({_CC_IRR_TARGET:.0%} effective: {_CC_CONTRACTUAL:.2%} CC rate + {_CC_DIV_GAP:.2%} dividend) — highest-cost debt retired first
+{'5. **ZAR Rand Leg** (' + f'{_ZAR_SWAP_RATE:.2%}' + ') — swap liability repayment' if _ds_swap_active else ''}
+{'6' if _ds_swap_active else '5'}. **Senior IC Acceleration** ({_SR_IC_RATE:.2%})
 {'7' if _ds_swap_active else '6'}. **Entity FD** — retained locally after both IC loans repaid
 """)
 
@@ -7546,9 +7597,9 @@ The gap of **{_ds_cc_gap:.2%}** creates two separate obligations:
                     return f"€{v/1e3:,.0f}k"
 
                 st.markdown(f"""
-After contractual IC debt service, **{name}** allocates surplus:
-Ops Reserve → OpCo DSRA → Mezz IC Accel (15.25%) →
-{'ZAR Rand Leg (9.69%) → ' if _lr_ds_swap_active else ''}OD Repayment (10%) → Sr IC Accel (5.20%) → Entity FD.
+After contractual IC debt service, **{name}** allocates surplus in rate-ranked order (highest effective cost retired first):
+Ops Reserve → OpCo DSRA → Mezz IC Accel ({_CC_IRR_TARGET:.0%} eff.) →
+{'ZAR Rand Leg (' + f'{_ZAR_SWAP_RATE:.2%}' + ') → ' if _lr_ds_swap_active else ''}OD Repayment ({_OD_RATE:.0%}) → Sr IC Accel ({_SR_IC_RATE:.2%}) → Entity FD.
 """)
 
                 with st.expander("Full Cascade Detail (semi-annual)", expanded=False):
@@ -7624,8 +7675,9 @@ Ops Reserve → OpCo DSRA → Mezz IC Accel (15.25%) →
                 st.caption(
                     f"LanRED Mezz IC accrues {_lr_cc_gap:.2%}/yr on opening balance "
                     f"as deferred dividend obligation to Creation Capital. "
-                    f"FD funded from surplus (after P+I, before Ops Reserve). "
-                    f"Paid as slug at Mezz repayment."
+                    f"Reserve accumulates semi-annually to fund the Mezz dividend; "
+                    f"FD funded from surplus (after P+I, Ops Reserve, and OpCo DSRA). "
+                    f"Paid as one-time slug when Mezz IC fully repaid."
                 )
 
                 _lr_mz_div_accruals = [_ent_wf[yi].get('mz_div_accrual', 0) for yi in range(total_years())]
@@ -7734,8 +7786,8 @@ Ops Reserve → OpCo DSRA → Mezz IC Accel (15.25%) →
                     return f"€{v/1e3:,.0f}k"
 
                 st.markdown(f"""
-After contractual IC debt service, **{name}** allocates surplus:
-Ops Reserve → OpCo DSRA → Mezz IC Accel (15.25%) → Sr IC Accel (5.20%) → Entity FD.
+After contractual IC debt service, **{name}** allocates surplus in rate-ranked order (highest effective cost retired first):
+Ops Reserve → OpCo DSRA → Mezz IC Accel ({_CC_IRR_TARGET:.0%} eff.) → Sr IC Accel ({_SR_IC_RATE:.2%}) → Entity FD.
 """)
 
                 with st.expander("Full Cascade Detail (semi-annual)", expanded=False):
@@ -7856,6 +7908,7 @@ Ops Reserve → OpCo DSRA → Mezz IC Accel (15.25%) → Sr IC Accel (5.20%) →
             _bs_section('OPERATING ASSETS')
             _bs_line('Fixed Assets (Net)', 'bs_fixed_assets')
             _bs_line('Total Operating Assets', 'bs_fixed_assets', row_type='total')
+            st.caption("Fixed assets include capitalised interest during construction (IDC) per IAS 23.")
 
             if _sub_swap_active:
                 _bs_spacer()
@@ -7875,6 +7928,13 @@ Ops Reserve → OpCo DSRA → Mezz IC Accel (15.25%) → Sr IC Accel (5.20%) →
             # BS total uses bs_dsra (CF accumulator) to maintain A = D + E identity;
             # bs_reserves_total (sum of 4 FD buckets) is used in charts only.
             _bs_line('Total Reserves & FD', 'bs_dsra', row_type='total')
+            with st.expander("Reserve bucket definitions", expanded=False):
+                st.markdown(
+                    "**Ops Reserve** -- Operating reserve funded from waterfall surplus (1x semi-annual opex).  \n"
+                    "**OpCo DSRA** -- Debt Service Reserve Account, covers next Senior IC P+I obligation.  \n"
+                    "**Mezz Div Reserve FD** -- Accumulates to fund semi-annual Mezzanine dividend payout.  \n"
+                    "**Entity FD** -- General entity savings after all obligations are met."
+                )
 
             _bs_spacer()
             _bs_line('Total Assets', 'bs_assets', row_type='grand')
@@ -7892,6 +7952,7 @@ Ops Reserve → OpCo DSRA → Mezz IC Accel (15.25%) → Sr IC Accel (5.20%) →
             _bs_line('Shareholder Equity', 'bs_equity_sh')
             _bs_line('Retained Earnings', 'bs_retained')
             _bs_line('Total Equity', 'bs_equity', row_type='total')
+            st.caption("Equity may appear negative in Y1-Y2 due to S12C depreciation claiming tax losses before revenue commences. This is normal and resolves once operations begin.")
 
             _bs_spacer()
             _bs_section('CHECK')
@@ -8026,7 +8087,7 @@ Ops Reserve → OpCo DSRA → Mezz IC Accel (15.25%) → Sr IC Accel (5.20%) →
             st.info(
                 "**Pre-Revenue Hedge Flow:** CC → Hedge → FEC → Senior Debt (covers P1+P2)  \n"
                 "**Effect on NWL:** Senior IC ↓ (faster repayment at P1), Mezz IC ↑ (Pre-Revenue Hedge drawdown). Total debt unchanged, but higher avg rate.  \n"
-                "**DSRA FD:** Surplus cash deposited at 9% p.a. — Opening + Deposit + Interest = Closing"
+                f"**DSRA FD:** Surplus cash deposited at FD rate ({DSRA_RATE*100:.0f}% p.a. from config) — Opening + Deposit + Interest = Closing"
             )
 
             # ── AUDIT: Balance Sheet ──
@@ -9864,7 +9925,7 @@ revenue contracts (Layer 3) upstream through SCLCA to Invest International Capit
                                 st.markdown(":grey[**Greenfield**]")
                                 st.markdown(f":grey[EPC: {_del_gf.get('epc_contractor', '')}]")
                                 st.markdown(f":grey[Value: €{_del_gf.get('total_eur', 0):,.0f}]")
-                                st.markdown(":grey[New-build Solar PV (2.4 MWp) + BESS (1.5 MWh)]")
+                                st.markdown(f":grey[New-build Solar PV ({_LR_CAPACITY_MWP:.2f} MWp) + BESS ({_LR_BESS_MWH:.1f} MWh)]")
 
                     # --- Brownfield+ column ---
                     with _del_col_bf:
@@ -13163,7 +13224,7 @@ if entity == "Catalytic Assets":
         a['cf_np'] = a['cf_pi'] - a['cf_po']
         # Net Cash Flow = INTEREST MARGIN ONLY (principal is pass-through)
         a['cf_net'] = (a['cf_ii'] - a['ii_dsra']) - a['cf_ie']
-        # Fixed Deposit: Opening + Deposit (Net Cash Flow) + Interest (9%) = Closing
+        # Fixed Deposit: Opening + Deposit (Net Cash Flow) + Interest (DSRA_RATE) = Closing
         a['dsra_opening'] = _dsra_bal
         _dsra_interest = _dsra_bal * DSRA_RATE  # Interest on opening balance
         a['dsra_deposit'] = a['cf_net']  # Operational cash deposited
@@ -13179,7 +13240,7 @@ if entity == "Catalytic Assets":
         a['bs_isr'] = h2['isc']  # IC Senior Loan receivable
         a['bs_imz'] = h2['imc']  # IC Mezz Loan receivable
         a['bs_ic'] = a['bs_isr'] + a['bs_imz']
-        a['bs_dsra'] = _dsra_bal  # Fixed Deposit (holding-level operational surplus at 9%)
+        a['bs_dsra'] = _dsra_bal  # Fixed Deposit (holding-level operational surplus at DSRA_RATE)
         # FEC and DSRA-injection are paired pass-throughs that always net to zero:
         # CC injects 2×(P+I) → Holding increases NWL Mezz IC → NWL repays Sr IC → Facility payoff
         # Both wind down together, so excluded from BS (net impact = 0)
@@ -13754,7 +13815,7 @@ if entity == "Catalytic Assets":
                         {"name": "NWL", "subtitle": "Water & Reuse",
                          "color": "#2563EB", "description": "2 MLD MABR Treatment"},
                         {"name": "LanRED", "subtitle": "Renewable Energy",
-                         "color": "#EAB308", "description": "2.4 MWp Solar + BESS"},
+                         "color": "#EAB308", "description": f"{_LR_CAPACITY_MWP:.2f} MWp Solar + BESS"},
                         {"name": "Timberworx", "subtitle": "Modular Housing",
                          "color": "#8B4513", "description": "DfMA Timber Panels"},
                         {"name": "IWMSA", "subtitle": "Waste Management",
@@ -13908,11 +13969,11 @@ if entity == "Catalytic Assets":
                         st.markdown("### Shareholder Equity")
                 else:
                     st.markdown("### Shareholder Equity")
-                st.caption("Equity investment to acquire subsidiary stakes (R1m = €50k at FX 20)")
+                st.caption(f"Equity investment to acquire subsidiary stakes (R{_EQ_BASE_ZAR/1e6:.0f}m = \u20ac{_EQ_BASE_ZAR/FX_RATE:,.0f} at FX {FX_RATE:.0f})")
                 _eq_r1 = st.columns(3)
                 with _eq_r1[0]:
                     st.caption("Total Equity")
-                    st.markdown("**€99,000**")
+                    st.markdown(f"**\u20ac{EQUITY_TOTAL:,.0f}**")
                 with _eq_r1[1]:
                     st.caption("Purpose")
                     st.markdown("**Buy equity in OpCos**")
@@ -13922,23 +13983,23 @@ if entity == "Catalytic Assets":
 
                 _eq_r2 = st.columns(3)
                 with _eq_r2[0]:
-                    st.caption("NWL (93%)")
-                    st.markdown("**€46,500**")
+                    st.caption(f"NWL ({_OWN_NWL:.0%})")
+                    st.markdown(f"**\u20ac{EQUITY_NWL:,.0f}**")
                     _cp_logo = LOGO_DIR / ENTITY_LOGOS.get("crosspoint", "")
                     if _cp_logo.exists():
                         st.image(str(_cp_logo), width=60)
-                    st.caption("Co-shareholder: Crosspoint (7%)")
+                    st.caption(f"Co-shareholder: Crosspoint ({_OWN_NWL_OTHER:.0%})")
                 with _eq_r2[1]:
-                    st.caption("LanRED (100%)")
-                    st.markdown("**€50,000**")
+                    st.caption(f"LanRED ({_OWN_LANRED:.0%})")
+                    st.markdown(f"**\u20ac{EQUITY_LANRED:,.0f}**")
                     st.caption("Wholly owned")
                 with _eq_r2[2]:
-                    st.caption("TWX (5%)")
-                    st.markdown("**€2,500**")
+                    st.caption(f"TWX ({_OWN_TWX:.0%})")
+                    st.markdown(f"**\u20ac{EQUITY_TWX:,.0f}**")
                     _vs_logo = LOGO_DIR / ENTITY_LOGOS.get("vansquared", "")
                     if _vs_logo.exists():
                         st.image(str(_vs_logo), width=60)
-                    st.caption("Co-shareholder: VanSquared (95%)")
+                    st.caption(f"Co-shareholder: VanSquared ({_OWN_TWX_OTHER:.0%})")
 
             # USES
             with col_uses:
@@ -13985,27 +14046,27 @@ if entity == "Catalytic Assets":
                         st.markdown("### Equity Investments")
                 else:
                     st.markdown("### Equity Investments")
-                st.caption("Shareholder equity deployed to acquire subsidiary stakes (R1m = €50k at FX 20)")
-                st.markdown("**Total: €99,000**")
+                st.caption(f"Shareholder equity deployed to acquire subsidiary stakes (R{_EQ_BASE_ZAR/1e6:.0f}m = \u20ac{_EQ_BASE_ZAR/FX_RATE:,.0f} at FX {FX_RATE:.0f})")
+                st.markdown(f"**Total: \u20ac{EQUITY_TOTAL:,.0f}**")
 
                 _eq_use_r = st.columns(3)
                 with _eq_use_r[0]:
-                    st.markdown("""
-                **NWL (93%)**
-                - Investment: €46,500
-                - Co-shareholder: Crosspoint (7%)
+                    st.markdown(f"""
+                **NWL ({_OWN_NWL:.0%})**
+                - Investment: \u20ac{EQUITY_NWL:,.0f}
+                - Co-shareholder: Crosspoint ({_OWN_NWL_OTHER:.0%})
                 """)
                 with _eq_use_r[1]:
-                    st.markdown("""
-                **LanRED (100%)**
-                - Investment: €50,000
+                    st.markdown(f"""
+                **LanRED ({_OWN_LANRED:.0%})**
+                - Investment: \u20ac{EQUITY_LANRED:,.0f}
                 - Wholly owned
                 """)
                 with _eq_use_r[2]:
-                    st.markdown("""
-                **TWX (5%)**
-                - Investment: €2,500
-                - Co-shareholder: VanSquared (95%)
+                    st.markdown(f"""
+                **TWX ({_OWN_TWX:.0%})**
+                - Investment: \u20ac{EQUITY_TWX:,.0f}
+                - Co-shareholder: VanSquared ({_OWN_TWX_OTHER:.0%})
                 """)
 
             # ── AUDIT: SCLCA Sources & Uses ──
@@ -14034,6 +14095,7 @@ if entity == "Catalytic Assets":
     if "Facilities" in _tab_map:
         with _tab_map["Facilities"]:
             st.header("Facilities")
+            st.caption("Consolidated facility schedules across all entities. Senior and Mezzanine IC loans are drawn pro-rata during construction and repaid from entity waterfall surplus.")
 
             # ===========================================
             # LIABILITY SIDE (SOURCES)
@@ -14465,7 +14527,7 @@ if entity == "Catalytic Assets":
                         st.markdown(f"**€{loans['nwl']['senior_portion']:,.0f}**")
                     with _nwl_sr_r1[1]:
                         st.caption("Interest")
-                        st.markdown(f"**{senior['interest']['rate']*100:.2f}% + 0.5% = {senior_ic_rate*100:.2f}%**")
+                        st.markdown(f"**{senior['interest']['rate']*100:.2f}% + {INTERCOMPANY_MARGIN*100:.1f}% = {senior_ic_rate*100:.2f}%**")
                     with _nwl_sr_r1[2]:
                         st.caption("Tenure")
                         st.markdown(f"**{senior['loan_holiday_months']} + {senior['repayment_months']} = {_nwl_sr_tenure} months**")
@@ -14565,14 +14627,14 @@ if entity == "Catalytic Assets":
                 st.markdown("#### Equity Stake")
                 _eq_nwl_c1, _eq_nwl_c2, _eq_nwl_c3 = st.columns(3)
                 with _eq_nwl_c1:
-                    st.metric("SCLCA Ownership", "93%", "€46,500")
+                    st.metric("SCLCA Ownership", f"{_OWN_NWL:.0%}", f"\u20ac{EQUITY_NWL:,.0f}")
                 with _eq_nwl_c2:
-                    st.metric("Share Capital", "R1m", "€50,000 at FX 20")
+                    st.metric("Share Capital", f"R{_EQ_BASE_ZAR/1e6:.0f}m", f"\u20ac{_EQ_BASE_ZAR/FX_RATE:,.0f} at FX {FX_RATE:.0f}")
                 with _eq_nwl_c3:
                     _cp_logo_a = LOGO_DIR / ENTITY_LOGOS.get("crosspoint", "")
                     if _cp_logo_a.exists():
                         st.image(str(_cp_logo_a), width=80)
-                    st.markdown("**Crosspoint — 7%**")
+                    st.markdown(f"**Crosspoint — {_OWN_NWL_OTHER:.0%}**")
                     st.caption("Property Investments")
 
             st.divider()
@@ -14614,9 +14676,9 @@ if entity == "Catalytic Assets":
                 st.markdown("#### Equity Stake")
                 _eq_lr_c1, _eq_lr_c2 = st.columns(2)
                 with _eq_lr_c1:
-                    st.metric("SCLCA Ownership", "100%", "€50,000")
+                    st.metric("SCLCA Ownership", f"{_OWN_LANRED:.0%}", f"\u20ac{EQUITY_LANRED:,.0f}")
                 with _eq_lr_c2:
-                    st.metric("Share Capital", "R1m", "Wholly owned subsidiary")
+                    st.metric("Share Capital", f"R{_EQ_BASE_ZAR/1e6:.0f}m", "Wholly owned subsidiary")
 
             st.divider()
 
@@ -14654,14 +14716,14 @@ if entity == "Catalytic Assets":
                 st.markdown("#### Equity Stake")
                 _eq_twx_c1, _eq_twx_c2, _eq_twx_c3 = st.columns(3)
                 with _eq_twx_c1:
-                    st.metric("SCLCA Ownership", "5%", "€2,500")
+                    st.metric("SCLCA Ownership", f"{_OWN_TWX:.0%}", f"\u20ac{EQUITY_TWX:,.0f}")
                 with _eq_twx_c2:
-                    st.metric("Share Capital", "R1m", "€50,000 at FX 20")
+                    st.metric("Share Capital", f"R{_EQ_BASE_ZAR/1e6:.0f}m", f"\u20ac{_EQ_BASE_ZAR/FX_RATE:,.0f} at FX {FX_RATE:.0f}")
                 with _eq_twx_c3:
                     _vs_logo_a = LOGO_DIR / ENTITY_LOGOS.get("vansquared", "")
                     if _vs_logo_a.exists():
                         st.image(str(_vs_logo_a), width=80)
-                    st.markdown("**VanSquared — 95%**")
+                    st.markdown(f"**VanSquared — {_OWN_TWX_OTHER:.0%}**")
 
             st.divider()
 
@@ -14676,20 +14738,20 @@ if entity == "Catalytic Assets":
                     st.subheader("Pre-Revenue Hedge (CC 2nd Draw)")
                     st.caption("How Creation Capital's 2nd drawdown funds the first 2 Senior debt service payments")
 
-                    st.markdown("""
+                    st.markdown(f"""
                 **Pre-Revenue Hedge at M24 (CC 2nd Drawdown):**
 
                 | Step | Action | Effect |
                 |------|--------|--------|
-                | 1 | CC injects 2×(P+I) as 2nd Mezz draw | SCLCA Mezz liability increases |
+                | 1 | CC injects 2x(P+I) as 2nd Mezz draw | SCLCA Mezz liability increases |
                 | 2 | Holding increases NWL Mezz IC | NWL Mezz IC balance increases |
                 | 3 | NWL uses funds to repay Senior IC | NWL Senior IC balance decreases |
                 | 4 | Holding receives Sr IC repayment | Cash in from NWL |
                 | 5 | Holding prepays Senior facility (DFI) | Senior facility balance decreases |
 
-                **Key insight:** CC's 2nd drawdown indirectly funds the first 2 Senior DFI payments via the Mezz→NWL→Senior chain.
-                It's a pass-through at holding level — no cash is retained. The holding's Fixed Deposit is funded separately
-                by the 0.5% interest margin on IC loans.
+                **Key insight:** CC's 2nd drawdown indirectly funds the first 2 Senior DFI payments via the Mezz->NWL->Senior chain.
+                It's a pass-through at holding level -- no cash is retained. The holding's Fixed Deposit is funded separately
+                by the {INTERCOMPANY_MARGIN:.1%} interest margin on IC loans.
                 """)
 
                 _dsra_flow_svg = Path(__file__).parent / "assets" / "dsra-flow.svg"
@@ -14719,8 +14781,8 @@ if entity == "Catalytic Assets":
             # ===========================================
             with st.container(border=True):
                 st.subheader("Fixed Deposit")
-                st.markdown("**Opening** + **Deposit** (interest margin) + **Interest** (4.4%/6mo) = **Closing**")
-                st.caption("Semi-annual compounding @ 9% p.a. = 4.4% per 6 months. Deposit = IC cash interest received minus facility cash interest paid (0.5% spread).")
+                st.markdown(f"**Opening** + **Deposit** (interest margin) + **Interest** ({((1 + DSRA_RATE) ** 0.5 - 1)*100:.1f}%/6mo) = **Closing**")
+                st.caption(f"Semi-annual compounding @ {DSRA_RATE*100:.0f}% p.a. = {((1 + DSRA_RATE) ** 0.5 - 1)*100:.1f}% per 6 months. Deposit = IC cash interest received minus facility cash interest paid ({INTERCOMPANY_MARGIN:.1%} spread).")
 
                 # Build FD schedule: semi-annual calculation
                 # Semi-annual interest rate: (1.09)^0.5 - 1 ≈ 0.04403
@@ -14872,7 +14934,7 @@ if entity == "Catalytic Assets":
                 ops_data['Total'].append(row_total)
 
             # FD Interest (on surplus cash)
-            ops_data['Item'].append('Fixed Deposit (9%)')
+            ops_data['Item'].append(f'Fixed Deposit ({DSRA_RATE*100:.0f}%)')
             for i, a in enumerate(annual_model):
                 ops_data[year_cols[i]].append(a['ii_dsra'])
             ops_data['Total'].append(sum(a['ii_dsra'] for a in annual_model))
@@ -15167,7 +15229,7 @@ if entity == "Catalytic Assets":
     if "Cash Flow" in _tab_map:
         with _tab_map["Cash Flow"]:
             st.header("Cash Flow Statement")
-            st.caption("All surplus cash flows to Fixed Deposit at 9%")
+            st.caption(f"Net cash flow = IC interest margin (interest received from subsidiaries minus interest paid on facilities). Margin deposited to Fixed Deposit at {DSRA_RATE*100:.0f}%.")
 
             total_cf_net = sum(a['cf_net'] for a in annual_model)
             col1, col2, col3 = st.columns(3)
@@ -15176,7 +15238,7 @@ if entity == "Catalytic Assets":
             with col2:
                 st.metric("Ending FD Balance", f"€{annual_model[-1]['dsra_bal']:,.0f}")
             with col3:
-                st.metric("FD Rate", "9%")
+                st.metric("FD Rate", f"{DSRA_RATE*100:.0f}%")
 
             st.divider()
 
@@ -15235,7 +15297,7 @@ if entity == "Catalytic Assets":
             _cf_computed_line('Interest Received (IC Loans)',
                 [a['cf_ii'] - a['ii_dsra'] for a in annual_model] +
                 [sum(a['cf_ii'] - a['ii_dsra'] for a in annual_model)])
-            _cf_line('Interest Received (FD 9%)', 'ii_dsra')
+            _cf_line(f'Interest Received (FD {DSRA_RATE*100:.0f}%)', 'ii_dsra')
             _cf_line('Interest Paid (Facilities)', 'cf_ie', -1.0)
             _cf_computed_line('Net Interest',
                 [a['cf_ii'] - a['cf_ie'] for a in annual_model] +
@@ -15331,7 +15393,7 @@ if entity == "Catalytic Assets":
                 marker_color='#10B981'
             ))
             fig_cf.add_trace(go.Bar(
-                x=_cf_years, y=_cf_fd_interest, name='FD Interest (9%)',
+                x=_cf_years, y=_cf_fd_interest, name=f'FD Interest ({DSRA_RATE*100:.0f}%)',
                 marker_color='#6366F1'
             ))
 
@@ -15362,7 +15424,7 @@ if entity == "Catalytic Assets":
                 legend=dict(orientation='h', yanchor='bottom', y=1.02, xanchor='center', x=0.5)
             )
             st.plotly_chart(fig_cf, use_container_width=True)
-            st.caption("*Principal is a pure pass-through (IC received = facility paid). Only the 0.5% interest margin is retained by SCLCA.*")
+            st.caption(f"*Principal is a pure pass-through (IC received = facility paid). Only the {INTERCOMPANY_MARGIN:.1%} interest margin is retained by SCLCA.*")
 
             # ── AUDIT: SCLCA Cash Flow (cross-ref vs engine entity CF) ──
             _sclca_cf_checks = []
@@ -15506,9 +15568,9 @@ if entity == "Catalytic Assets":
                         st.markdown("---")
                         if not nwl_swap_enabled:
                             st.markdown(
-                                "**CC DSRA \u2192 FEC**: Creation Capital injects \u20ac2.3M at M24, which "
-                                "purchases a Forward Exchange Contract to hedge IIC payments M24\u2013M30. "
-                                "Cost: **20%** effective (14.75% CC rate + 5.25% dividend accrual)."
+                                f"**CC DSRA \u2192 FEC**: Creation Capital injects \u20ac2.3M at M24, which "
+                                f"purchases a Forward Exchange Contract to hedge IIC payments M24\u2013M30. "
+                                f"Cost: **{_CC_IRR_TARGET:.0%}** effective ({_CC_CONTRACTUAL:.2%} CC rate + {_CC_DIV_GAP:.2%} dividend accrual)."
                             )
                         else:
                             _zar_start = _swap_sched['start_month'] if _swap_sched else 36
@@ -15517,7 +15579,7 @@ if entity == "Catalytic Assets":
                                 f"**Cross-Currency Swap**: NWL enters a EUR\u2192ZAR swap. The EUR leg "
                                 f"(financial asset) = \u20ac{nwl_swap_amount:,.0f}, identical to IIC "
                                 f"repayments at M24 + M30. The ZAR leg (liability) runs "
-                                f"M{_zar_start}\u2013M{_zar_end} at **9.69%**, matching the IIC facility "
+                                f"M{_zar_start}\u2013M{_zar_end} at **{_ZAR_SWAP_RATE:.2%}**, matching the IIC facility "
                                 f"tenure. Interest rate below Mezz; FX cost below FEC."
                             )
                         # NWL Hedging Cost Comparison
@@ -15648,9 +15710,10 @@ if entity == "Catalytic Assets":
                 # Summary
                 st.markdown(f"""
 Cash flows upstream via **2 pipes only** (Senior IC and Mezz IC). After contractual debt service,
-surplus is allocated at {ek_label} level: Ops Reserve -> OpCo DSRA ->
-{'LanRED overdraft lending -> ' if ek_key == 'nwl' else ''}Mezz IC acceleration (15.25%)
-{'-> ZAR Rand Leg (9.69%) ' if show_swap else ''}{'-> OD repayment (10%) ' if show_od else ''}-> Senior IC acceleration (5.20%) -> Entity FD.
+surplus is allocated at {ek_label} level in rate-ranked order (highest effective cost retired first):
+Ops Reserve -> OpCo DSRA ->
+{'LanRED overdraft lending -> ' if ek_key == 'nwl' else ''}Mezz IC acceleration ({_CC_IRR_TARGET:.0%} eff.: {_CC_CONTRACTUAL:.2%} CC rate + {_CC_DIV_GAP:.2%} dividend)
+{'-> ZAR Rand Leg (' + f'{_ZAR_SWAP_RATE:.2%}' + ') ' if show_swap else ''}{'-> OD repayment (' + f'{_OD_RATE:.0%}' + ') ' if show_od else ''}-> Senior IC acceleration ({_SR_IC_RATE:.2%}) -> Entity FD.
 """)
 
                 # Cascade table rows
@@ -15991,7 +16054,7 @@ surplus is allocated at {ek_label} level: Ops Reserve -> OpCo DSRA ->
             _lr_od_active = any(w.get('lanred_od_received', 0) > 0 or w.get('lanred_od_bal', 0) > 0 for w in _waterfall)
             if _lr_od_active:
                 with st.expander("LanRED Overdraft Tracking", expanded=False):
-                    st.markdown("NWL lends surplus to LanRED via inter-entity overdraft at 10% p.a.")
+                    st.markdown(f"NWL lends surplus to LanRED via inter-entity overdraft at {_OD_RATE:.0%} p.a.")
                     _lr_od_table = {
                         'OD Received': [_eur_fmt.format(w.get('lanred_od_received', 0)) for w in _waterfall],
                         'OD Repaid': [_eur_fmt.format(w.get('lanred_od_repaid', 0)) for w in _waterfall],
@@ -16045,16 +16108,16 @@ surplus is allocated at {ek_label} level: Ops Reserve -> OpCo DSRA ->
             )
             st.plotly_chart(fig_casc, use_container_width=True)
 
-            st.caption("**One-Time Dividend** accrues at 5.25% p.a. on CC opening balance. "
+            st.caption(f"**One-Time Dividend** accrues at {_CC_DIV_GAP:.2%} p.a. on CC opening balance. "
                         "Settled as lump sum once CC principal reaches zero.")
 
             st.divider()
 
             # CC Balance & Dividend & IRR
             st.subheader("CC Balance & One-Time Dividend")
-            st.markdown("**Creation Capital** is repaid via Mezz-character cash (step 2): "
-                         "scheduled Mezz P+I + entity-level Mezz IC acceleration. "
-                         "When the CC balance reaches zero, a one-time dividend (5.25% p.a. accrual) is paid.")
+            st.markdown(f"**Creation Capital** is repaid via Mezz-character cash (step 2): "
+                         f"scheduled Mezz P+I + entity-level Mezz IC acceleration. "
+                         f"When the CC balance reaches zero, a one-time dividend ({_CC_DIV_GAP:.2%} p.a. accrual) is paid.")
 
             _cc_close = [w['cc_closing'] for w in _waterfall]
             _cc_slug_cum = [w['cc_slug_cumulative'] for w in _waterfall]
@@ -16090,7 +16153,7 @@ surplus is allocated at {ek_label} level: Ops Reserve -> OpCo DSRA ->
                 if abs(_irr_pct - 20.0) < 1.0:
                     st.success(f"CC Achieved IRR: {_irr_pct:.1f}%")
                 else:
-                    st.info(f"CC IRR at Y10: {_irr_pct:.1f}% (target: 20%)")
+                    st.info(f"CC IRR at Y10: {_irr_pct:.1f}% (target: {_CC_IRR_TARGET:.0%})")
             else:
                 st.info("CC IRR: Insufficient data for calculation")
 
@@ -16176,9 +16239,9 @@ surplus is allocated at {ek_label} level: Ops Reserve -> OpCo DSRA ->
             _od_active_bs = any(w['ic_overdraft_bal'] > 0 for w in _waterfall)
             if _od_active_bs:
                 _bs_computed_line('IC Overdraft Receivable', [_waterfall[yi]['ic_overdraft_bal'] for yi in range(total_years())])
-            _bs_line('Equity - NWL (93%)', 'bs_eq_nwl')
-            _bs_line('Equity - LanRED (100%)', 'bs_eq_lanred')
-            _bs_line('Equity - Timberworx (5%)', 'bs_eq_twx')
+            _bs_line(f'Equity - NWL ({_OWN_NWL:.0%})', 'bs_eq_nwl')
+            _bs_line(f'Equity - LanRED ({_OWN_LANRED:.0%})', 'bs_eq_lanred')
+            _bs_line(f'Equity - Timberworx ({_OWN_TWX:.0%})', 'bs_eq_twx')
             _bs_line('Financial Assets', 'bs_financial', row_type='total')
 
             _bs_spacer()
@@ -16367,7 +16430,7 @@ surplus is allocated at {ek_label} level: Ops Reserve -> OpCo DSRA ->
                     'IC Overdraft': [_eur_fmt.format(w['ic_overdraft_bal']) for w in _waterfall],
                 }
                 st.dataframe(pd.DataFrame(_wf_bs_data, index=_wf_bs_years).T, use_container_width=True)
-                st.caption("CC balance sculpted from waterfall cascade; dividend accrues at 5.25% until CC=0")
+                st.caption(f"CC balance sculpted from waterfall cascade; dividend accrues at {_CC_DIV_GAP:.2%} until CC=0")
 
             # ══════════════════════════════════════════════
             # INTER-COMPANY RECONCILIATION
@@ -16675,10 +16738,10 @@ surplus is allocated at {ek_label} level: Ops Reserve -> OpCo DSRA ->
             st.header("Sensitivity Analysis")
             st.caption("Impact of key variables on SCLCA profitability")
 
-            st.markdown("""
+            st.markdown(f"""
         **SCLCA Profit Drivers:**
-        1. **IC Margin** (0.5%) - Spread between IC loan rates and facility rates
-        2. **FD Interest** (9%) - Return on accumulated cash surplus in Fixed Deposit
+        1. **IC Margin** ({INTERCOMPANY_MARGIN:.1%}) - Spread between IC loan rates and facility rates
+        2. **FD Interest** ({DSRA_RATE:.0%}) - Return on accumulated cash surplus in Fixed Deposit
         """)
 
             st.divider()
@@ -17706,10 +17769,10 @@ elif entity == "Strategy":
 """)
 
     with st.expander("LanRED — Solar + BESS (EUR 3.2M)", expanded=False):
-        st.markdown("""
+        st.markdown(f"""
 **Two pathways (NexusNovus decides which activates):**
 
-**Greenfield:** 2.4 MWp solar PV + 1.5 MWh BESS serving NWL + Smart City. DG&E EPC (European). Inter-company PPA to NWL at Eskom -10%. Smart City PPA (90 MW demand, Phase 1 = 0.5%). BESS arbitrage on TOU HD/LD cycles.
+**Greenfield:** {_LR_CAPACITY_MWP:.2f} MWp solar PV + {_LR_BESS_MWH:.1f} MWh BESS serving NWL + Smart City. DG&E EPC (European). Inter-company PPA to NWL at Eskom -10%. Smart City PPA (90 MW demand, Phase 1 = 0.5%). BESS arbitrage on TOU HD/LD cycles.
 
 **Brownfield+:** Portfolio of 5 existing C&I solar sites (2,170 kWp + 4,016 kWh BESS). ZAR 60M acquisition, 20-year PPAs, Day 1 revenue R2.08M/mo gross (R1.17M net). Proven cash flow from day one.
 
@@ -17878,7 +17941,8 @@ elif entity == "Tasks":
     st.divider()
 
     st.subheader("Phoenix Group — Property EBITDA Analysis")
-    st.markdown("**VH Properties** holds 40% in **Phoenix Group**, which will provide the guarantee for Timberworx.")
+    _vh_prop_pct = entities_config.get("vh_properties", {}).get("parent_pct", 0.40)
+    st.markdown(f"**VH Properties** holds {_vh_prop_pct:.0%} in **Phoenix Group**, which will provide the guarantee for Timberworx.")
 
     _phoenix_data = [
         ("Ridgeview Centre", -5_912_496, 21_477_981, 15_565_485, 0.40, 6_226_194),
@@ -18138,7 +18202,7 @@ elif entity == "CP & CS":
             ("CP", f"DTIC disbursement mechanism confirmed — EUR {_dtic_eur_l2:,.0f} (ZAR {_dtic_zar_l2:,.0f}); M12 trigger and payment routing agreed with DTIC in writing",                "Approved"),
             ("CP", f"GEPF sign-of-life — written confirmation: ZAR {_gepf_zar_gepf/1e6:.0f}M GEPF + ZAR {_gepf_zar_3p/1e6:.0f}M third party = ZAR {_gepf_zar_total/1e6:.1f}M total (EUR {_gepf_eur_l2:,.0f}); paid at M12; third-party component documented separately", "Pending"),
             # Forex
-            ("CP", f"Forex solution committed — FEC (CC-funded DSRA, Investec FEC) or CCS (bank-to-bank; notional EUR {_ccs_min_eur:,.0f}–{_lc_max_eur:,.0f}; 9.69% ZAR; Veracity security; IIC exposure migrates to Investec)", "Pending"),
+            ("CP", f"Forex solution committed — FEC (CC-funded DSRA, Investec FEC) or CCS (bank-to-bank; notional EUR {_ccs_min_eur:,.0f}–{_lc_max_eur:,.0f}; {_ZAR_SWAP_RATE:.2%} ZAR; Veracity security; IIC exposure migrates to Investec)", "Pending"),
             # CSs
             ("CS", "Atradius ECA policy issued — M36 balance covered; policy delivered to IIC before first drawdown",                                                                          "⚪"),
             ("CS", f"DTIC grant disbursed at M12 — EUR {_dtic_eur_l2:,.0f} (ZAR {_dtic_zar_l2:,.0f}) applied as senior prepayment; confirmation to IIC",                                    "⚪"),
