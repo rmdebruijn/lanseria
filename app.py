@@ -7364,10 +7364,10 @@ After contractual IC debt service (Senior + Mezz), **{name}** allocates surplus 
                         # Check 5: Closing balance = Opening - Principal - Accel
                         if _aud_hi > 0:
                             _prev_mz = _ent_wf_semi[_aud_hi - 1].get('mz_ic_bal', 0)
-                            _exp_mz = max(_prev_mz - _aw.get('mz_prin_sched', 0) - _aw.get('mz_accel_entity', 0), 0)
-                            if _prev_mz > 0.01:
+                            _exp_mz = max(_prev_mz - _aw.get('mz_prin_sched', 0) - _aw.get('mz_accel_entity', 0) + _aw.get('mezz_draw', 0), 0)
+                            if _prev_mz > 0.01 or _aw.get('mezz_draw', 0) > 0:
                                 _wf_checks.append({
-                                    "name": f"H{_aud_h}: Mezz bal = prev - sched - accel",
+                                    "name": f"H{_aud_h}: Mezz bal = prev - sched - accel + draw",
                                     "expected": _exp_mz,
                                     "actual": _aw.get('mz_ic_bal', 0),
                                     "tolerance": 10.0,
@@ -16010,10 +16010,11 @@ Ops Reserve -> OpCo DSRA ->
                 if _aud_yi > 0:
                     _prev_mz = _waterfall[_aud_yi - 1].get(f'{_wf_ek}_mz_ic_bal', 0)
                     _exp_mz = max(_prev_mz - _aw.get(f'{_wf_ek}_mz_prin_sched', 0)
-                                  - _aw.get(f'{_wf_ek}_mz_accel_entity', 0), 0)
-                    if _prev_mz > 0.01:
+                                  - _aw.get(f'{_wf_ek}_mz_accel_entity', 0)
+                                  + _aw.get(f'{_wf_ek}_mezz_draw', 0), 0)
+                    if _prev_mz > 0.01 or _aw.get(f'{_wf_ek}_mezz_draw', 0) > 0:
                         _cwf_checks.append({
-                            "name": f"Y{_aud_y}: Mezz bal = prev - sched - accel",
+                            "name": f"Y{_aud_y}: Mezz bal = prev - sched - accel + draw",
                             "expected": _exp_mz,
                             "actual": _aw.get(f'{_wf_ek}_mz_ic_bal', 0),
                             "tolerance": 10.0,
