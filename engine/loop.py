@@ -21,6 +21,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 
 from engine.facility import FacilityState, FacilityPeriod
+from engine.depreciation import build_tranche_s12c_vector
 from engine.pnl import compute_period_pnl, PnlPeriod
 from engine.reserves import (
     OpsReserve, OpcoDSRA, MezzDivFD, EntityFD,
@@ -131,6 +132,32 @@ def run_entity_loop(
         dsra_drawdown=dsra_drawdown,
     )
 
+    # ── Build per-tranche S12C depreciation vector ──
+    # Extract entity-level construction draws from facility schedules.
+    # FacilityState already applied pro-rata, so schedule "Draw Down" values
+    # are entity-specific.  Sum Sr + Mz for each construction period.
+    n_constr = len(construction_periods)
+    _sr_constr_draws = [
+        sr_fac.schedule[i]["Draw Down"] for i in range(n_constr)
+    ]
+    _mz_constr_draws = [
+        mz_fac.schedule[i]["Draw Down"] for i in range(n_constr)
+    ]
+    _total_constr_draws = [
+        s + m for s, m in zip(_sr_constr_draws, _mz_constr_draws)
+    ]
+    # S12C applies to (depreciable_base - straight_line_base).
+    # Pro-rata the draws to the S12C fraction of the total depreciable base.
+    _total_draw_sum = sum(_total_constr_draws)
+    s12c_base = depreciable_base - straight_line_base
+    if _total_draw_sum > 0 and depreciable_base > 0:
+        _s12c_fraction = s12c_base / depreciable_base
+        _s12c_draws = [d * _s12c_fraction for d in _total_constr_draws]
+    else:
+        _s12c_draws = _total_constr_draws
+
+    depr_vector = build_tranche_s12c_vector(_s12c_draws, n_periods)
+
     # ── Init swap vectors (if swap active) ──
     swap_vectors = None
     if swap_sched is not None:
@@ -210,6 +237,7 @@ def run_entity_loop(
             fd_income=fd_income,
             straight_line_base=straight_line_base,
             straight_line_life=straight_line_life,
+            depr_vector=depr_vector,
         )
 
         # ── 4. Waterfall: allocate cash ──

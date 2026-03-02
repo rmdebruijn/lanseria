@@ -49,6 +49,7 @@ def compute_period_pnl(
     fd_income: float = 0.0,
     straight_line_base: float = 0.0,
     straight_line_life: int = 20,
+    depr_vector: list[float] | None = None,
 ) -> tuple[PnlPeriod, float]:
     """Compute a single period's P&L.
 
@@ -66,6 +67,10 @@ def compute_period_pnl(
         tax_loss_pool: Accumulated assessed loss carried from previous period.
         straight_line_base: Portion of depreciable base under straight-line depreciation.
         straight_line_life: Straight-line asset life in years.
+        depr_vector: Pre-computed per-tranche S12C depreciation vector (20 semi-annual
+            amounts).  When provided, ``depr_vector[hi]`` is used for the S12C
+            portion instead of the single-curve inline calculation.  The
+            straight-line portion is always computed independently.
 
     Returns:
         (PnlPeriod, new_tax_loss_pool)
@@ -87,14 +92,23 @@ def compute_period_pnl(
 
     ebitda = rev - opex
 
-    # Depreciation: starts si >= 1 (Y1 H2 onward)
-    if hi >= 1:
+    # Depreciation: per-tranche S12C vector (preferred) or single-curve fallback
+    if depr_vector is not None and hi < len(depr_vector):
+        depr_s12c = depr_vector[hi]
+    elif hi >= 1:
+        # Legacy single-curve: starts hi >= 1, keyed by annual year
         s12c_pcts = {0: 0.40, 1: 0.20, 2: 0.20, 3: 0.20}
         depr_s12c = s12c_base * s12c_pcts.get(yi, 0.0) / 2
-        depr_sl = (sl_annual / 2) if yi < straight_line_life else 0.0
-        depr = depr_s12c + depr_sl
     else:
-        depr = 0.0
+        depr_s12c = 0.0
+
+    # Straight-line portion (unchanged, independent of tranche vector)
+    if hi >= 1 and yi < straight_line_life:
+        depr_sl = sl_annual / 2
+    else:
+        depr_sl = 0.0
+
+    depr = depr_s12c + depr_sl
 
     # Interest expense: direct from FacilityState (only repayment phase)
     ie = sr_interest + mz_interest
@@ -127,6 +141,7 @@ def build_semi_annual_pnl(
     *,
     straight_line_base: float = 0.0,
     straight_line_life: int = 20,
+    depr_vector: list[float] | None = None,
 ) -> list[dict]:
     """Build 20-period semi-annual P&L with loss carry-forward.
 
@@ -135,6 +150,11 @@ def build_semi_annual_pnl(
         - S12C 40/20/20/20 on (depreciable_base - straight_line_base)
         - Straight-line on straight_line_base over straight_line_life years
     When straight_line_base == 0 (default), all depreciation is S12C.
+
+    Args:
+        depr_vector: Pre-computed per-tranche S12C depreciation vector.
+            When provided, ``depr_vector[si]`` replaces the inline S12C
+            calculation.  Straight-line portion is computed independently.
 
     Returns list of 20 dicts with keys:
         month, rev, opex, ebitda, depr, ebit, ie, pbt, tax, pat, tax_loss_pool
@@ -161,16 +181,23 @@ def build_semi_annual_pnl(
 
         ebitda = rev - opex
 
-        # Depreciation: starts si >= 1 (Y1 H2 onward)
-        if si >= 1:
-            # S12C accelerated portion: 40/20/20/20 keyed by annual year
+        # Depreciation: per-tranche S12C vector (preferred) or single-curve fallback
+        if depr_vector is not None and si < len(depr_vector):
+            depr_s12c = depr_vector[si]
+        elif si >= 1:
+            # Legacy single-curve: starts si >= 1, keyed by annual year
             s12c_pcts = {0: 0.40, 1: 0.20, 2: 0.20, 3: 0.20}
             depr_s12c = s12c_base * s12c_pcts.get(yi, 0.0) / 2
-            # Straight-line portion (if any): annual / 2, capped at asset life
-            depr_sl = (sl_annual / 2) if yi < straight_line_life else 0.0
-            depr = depr_s12c + depr_sl
         else:
-            depr = 0.0
+            depr_s12c = 0.0
+
+        # Straight-line portion (unchanged, independent of tranche vector)
+        if si >= 1 and yi < straight_line_life:
+            depr_sl = sl_annual / 2
+        else:
+            depr_sl = 0.0
+
+        depr = depr_s12c + depr_sl
 
         # Interest expense from IC schedules (only M24+ — IDC is capitalised)
         ie = 0.0
