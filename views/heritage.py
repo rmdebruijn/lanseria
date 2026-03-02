@@ -192,6 +192,25 @@ def build_heritage_tooltip_html(key: str, values: dict[str, float] | None = None
     return "\n".join(parts)
 
 
+def _build_title_text(key: str, period_values: dict[str, float] | None = None) -> str:
+    """Build plain-text title attribute content (browser-native tooltip)."""
+    node = get_node(key)
+    if node is None:
+        return ""
+    parts: list[str] = []
+    label = node.label or key
+    parts.append(label)
+    parts.append(f"{key} = {node.formula}")
+    if period_values is not None:
+        tooltip_text = get_tooltip(key, period_values)
+        eq_parts = tooltip_text.split(" = ", 2)
+        if len(eq_parts) >= 3:
+            parts.append(f"= {eq_parts[2]}")
+    if node.source:
+        parts.append(f"Source: {node.source}")
+    return "&#10;".join(parts)  # &#10; = newline in title attribute
+
+
 def build_heritage_html_cell(
     display_value: str,
     key: str,
@@ -201,6 +220,8 @@ def build_heritage_html_cell(
     """Wrap a display value in a heritage-tooltip span.
 
     If the key has no lineage, returns the display value as-is (no tooltip).
+    Uses both CSS tooltip (progressive enhancement) and native HTML title
+    attribute (guaranteed browser support for hover text).
 
     Args:
         display_value: Already-formatted cell text (e.g. "EUR 785,000")
@@ -215,8 +236,11 @@ def build_heritage_html_cell(
     if not tooltip_html:
         return display_value
 
+    # Native title attribute as reliable fallback (works in all browsers)
+    title_text = _build_title_text(key, period_values)
+
     return (
-        f'<span class="heritage-cell" style="{cell_style}">'
+        f'<span class="heritage-cell" style="cursor:help;{cell_style}" title="{title_text}">'
         f'{display_value}'
         f'<span class="heritage-tip">{tooltip_html}</span>'
         f'</span>'
