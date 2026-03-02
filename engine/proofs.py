@@ -126,15 +126,20 @@ def build_facility_proofs(
     proofs.append(_p("Sum(SR interest) = P&L IE(SR)", _sr_int_total, _pl_ie_sr))
     proofs.append(_p("Sum(MZ interest) = P&L IE(MZ)", _mz_int_total, _pl_ie_mz))
 
-    # SR balance at construction end = total repaid (scheduled principal + acceleration)
-    # Schedule closing balance vs waterfall repayment accumulation
+    # SR balance at construction end = total repaid during repayment phase
+    # Schedule closing balance vs waterfall repayment accumulation (repayment only).
+    # Construction-phase grant acceleration is already reflected in the balance at
+    # construction end, so only count repayment-phase principal + acceleration.
+    from engine.periods import repayment_start_index
     _constr_end = construction_end_index()
+    _rep_start = repayment_start_index()
     _sr_bal_at_repay = next(
         (r["Closing"] for r in sr_schedule if r["Period"] == _constr_end), 0.0
     )
     _sr_repaid_total = sum(
         w.get('sr_prin_sched', 0) + w.get('sr_accel_entity', 0)
-        for w in waterfall_semi
+        for hi, w in enumerate(waterfall_semi)
+        if hi >= _rep_start
     )
     proofs.append(_p(
         "SR repaid = SR balance at repayment start",
