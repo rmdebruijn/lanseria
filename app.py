@@ -41,6 +41,13 @@ from engine.periods import (
 )
 from entities.nwl import build_nwl_sensitivity
 
+# Heritage / lineage UI (formula provenance for displayed values)
+from views.heritage import (
+    heritage_css,
+    inject_pnl_heritage,
+    render_heritage_inspector,
+)
+
 # Guarantor analysis engine
 ga = None
 try:
@@ -1103,6 +1110,7 @@ _CC_IRR_TARGET = rates_config["cc_irr"]["target"]
 _CC_CONTRACTUAL = rates_config["cc_irr"]["contractual"]
 _CC_DIV_GAP = rates_config["cc_irr"]["gap"]
 _FD_RATE_ZAR = rates_config["fixed_deposits"]["zar"]["rate"]
+_DSCR_COVENANT = financing.get("loan_detail", {}).get("senior", {}).get("covenant_dscr", 1.3)
 _OWN_NWL = entities_config["nwl"]["parent_pct"]
 _OWN_LANRED = entities_config["lanred"]["parent_pct"]
 _OWN_TWX = entities_config["timberworx"]["parent_pct"]
@@ -5140,7 +5148,7 @@ This means:
                     _pw_daily_kwh = 1.9 * 1000.0 * _pw_kwh  # MLD * 1000 m3/MLD * kWh/m3
                     _pw_annual_base = _pw_daily_kwh * 365.0 * _pw_rate
                     _pw1, _pw2, _pw3, _pw4 = st.columns(4)
-                    _pw1.metric("IC Rate (Eskom -10%)", f"R{_pw_rate:.2f}/kWh")
+                    _pw1.metric(f"IC Rate (Eskom -{ic_discount:.0f}%)", f"R{_pw_rate:.2f}/kWh")
                     _pw2.metric("Daily consumption (steady)", f"{_pw_daily_kwh:,.0f} kWh")
                     _pw3.metric("Annual cost (Y1 rate)", f"R{_pw_annual_base:,.0f}")
                     _pw4.metric("Inter-company supplier", "LanRED Solar")
@@ -6289,17 +6297,17 @@ split is well-balanced: BESS provides grid independence and peak shaving while P
             _pnl_cols = _years + ['Total']
             _ncols = len(_pnl_cols)
             # Row types: 'section' = header, 'line' = normal, 'sub' = subtotal (*), 'total' = bold (**), 'grand' = bottom line, 'spacer' = gap
-            _pnl_rows = []  # list of (label, values, row_type)
+            _pnl_rows = []  # list of (label, values, row_type, key)
 
             def _pnl_line(label, key, sign=1.0, row_type='line'):
                 vals = [sign * a.get(key, 0.0) for a in _sub_annual]
-                _pnl_rows.append((label, vals + [sum(vals)], row_type))
+                _pnl_rows.append((label, vals + [sum(vals)], row_type, key))
 
             def _pnl_section(label):
-                _pnl_rows.append((label, [None] * _ncols, 'section'))
+                _pnl_rows.append((label, [None] * _ncols, 'section', ''))
 
             def _pnl_spacer():
-                _pnl_rows.append(('', [None] * _ncols, 'spacer'))
+                _pnl_rows.append(('', [None] * _ncols, 'spacer', ''))
 
             # REVENUE
             _pnl_section('REVENUE')
@@ -6365,49 +6373,23 @@ split is well-balanced: BESS provides grid independence and peak shaving while P
             _pnl_line(f'Tax ({_TAX_RATE:.0%})', 'tax', -1.0)
             _pnl_line('Net Result', 'pat', row_type='grand')
 
-            # Build styled HTML table
-            _fmt = _eur_fmt
-            _h = ['<div style="overflow-x:auto;width:100%;">',
-                  '<table style="border-collapse:collapse;width:100%;font-size:13px;white-space:nowrap;">',
-                  '<thead><tr>']
-            _h.append('<th style="text-align:left;padding:6px 10px;border-bottom:2px solid #333;font-weight:700;">Item</th>')
-            for c in _pnl_cols:
-                _h.append(f'<th style="text-align:right;padding:6px 8px;border-bottom:2px solid #333;font-weight:700;">{c}</th>')
-            _h.append('</tr></thead><tbody>')
+            # Build styled HTML table with heritage tooltips
+            _pnl_table_html = inject_pnl_heritage(
+                _pnl_rows, _sub_annual, len(_years), _eur_fmt,
+                year_labels=_years,
+            )
+            st.markdown(_pnl_table_html, unsafe_allow_html=True)
 
-            for label, vals, rtype in _pnl_rows:
-                if rtype == 'spacer':
-                    _h.append(f'<tr><td colspan="{_ncols + 1}" style="height:10px;border:none;"></td></tr>')
-                    continue
-                if rtype == 'section':
-                    _h.append(f'<tr><td colspan="{_ncols + 1}" style="padding:8px 10px 4px;font-weight:700;'
-                              f'font-size:11px;color:#6B7280;letter-spacing:0.08em;border-bottom:1px solid #E5E7EB;">{label}</td></tr>')
-                    continue
-                # Style per row type
-                if rtype == 'grand':
-                    td_style = 'font-weight:700;background:#1E3A5F;color:#fff;border-top:2px solid #333;border-bottom:2px solid #333;'
-                    lbl_style = td_style
-                elif rtype == 'total':
-                    td_style = 'font-weight:600;background:#F1F5F9;border-top:1px solid #CBD5E1;border-bottom:1px solid #CBD5E1;'
-                    lbl_style = td_style
-                elif rtype == 'memo':
-                    td_style = 'font-style:italic;color:#9CA3AF;font-size:12px;border-bottom:1px dotted #E2E8F0;'
-                    lbl_style = td_style
-                elif rtype == 'sub':
-                    td_style = 'font-style:italic;color:#475569;border-bottom:1px dashed #E2E8F0;'
-                    lbl_style = td_style
-                else:
-                    td_style = 'border-bottom:1px solid #F1F5F9;'
-                    lbl_style = td_style
-                _h.append('<tr>')
-                _h.append(f'<td style="text-align:left;padding:4px 10px;{lbl_style}">{label}</td>')
-                for v in vals:
-                    cell = _fmt.format(v) if v is not None and not isinstance(v, str) else ''
-                    _h.append(f'<td style="text-align:right;padding:4px 8px;{td_style}">{cell}</td>')
-                _h.append('</tr>')
-
-            _h.append('</tbody></table></div>')
-            st.markdown(''.join(_h), unsafe_allow_html=True)
+            # Heritage inspector: interactive formula provenance
+            _pnl_heritage_keys = [
+                (key, label) for label, vals, rtype, key in _pnl_rows
+                if key and rtype not in ('section', 'spacer')
+            ]
+            render_heritage_inspector(
+                _pnl_heritage_keys, _sub_annual,
+                label=f"{name} P&L",
+                year_labels=_years,
+            )
 
             # ── AUDIT: P&L ──
             _pl_checks = []
@@ -6511,7 +6493,7 @@ split is well-balanced: BESS provides grid independence and peak shaving while P
                     fig_ds.add_annotation(
                         x=_yr, y=_bar_top, text=f"<b>{_dscr:.2f}x</b>",
                         showarrow=False, yshift=18,
-                        font=dict(size=11, color='#16A34A' if _dscr >= 1.3 else '#DC2626')
+                        font=dict(size=11, color='#16A34A' if _dscr >= _DSCR_COVENANT else '#DC2626')
                     )
                 elif _ops_val > 0:
                     fig_ds.add_annotation(
@@ -6525,7 +6507,7 @@ split is well-balanced: BESS provides grid independence and peak shaving while P
                 legend=dict(orientation="h", yanchor="bottom", y=1.06, xanchor="center", x=0.5)
             )
             st.plotly_chart(fig_ds, use_container_width=True)
-            st.caption("DSCR = Cash from Ops (EBITDA - Tax) / Total Debt Service. Green = above 1.30x covenant, Red = below.")
+            st.caption(f"DSCR = Cash from Ops (EBITDA - Tax) / Total Debt Service. Green = above {_DSCR_COVENANT:.2f}x covenant, Red = below.")
 
             # ======================================================
             # CHART 2: Comprehensive Cash Flow (all flows)
@@ -8662,12 +8644,12 @@ Ops Reserve → OpCo DSRA → Mezz IC Accel ({_CC_IRR_TARGET:.0%} eff.) → Sr I
                     _dscr_v = _eb / _ds
                     fig_eds.add_annotation(x=_yr, y=_top, text=f"<b>{_dscr_v:.2f}x</b>",
                         showarrow=False, yshift=18,
-                        font=dict(size=11, color='#16A34A' if _dscr_v >= 1.3 else '#DC2626'))
+                        font=dict(size=11, color='#16A34A' if _dscr_v >= _DSCR_COVENANT else '#DC2626'))
             fig_eds.update_layout(barmode='stack', height=380, yaxis_title='EUR',
                 margin=dict(l=10, r=10, t=40, b=10),
                 legend=dict(orientation="h", yanchor="bottom", y=1.06, xanchor="center", x=0.5))
             st.plotly_chart(fig_eds, use_container_width=True)
-            st.caption("DSCR = EBITDA / Total Debt Service. Green = above 1.30x covenant.")
+            st.caption(f"DSCR = EBITDA / Total Debt Service. Green = above {_DSCR_COVENANT:.2f}x covenant.")
 
             st.divider()
 
@@ -8880,7 +8862,7 @@ Ops Reserve → OpCo DSRA → Mezz IC Accel ({_CC_IRR_TARGET:.0%} eff.) → Sr I
                             fig_cf_ds.add_annotation(
                                 x=_yr, y=_bar_top, text=f"<b>{_dscr:.2f}x</b>",
                                 showarrow=False, yshift=18,
-                                font=dict(size=11, color='#16A34A' if _dscr >= 1.3 else '#DC2626')
+                                font=dict(size=11, color='#16A34A' if _dscr >= _DSCR_COVENANT else '#DC2626')
                             )
                         elif _ops_val > 0:
                             fig_cf_ds.add_annotation(
@@ -8894,7 +8876,7 @@ Ops Reserve → OpCo DSRA → Mezz IC Accel ({_CC_IRR_TARGET:.0%} eff.) → Sr I
                         legend=dict(orientation="h", yanchor="bottom", y=1.06, xanchor="center", x=0.5)
                     )
                     st.plotly_chart(fig_cf_ds, use_container_width=True)
-                    st.caption("DSCR = Cash from Ops (EBITDA - Tax) / Total Debt Service. Green = above 1.30x covenant.")
+                    st.caption(f"DSCR = Cash from Ops (EBITDA - Tax) / Total Debt Service. Green = above {_DSCR_COVENANT:.2f}x covenant.")
 
                 st.divider()
 
@@ -13590,6 +13572,41 @@ if entity == "Catalytic Assets":
         wacc=_wacc,
     )
 
+    # --- ACCELERATION PASS-THROUGH (#41) ---
+    # Overlay engine-sourced facility balances onto inline SCLCA annual model.
+    # The engine holding output includes waterfall acceleration in its IC loan
+    # balances (sr_debt, mz_debt), which the inline static schedules miss.
+    # This ensures the SCLCA BS shows correct post-acceleration facility balances.
+    _engine_holding = _audit_model_data.get("holding")
+    if _engine_holding:
+        _engine_holding_annual = _engine_holding.get("annual", [])
+        for _yi_accel, _a_accel in enumerate(annual_model):
+            if _yi_accel < len(_engine_holding_annual):
+                _eh = _engine_holding_annual[_yi_accel]
+                # Patch facility closing balances with engine values (include accel)
+                _a_accel['bs_sr'] = _eh.get("sr_debt", _a_accel['bs_sr'])
+                _a_accel['bs_mz'] = _eh.get("mz_debt", _a_accel['bs_mz'])
+                # Patch IC loan asset balances to match
+                _a_accel['bs_isr'] = _eh.get("ic_sr_bal", _a_accel.get('bs_isr', 0))
+                _a_accel['bs_imz'] = _eh.get("ic_mz_bal", _a_accel.get('bs_imz', 0))
+                _a_accel['bs_ic'] = _a_accel['bs_isr'] + _a_accel['bs_imz']
+                # Propagate acceleration amounts for display
+                _a_accel['cf_sr_accel'] = _eh.get("cf_sr_accel", 0.0)
+                _a_accel['cf_mz_accel'] = _eh.get("cf_mz_accel", 0.0)
+                _a_accel['cf_accel_total'] = _eh.get("cf_accel_total", 0.0)
+                # Recompute derived BS fields
+                _a_accel['bs_financial'] = _a_accel['bs_ic'] + _a_accel.get('bs_eq_subs', 0)
+                _a_accel['bs_a'] = _a_accel['bs_financial'] + _a_accel.get('bs_cash', 0)
+                _bs_pt_raw = _a_accel['bs_a'] - _a_accel['bs_e'] - _a_accel['bs_sr'] - _a_accel['bs_mz']
+                _a_accel['bs_dsra_liab'] = max(_bs_pt_raw, 0)
+                _a_accel['bs_accrued_ir'] = max(-_bs_pt_raw, 0)
+                _a_accel['bs_a'] = (_a_accel['bs_financial']
+                                    + _a_accel.get('bs_cash', 0)
+                                    + _a_accel['bs_accrued_ir'])
+                _a_accel['bs_l'] = (_a_accel['bs_sr']
+                                    + _a_accel['bs_mz']
+                                    + _a_accel['bs_dsra_liab'])
+
     # --- OVERVIEW TAB ---
     if "Overview" in _tab_map:
         with _tab_map["Overview"]:
@@ -16564,8 +16581,8 @@ Ops Reserve -> OpCo DSRA ->
                 fig2 = go.Figure()
                 fig2.add_trace(go.Scatter(x=_years, y=_dscr_vals, name='DSCR', mode='lines+markers',
                     line=dict(color='#2563EB', width=3), marker=dict(size=8)))
-                fig2.add_hline(y=1.3, line_dash="dash", line_color="#DC2626", annotation_text="Covenant 1.3x",
-                    annotation_position="top left")
+                fig2.add_hline(y=_DSCR_COVENANT, line_dash="dash", line_color="#DC2626",
+                    annotation_text=f"Covenant {_DSCR_COVENANT:.1f}x", annotation_position="top left")
                 fig2.add_hline(y=1.0, line_dash="dot", line_color="#6B7280", annotation_text="Breakeven",
                     annotation_position="bottom left")
                 fig2.update_layout(title='Debt Service Coverage Ratio', xaxis_title='Year', yaxis_title='DSCR (x)',

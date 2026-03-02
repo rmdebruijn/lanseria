@@ -105,6 +105,7 @@ def waterfall_step(
 
     ops_reserve_coverage = cfg.ops_reserve_coverage        # 1.0
     fd_interest_rate = cfg.fd_rate_eur / 2.0               # 3.5% / 2
+    fd_interest_rate_zar = cfg.fd_rate_zar / 2.0           # 9.0% / 2 (CC is ZAR-denominated)
     od_rate = cfg.od_rate / 2.0                            # 10% / 2
     mz_div_rate = cfg.mz_div_gap_rate / 2.0               # 5.25% / 2
 
@@ -232,7 +233,7 @@ def waterfall_step(
         mz_div_fd_interest = mz_div_accrual.interest
         state.mz_div_fd_bal = mz_div_accrual.balance_after_interest
     else:
-        mz_div_fd_interest = state.mz_div_fd_bal * fd_interest_rate
+        mz_div_fd_interest = state.mz_div_fd_bal * fd_interest_rate_zar  # ZAR FD rate (CC is ZAR-denominated)
         state.mz_div_fd_bal += mz_div_fd_interest
 
     if entity_fd_accrual is not None:
@@ -501,6 +502,7 @@ def compute_entity_waterfall(
     """
     ops_reserve_coverage = cfg.ops_reserve_coverage        # 1.0
     fd_interest_rate = cfg.fd_rate_eur / 2.0               # 3.5% / 2
+    fd_interest_rate_zar = cfg.fd_rate_zar / 2.0           # 9.0% / 2 (CC is ZAR-denominated)
     od_rate = cfg.od_rate / 2.0                            # 10% / 2
     mz_div_rate = cfg.mz_div_gap_rate / 2.0               # 5.25% / 2
 
@@ -711,7 +713,7 @@ def compute_entity_waterfall(
         od_received = 0.0
         od_repaid = 0.0
         od_interest = 0.0
-        mz_div_fd_interest = mz_div_fd_bal * fd_interest_rate
+        mz_div_fd_interest = mz_div_fd_bal * fd_interest_rate_zar  # ZAR FD rate (CC is ZAR-denominated)
         mz_div_fd_bal += mz_div_fd_interest
         mz_div_fd_fill_val = 0.0
         mz_accel_entity = 0.0

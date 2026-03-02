@@ -100,11 +100,24 @@ def _n(key: str, formula: str, inputs: tuple[str, ...], *,
 
 # ── P&L Lineage ──────────────────────────────────────────────────────
 
+# Revenue sub-components (NWL)
+_n("rev_sewage", "rev_greenfield_sewage + rev_brownfield_sewage", (
+    "rev_greenfield_sewage", "rev_brownfield_sewage",
+), label="Sewage Revenue", source="engine/ops_model.py:nwl_ops")
+
+_n("rev_reuse", "rev_greenfield_reuse + rev_construction + rev_agri", (
+    "rev_greenfield_reuse", "rev_construction", "rev_agri",
+), label="Re-use Revenue", source="engine/ops_model.py:nwl_ops")
+
+_n("rev_operating", "rev_total - rev_bulk_services", (
+    "rev_total", "rev_bulk_services",
+), sign=(1, -1), label="Operating Revenue", source="engine/loop.py:build_annual")
+
 # Revenue aggregation (entity-specific driver keys feed into rev_total)
 _n("rev_total", "sum of revenue streams", (
-    "rev_water", "rev_sewage", "rev_reuse", "rev_ic_nwl",
+    "rev_sewage", "rev_reuse", "rev_bulk_services", "rev_ic_nwl",
     "rev_ppa_pv", "rev_ppa_bess", "rev_wheeling",
-    "rev_lease", "rev_training",
+    "rev_lease", "rev_training", "rev_timber_sales", "rev_coe_sale",
 ), label="Total Revenue", source="engine/loop.py:build_annual")
 
 # OpEx aggregation
@@ -188,27 +201,66 @@ _n("cf_ds_sr", "sr_interest + sr_principal", ("ie_sr", "sr_principal"),
 _n("cf_ds_mz", "mz_interest + mz_principal", ("ie_mz", "mz_principal"),
    label="Mezz Debt Service", source="engine/facility.py")
 
-_n("cf_swap_ds", "swap_net_settlement", ("swap_eur_leg", "swap_zar_leg"),
-   label="Swap Debt Service", source="engine/swap.py")
-
 _n("cf_net", "cf_ops + cf_capex + cf_grant - cf_ds - cf_swap_ds", (
     "cf_ops", "cf_capex", "cf_grant", "cf_ds", "cf_swap_ds",
 ), sign=(1, 1, 1, -1, -1), label="Net Cash Flow", source="engine/loop.py:build_annual")
 
+# CF detail (from build_annual in loop.py)
+_n("cf_tax", "tax from P&L", ("tax",),
+   label="Tax Paid", source="engine/loop.py:build_annual")
+
+_n("cf_ie", "cf_ie_sr + cf_ie_mz", ("cf_ie_sr", "cf_ie_mz"),
+   label="Cash Interest Expense", source="engine/loop.py:build_annual")
+
+_n("cf_pr", "cf_pr_sr + cf_pr_mz", ("cf_pr_sr", "cf_pr_mz"),
+   label="Principal Repayment", source="engine/loop.py:build_annual")
+
+_n("cf_draw", "cf_draw_sr + cf_draw_mz", ("cf_draw_sr", "cf_draw_mz"),
+   label="Loan Drawdowns", source="engine/loop.py:build_annual")
+
+_n("cf_grants", "cf_grant_dtic + cf_grant_iic", ("cf_grant_dtic", "cf_grant_iic"),
+   label="Grant Receipts", source="engine/loop.py:build_annual")
+
+_n("cf_after_debt_service", "cf_ops - cf_ds - cf_swap_ds", (
+    "cf_ops", "cf_ds", "cf_swap_ds",
+), sign=(1, -1, -1), label="Cash After Debt Service",
+   source="engine/loop.py:build_annual")
+
+# Swap CF detail
+_n("cf_swap_ds", "cf_swap_ds_i + cf_swap_ds_p", ("cf_swap_ds_i", "cf_swap_ds_p"),
+   label="Swap Debt Service (EUR equiv.)", source="engine/loop.py:build_annual")
+
+_n("cf_swap_zar_i", "swap_zar_interest_cash in EUR", ("swap_zar_interest_cash",),
+   label="Swap ZAR Interest (EUR)", source="engine/loop.py:build_annual")
+
+
+# ── Facility Schedule Lineage ────────────────────────────────────────
+# Column keys from facility.build_schedule() — these are in the schedule dicts
+# not the annual dict, but used for the facility table heritage inspection.
+
+_n("sr_closing", "sr_opening + sr_draw_down + sr_interest + sr_principal - sr_accel", (
+    "sr_opening", "sr_draw_down", "sr_interest", "sr_principal", "sr_accel",
+), sign=(1, 1, 1, 1, -1), label="Senior IC Closing Balance",
+   source="engine/facility.py:build_schedule")
+
+_n("mz_closing", "mz_opening + mz_draw_down + mz_interest + mz_principal - mz_accel", (
+    "mz_opening", "mz_draw_down", "mz_interest", "mz_principal", "mz_accel",
+), sign=(1, 1, 1, 1, -1), label="Mezz IC Closing Balance",
+   source="engine/facility.py:build_schedule")
+
 
 # ── Balance Sheet Lineage ────────────────────────────────────────────
 
-_n("bs_fa", "capex_cumulative - depr_cumulative", ("capex_cumulative", "depr_cumulative"),
-   sign=(1, -1), label="Fixed Assets (Net)", source="engine/loop.py:build_annual")
+_n("bs_fixed_assets", "min(cum_capex + cum_idc, depr_base + cum_idc) - cum_depr", (
+    "cf_capex", "depr",
+), sign=(1, -1), label="Fixed Assets (Net)",
+   source="engine/loop.py:build_annual")
 
-_n("bs_dsra", "dsra_closing_balance", ("dsra_closing",),
-   label="DSRA Balance", source="engine/loop.py:build_annual")
+_n("bs_dsra", "cumulative_net_cash_flow (running CF accumulator)", ("cf_net",),
+   label="DSRA / Cash Balance", source="engine/loop.py:build_annual")
 
-_n("bs_cash", "cumulative_net_cash_flow", ("cf_net_cumulative",),
-   label="Cash & Equivalents", source="engine/loop.py:build_annual")
-
-_n("bs_assets", "bs_fa + bs_dsra + bs_cash + bs_od_asset", (
-    "bs_fa", "bs_dsra", "bs_cash", "bs_od_asset",
+_n("bs_assets", "bs_fixed_assets + bs_dsra", (
+    "bs_fixed_assets", "bs_dsra",
 ), label="Total Assets", source="engine/loop.py:build_annual")
 
 _n("bs_sr", "sr_closing_balance", ("sr_closing",),
@@ -217,23 +269,38 @@ _n("bs_sr", "sr_closing_balance", ("sr_closing",),
 _n("bs_mz", "mz_closing_balance", ("mz_closing",),
    label="Mezz Debt Outstanding", source="engine/facility.py")
 
-_n("bs_swap", "swap_zar_outstanding", ("swap_zar_closing",),
-   label="Swap ZAR Leg Outstanding", source="engine/swap.py")
+_n("bs_debt", "bs_sr + bs_mz", ("bs_sr", "bs_mz"),
+   label="Total Debt", source="engine/loop.py:build_annual")
 
-_n("bs_liabilities", "bs_sr + bs_mz + bs_swap + bs_od_liability", (
-    "bs_sr", "bs_mz", "bs_swap", "bs_od_liability",
-), label="Total Liabilities", source="engine/loop.py:build_annual")
+_n("bs_swap_eur", "swap EUR leg closing balance", ("swap_eur_bal",),
+   label="Swap EUR Asset", source="engine/loop.py:build_annual")
 
-_n("bs_equity", "bs_assets - bs_liabilities", ("bs_assets", "bs_liabilities"),
+_n("bs_swap_liability", "swap ZAR leg in EUR", ("swap_zar_bal",),
+   label="Swap ZAR Liability (EUR)", source="engine/loop.py:build_annual")
+
+_n("bs_swap_net", "bs_swap_eur - bs_swap_liability", ("bs_swap_eur", "bs_swap_liability"),
+   sign=(1, -1), label="Swap Net Position", source="engine/loop.py:build_annual")
+
+_n("bs_equity", "bs_assets - bs_debt", ("bs_assets", "bs_debt"),
    sign=(1, -1), label="Equity", source="engine/loop.py:build_annual")
 
-_n("bs_re", "cumulative_pat", ("pat_cumulative",),
-   label="Retained Earnings", source="engine/loop.py:build_annual")
+_n("bs_retained", "bs_equity - entity_equity", ("bs_equity", "bs_equity_sh"),
+   sign=(1, -1), label="Retained Earnings", source="engine/loop.py:build_annual")
 
-_n("bs_gap", "bs_equity - bs_re", ("bs_equity", "bs_re"),
+_n("bs_retained_check", "cum_pat + cum_grants - cum_dividends", (
+    "pat", "cf_grants", "cum_dividends",
+), label="Retained Earnings (cross-check)",
+   source="engine/loop.py:build_annual")
+
+_n("bs_gap", "bs_retained - bs_retained_check", ("bs_retained", "bs_retained_check"),
    sign=(1, -1), label="BS Gap (should be 0)",
    source="engine/loop.py:build_annual",
    unit="EUR")
+
+# Reserve balance detail (BS display aliases)
+_n("bs_reserves_total", "wf_ops_reserve + wf_opco_dsra + wf_mz_div_fd + wf_entity_fd", (
+    "wf_ops_reserve", "wf_opco_dsra", "wf_mz_div_fd", "wf_entity_fd",
+), label="Total Reserve Balances", source="engine/loop.py:build_annual")
 
 
 # ── Waterfall / Reserve Lineage ──────────────────────────────────────
@@ -433,6 +500,74 @@ def get_leaf_inputs(key: str, max_depth: int = 10) -> frozenset[str]:
 
     _walk(key, 0)
     return frozenset(leaves)
+
+
+def format_heritage_text(
+    key: str,
+    values: dict[str, float] | None = None,
+    max_depth: int = 8,
+) -> str:
+    """Format the full heritage chain as indented monospace text.
+
+    Produces a human-readable "notepad" view of the calculation chain,
+    suitable for display in an expander or modal.
+
+    Example output:
+        Level 0: Profit Before Tax (pbt) = EUR 785,000
+          = ebit - ie + fd_income
+          = EUR 1,200,000 - EUR 450,000 + EUR 35,000
+          Source: engine/pnl.py:L101
+
+          Level 1: EBIT (ebit) = EUR 750,000
+            = ebitda - depr
+            = EUR 950,000 - EUR 200,000
+            Source: engine/pnl.py:L98
+            ...
+    """
+    steps = get_heritage(key, max_depth=max_depth, values=values)
+    if not steps:
+        node = _GRAPH.get(key)
+        if node is None:
+            return f"{key}: leaf value (config input / driver)"
+        return get_tooltip(key, values)
+
+    lines: list[str] = []
+    for step in steps:
+        indent = "  " * step.depth
+        child_indent = "  " * (step.depth + 1)
+
+        # Header: Level N: Label (key) = value
+        result_str = ""
+        if step.result_value is not None:
+            result_str = f" = {_fmt_val(step.result_value, step.unit)}"
+        lines.append(f"{indent}Level {step.depth}: {step.label} ({step.key}){result_str}")
+
+        # Formula line
+        lines.append(f"{child_indent}= {step.formula}")
+
+        # Values substitution line
+        if step.input_values:
+            val_parts: list[str] = []
+            for inp, s in zip(step.inputs, step.sign):
+                v = step.input_values.get(inp)
+                if v is not None:
+                    prefix = "- " if s < 0 and val_parts else ("+ " if s > 0 and val_parts else "")
+                    if s < 0 and not val_parts:
+                        prefix = "-"
+                    val_parts.append(f"{prefix}{_fmt_val(abs(v), step.unit)}")
+                else:
+                    prefix = "- " if s < 0 and val_parts else ("+ " if s > 0 and val_parts else "")
+                    val_parts.append(f"{prefix}{inp}")
+            if val_parts:
+                lines.append(f"{child_indent}= {' '.join(val_parts)}")
+
+        # Source
+        if step.source:
+            lines.append(f"{child_indent}Source: {step.source}")
+
+        lines.append("")  # blank line between steps
+
+    return "\n".join(lines)
 
 
 # ── Heritage step data ───────────────────────────────────────────────

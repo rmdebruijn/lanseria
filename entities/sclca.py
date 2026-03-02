@@ -133,6 +133,19 @@ def build_sclca_holding(
 
         a["dsra_closing"] = dsra_all
 
+        # ── Waterfall acceleration (pass-through from entities) ──
+        # Sum entity-level Sr and Mz acceleration for this year.
+        # Acceleration reduces IC loan balances AND corresponding facility balances.
+        cf_sr_accel = 0.0
+        cf_mz_accel = 0.0
+        for ek, er in entities.items():
+            yr = er.annual[yi] if yi < len(er.annual) else {}
+            cf_sr_accel += yr.get("cf_sr_accel", 0.0)
+            cf_mz_accel += yr.get("cf_mz_accel", 0.0)
+        a["cf_sr_accel"] = cf_sr_accel
+        a["cf_mz_accel"] = cf_mz_accel
+        a["cf_accel_total"] = cf_sr_accel + cf_mz_accel
+
         # ── Cash Flow: pass-through structure ──
         a["cf_draw_net"] = 0.0     # SCLCA draws = on-lends simultaneously
         a["cf_grant_accel_net"] = 0.0   # Grant acceleration passes through from entities
@@ -166,11 +179,47 @@ def build_sclca_holding(
         annual.append(a)
 
     # ── D1: Aggregate facility schedules ──
+    # D1a: Flat concatenation (backward-compat — 60 rows: 20 per entity)
     sr_schedule_agg: list[dict] = []
     mz_schedule_agg: list[dict] = []
     for ek, er in entities.items():
         sr_schedule_agg.extend(er.sr_schedule)
         mz_schedule_agg.extend(er.mz_schedule)
+
+    # D1b: Consolidated per-period schedule (20 rows — sum across entities)
+    # Each row sums Opening, Draw Down, Interest, IDC, Principle,
+    # Acceleration, Movement, Closing for the same Period/Month.
+    sr_schedule_cons: list[dict] = []
+    mz_schedule_cons: list[dict] = []
+    for hi in range(n_semi):
+        half_month = period_start_month(hi)
+        sr_row: dict = {
+            "Period": hi, "Month": half_month, "Year": half_month / 12,
+            "Opening": 0.0, "Draw Down": 0.0, "Interest": 0.0,
+            "IDC": 0.0, "Principle": 0.0, "Acceleration": 0.0,
+            "Movement": 0.0, "Closing": 0.0,
+        }
+        mz_row: dict = {
+            "Period": hi, "Month": half_month, "Year": half_month / 12,
+            "Opening": 0.0, "Draw Down": 0.0, "Interest": 0.0,
+            "IDC": 0.0, "Principle": 0.0, "Acceleration": 0.0,
+            "Movement": 0.0, "Closing": 0.0,
+        }
+        for ek, er in entities.items():
+            for r in er.sr_schedule:
+                if r["Month"] == half_month:
+                    for fk in ("Opening", "Draw Down", "Interest", "IDC",
+                               "Principle", "Acceleration", "Movement", "Closing"):
+                        sr_row[fk] += r.get(fk, 0.0)
+                    break
+            for r in er.mz_schedule:
+                if r["Month"] == half_month:
+                    for fk in ("Opening", "Draw Down", "Interest", "IDC",
+                               "Principle", "Acceleration", "Movement", "Closing"):
+                        mz_row[fk] += r.get(fk, 0.0)
+                    break
+        sr_schedule_cons.append(sr_row)
+        mz_schedule_cons.append(mz_row)
 
     # ── D2: Consolidated DSCR ──
     dscr_values: list[float | None] = []
@@ -303,6 +352,7 @@ def build_sclca_holding(
         waterfall_annual.append(row)
 
     # ── IC semi-annual aggregate (20 periods) ──
+    # Includes scheduled P+I AND waterfall acceleration per period.
     ic_semi: list[dict] = []
     for hi in range(n_semi):
         half_month = period_start_month(hi)
@@ -312,21 +362,41 @@ def build_sclca_holding(
             for r in er.sr_schedule:
                 if r["Month"] == half_month:
                     ic_sr += r["Interest"] + abs(r.get("Principle", 0))
+                    break
             for r in er.mz_schedule:
                 if r["Month"] == half_month:
                     ic_mz += r["Interest"] + abs(r.get("Principle", 0))
+                    break
+        # Waterfall-sourced acceleration: sum across entities for this period.
+        # sr_accel_entity / mz_accel_entity are the authoritative acceleration
+        # amounts (includes both grant-funded and surplus-driven prepayment).
+        ic_sr_accel = sum(
+            er.waterfall_semi[hi].get("sr_accel_entity", 0.0)
+            for er in entities.values()
+            if hi < len(er.waterfall_semi)
+        )
+        ic_mz_accel = sum(
+            er.waterfall_semi[hi].get("mz_accel_entity", 0.0)
+            for er in entities.values()
+            if hi < len(er.waterfall_semi)
+        )
         ic_semi.append({
             "period": hi + 1,
             "month": half_month,
             "ic_sr_pi": ic_sr,
             "ic_mz_pi": ic_mz,
             "ic_total_pi": ic_sr + ic_mz,
+            "ic_sr_accel": ic_sr_accel,
+            "ic_mz_accel": ic_mz_accel,
+            "ic_total_accel": ic_sr_accel + ic_mz_accel,
         })
 
     return {
         "annual": annual,
         "sr_schedule": sr_schedule_agg,
         "mz_schedule": mz_schedule_agg,
+        "sr_schedule_consolidated": sr_schedule_cons,
+        "mz_schedule_consolidated": mz_schedule_cons,
         "waterfall_semi": waterfall_semi,
         "waterfall_annual": waterfall_annual,
         "ic_semi": ic_semi,

@@ -175,7 +175,7 @@ def run_entity_loop(
 
     ops_reserve = OpsReserve(fd_rate, ops_coverage)
     opco_dsra = OpcoDSRA(fd_rate)
-    mz_div_fd = MezzDivFD(fd_rate, mz_div_rate) if entity_key in ("nwl", "lanred", "timberworx") else None
+    mz_div_fd = MezzDivFD(cfg.fd_rate_zar, mz_div_rate) if entity_key in ("nwl", "lanred", "timberworx") else None
     entity_fd = EntityFD(fd_rate)
 
     # ── Running accumulators ──
