@@ -8,6 +8,7 @@ credentials:
       email: carl@terayoncapital.com
       first_name: Carl
       last_name: Liebenberg
+      name: Carl Liebenberg
       password: $2b$12$NxIMJV7uVeK9ocO2cyoTpeCk/4ydGRqL93V7948Ep9yRMVjGnuxv6
       permissions:
         can_manage_users: false
@@ -22,6 +23,7 @@ credentials:
       email: kasief@creation-capital.com
       first_name: Kasief
       last_name: Isaacs
+      name: Kasief Isaacs
       password: $2b$12$a4kgTcX3EAcKcUi.cfbOt.Qz/MUA9Df3d1ZQhvTVAPSGCBk1wl4CC
       permissions:
         can_manage_users: false
@@ -36,6 +38,7 @@ credentials:
       email: eckardt@vansquared.co.za
       first_name: Eckardt
       last_name: van Wyk
+      name: Eckardt van Wyk
       password: $2b$12$L.TrJK.p5qK2eDiPjNLdU.OTTaiQh1lRZW7DZNgrjwMfwUpiBAIMi
       permissions:
         can_manage_users: false
@@ -52,6 +55,7 @@ credentials:
       email: L.Joubert@nexusnovus.com
       first_name: Lizelle
       last_name: Joubert
+      name: Lizelle Joubert
       password: $2b$12$vfbfOGv8R5quGMzpt0bDE.v0cnKx1Tg8NtCpaVhaAFm4wKEOK0TUm
       permissions:
         can_manage_users: false
@@ -70,6 +74,7 @@ credentials:
       email: m.vanhouten@nexusnovus.com
       first_name: Mark
       last_name: van Houten
+      name: Mark van Houten
       password: $2b$12$8VClwb2bGd5nyW3yUW3afOGxJVBFqCQbNN03lV9RBhuHHeIcnuNh2
       permissions:
         can_manage_users: false
@@ -89,6 +94,7 @@ credentials:
       email: rmdebruijn@nexusnovus.com
       first_name: Rutger
       last_name: de Bruijn
+      name: Rutger de Bruijn
       password: $2b$12$wOuXzxmw8WSpP8WX5rsUg.HhJ5UCY0B7CtEZ82o3ZqYEcnrEFxnQu
       roles:
       - admin
@@ -96,6 +102,7 @@ credentials:
       email: r.zappeij@zencustomerfinance.nl
       first_name: Robbert
       last_name: Zappeij
+      name: Robbert Zappeij
       password: $2b$12$TS4iMkXMx0oP49kQr64oMOYGD84mQA4RkcQspmLT3w5tfdjXwIuiu
       permissions:
         can_manage_users: false
@@ -112,6 +119,7 @@ credentials:
       email: rutger@nexusnovus.com
       first_name: Rutger
       last_name: Admin
+      name: Rutger Admin
       password: $2b$12$wOuXzxmw8WSpP8WX5rsUg.HhJ5UCY0B7CtEZ82o3ZqYEcnrEFxnQu
       roles:
       - admin
@@ -119,6 +127,7 @@ credentials:
       email: s.bruinders@nexusnovus.com
       first_name: Saskia
       last_name: bruinders
+      name: Saskia Bruinders
       password: $2b$12$Ws1.iQ56Uh/cCtyhW9Scju36bWBkroUt554jA8wa2TQz6S9n5rHyW
       permissions:
         can_manage_users: false
@@ -135,6 +144,7 @@ credentials:
       email: sizakelem@crosspointproperty.co.za
       first_name: Sizakele
       last_name: Mabuza
+      name: Sizakele Mabuza
       password: $2b$12$cfGkTS01dCymNpwxMXQ21eerq577rZBJmHGQyd5Fi/Il8vpodXJI2
       permissions:
         can_manage_users: false
@@ -154,6 +164,7 @@ credentials:
       email: werner@greenblock.co.za
       first_name: Werner
       last_name: Slabbert
+      name: Werner Slabbert
       password: $2b$12$.dV7UZvsdQnOfzVC14dZt.DF1WaPwIEY0F3mz3veXISyUO6tRaqK6
       permissions:
         can_manage_users: false
