@@ -514,7 +514,7 @@ def render_svg(svg_filename: str, md_filename: str, overrides: dict | None = Non
         _height = 800  # fallback
         if _vb_match:
             _vb_w, _vb_h = int(_vb_match.group(1)), int(_vb_match.group(2))
-            _height = int(_vb_h / _vb_w * 1100) + 60  # scale to ~1100px wide container + padding
+            _height = int(_vb_h / _vb_w * 1100) + 100  # scale to ~1100px wide container + padding
         # Inject width/height into the SVG root to ensure it fills the container
         svg = svg.replace('<svg ', '<svg width="100%" ', 1)
         _stc.html(f'<div style="width:100%;overflow:visible;">{svg}</div>',
@@ -13948,6 +13948,11 @@ if entity == "Catalytic Assets":
                     "Acceleration": "€{:,.0f}",
                     "Movement": "€{:,.0f}",
                     "Closing": "€{:,.0f}"
+                }
+                _sr_key_map = {
+                    "Opening": "sr_opening", "Draw Down": "sr_draw_down",
+                    "IDC": "sr_idc", "Interest": "ie_sr", "Principle": "sr_principal",
+                    "Acceleration": "sr_accel", "Movement": "sr_movement", "Closing": "sr_closing",
                 }
                 inject_df_heritage(df_senior[_sr_display_cols], key_map=_sr_key_map, formats=_sr_fac_fmt, label_col="Label")
 
