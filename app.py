@@ -14098,6 +14098,11 @@ if entity == "Catalytic Assets":
                     "Movement": "€{:,.0f}",
                     "Closing": "€{:,.0f}"
                 }
+                _mz_key_map = {
+                    "Opening": "mz_opening", "Draw Down": "mz_draw_down",
+                    "IDC": "mz_idc", "Interest": "ie_mz", "Principle": "mz_principal",
+                    "Acceleration": "mz_accel", "Movement": "mz_movement", "Closing": "mz_closing",
+                }
                 inject_df_heritage(df_mezz[_mz_display_cols], key_map=_mz_key_map, formats=_mz_fac_fmt, label_col="Label")
 
                 # Mezz helper tables and notes
