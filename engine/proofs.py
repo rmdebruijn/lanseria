@@ -907,7 +907,7 @@ def build_ic_recon_proofs(
             "name": f"Y{_y}: IC Sr Bal: engine entity vs SCLCA",
             "expected": _sub_bs_sr,
             "actual": _sa['bs_isr'],
-            "tolerance": max(abs(_sub_bs_sr - _sa['bs_isr']) + 1.0, 1.0),
+            "tolerance": 1.0,
         })
 
         # IC Mezz receivable vs sub BS Mz debt
@@ -916,7 +916,7 @@ def build_ic_recon_proofs(
             "name": f"Y{_y}: IC Mz Bal: engine entity vs SCLCA",
             "expected": _sub_bs_mz,
             "actual": _sa['bs_imz'],
-            "tolerance": max(abs(_sub_bs_mz - _sa['bs_imz']) + 1.0, 1.0),
+            "tolerance": 1.0,
         })
 
         # IC principal received vs sum(sub principal paid)

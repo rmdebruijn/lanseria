@@ -4,6 +4,22 @@ cookie:
   name: sclca_fm_auth
 credentials:
   usernames:
+    andrew:
+      email: andrew@westgrove.co.za
+      first_name: Andrew
+      last_name: Westgrove
+      name: Andrew Westgrove
+      password: $2b$12$u9TSbAX9beil1ZkcAOtKHu./y6yBqmpZgkjahKYfh8swQIXWJMu36
+      permissions:
+        can_manage_users: false
+        entities:
+        - '*'
+        mgmt_pages:
+        - CP & CS
+        tabs:
+        - '*'
+      roles:
+      - promotor_opco
     carl:
       email: carl@terayoncapital.com
       first_name: Carl
@@ -19,17 +35,19 @@ credentials:
         - '*'
       roles:
       - promotor_opco
-    kasief:
-      email: kasief@creation-capital.com
-      first_name: Kasief
-      last_name: Isaacs
-      name: Kasief Isaacs
-      password: $2b$12$a4kgTcX3EAcKcUi.cfbOt.Qz/MUA9Df3d1ZQhvTVAPSGCBk1wl4CC
+    derrick:
+      email: dkgwale@gmail.com
+      first_name: Derrick
+      last_name: Kgwale
+      name: Derrick Kgwale
+      password: $2b$12$ld/S3x.7DLDf0p4vGSu9quYTsHHCxItKUq.GCo6YYIpjbcwULYVV2
       permissions:
         can_manage_users: false
         entities:
-        - '*'
-        mgmt_pages: []
+        - Catalytic Assets
+        - New Water Lanseria
+        mgmt_pages:
+        - CP & CS
         tabs:
         - '*'
       roles:
@@ -51,6 +69,21 @@ credentials:
         - Pipeline
       roles:
       - promotor_opco
+    kasief:
+      email: kasief@creation-capital.com
+      first_name: Kasief
+      last_name: Isaacs
+      name: Kasief Isaacs
+      password: $2b$12$a4kgTcX3EAcKcUi.cfbOt.Qz/MUA9Df3d1ZQhvTVAPSGCBk1wl4CC
+      permissions:
+        can_manage_users: false
+        entities:
+        - '*'
+        mgmt_pages: []
+        tabs:
+        - '*'
+      roles:
+      - promotor_opco
     lizelle:
       email: L.Joubert@nexusnovus.com
       first_name: Lizelle
@@ -68,6 +101,7 @@ credentials:
         - Inter-Company
         tabs:
         - '*'
+        - Pipeline
       roles:
       - promotor_opco
     mark:
@@ -112,7 +146,6 @@ credentials:
         - Guarantor Analysis
         tabs:
         - '*'
-        - Pipeline
       roles:
       - promotor_opco
     rutger:
@@ -137,7 +170,6 @@ credentials:
         - Subsidies
         tabs:
         - '*'
-        - Pipeline
       roles:
       - promotor_opco
     siza:
@@ -156,36 +188,6 @@ credentials:
         - Tasks
         - CP & CS
         - Inter-Company
-        tabs:
-        - '*'
-      roles:
-      - promotor_opco
-    andrew:
-      email: andrew@westgrove.co.za
-      first_name: Andrew
-      last_name: Westgrove
-      name: Andrew Westgrove
-      password: $2b$12$u9TSbAX9beil1ZkcAOtKHu./y6yBqmpZgkjahKYfh8swQIXWJMu36
-      permissions:
-        can_manage_users: false
-        entities:
-        - '*'
-        mgmt_pages: []
-        tabs:
-        - '*'
-      roles:
-      - promotor_opco
-    derrick:
-      email: dkgwale@gmail.com
-      first_name: Derrick
-      last_name: Kgwale
-      name: Derrick Kgwale
-      password: $2b$12$ld/S3x.7DLDf0p4vGSu9quYTsHHCxItKUq.GCo6YYIpjbcwULYVV2
-      permissions:
-        can_manage_users: false
-        entities:
-        - '*'
-        mgmt_pages: []
         tabs:
         - '*'
       roles:
