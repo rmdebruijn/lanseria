@@ -9,7 +9,7 @@ credentials:
       first_name: Andrew
       last_name: Westgrove
       name: Andrew Westgrove
-      password: $2b$12$u9TSbAX9beil1ZkcAOtKHu./y6yBqmpZgkjahKYfh8swQIXWJMu36
+      password: $2b$12$1FKdeSyiZiQ3G6r7zPBVs.6xZGbA3ty23z1sQ.EdCpNl03SAEwEOO
       permissions:
         can_manage_users: false
         entities:
@@ -40,7 +40,7 @@ credentials:
       first_name: Derrick
       last_name: Kgwale
       name: Derrick Kgwale
-      password: $2b$12$ld/S3x.7DLDf0p4vGSu9quYTsHHCxItKUq.GCo6YYIpjbcwULYVV2
+      password: $2b$12$Nyu.aLienwfp7lH.GJpkz.k6oDEgIdQSIBkiAyKD/f6cENiTBMNV6
       permissions:
         can_manage_users: false
         entities:
