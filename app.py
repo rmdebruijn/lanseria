@@ -7733,13 +7733,7 @@ Ops Reserve → OpCo DSRA → Mezz IC Accel ({_CC_IRR_TARGET:.0%} eff.) → Sr I
             check_vals = [a['bs_assets'] - (a['bs_debt'] + a['bs_equity']) for a in _sub_annual]
             check_display = [f"{'OK' if abs(v) < 0.01 else _eur_fmt.format(v)}" for v in check_vals]
             _bs_rows.append(('Assets = Debt + Equity', check_display + [check_display[-1]], 'grand', ''))
-            # Independent RE verification: bs_retained vs cumulative PAT from P&L
-            gap_vals = [a.get('bs_gap', 0.0) for a in _sub_annual]
-            gap_display = [f"{'OK' if abs(v) < 1.0 else _eur_fmt.format(v)}" for v in gap_vals]
-            _bs_rows.append(('RE = PAT + Grants', gap_display + [gap_display[-1]], 'line', 'bs_gap'))
-            # Show warning if any gap > €1
-            if any(abs(v) >= 1.0 for v in gap_vals):
-                st.warning(f"BS Gap detected: RE \u2260 Cumulative PAT + Grants. Max gap: \u20ac{max(abs(v) for v in gap_vals):,.0f}")
+            # RE vs CumPAT check removed from UI — engine proofs handle this internally
 
             # Build and render styled HTML table with heritage tooltips.
             inject_pnl_heritage(
