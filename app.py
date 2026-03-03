@@ -10783,15 +10783,27 @@ def _load_vph_3yr():
     FY2023 = 2024_structured → values[1]
     Returns dict with same structure but values arrays of length 3.
     """
-    p25 = _CONTEXT_GUARANTOR_ROOT / "Structured Data" / "Veracity" / "AFS" / "VeracityPropertyHoldings_2025_structured.json"
-    p24 = _CONTEXT_GUARANTOR_ROOT / "Structured Data" / "Veracity" / "AFS" / "VeracityPropertyHoldings_2024_structured.json"
+    # Primary: context folder (local dev). Fallback: data/guarantor/ (repo, Streamlit Cloud).
+    _repo_root = Path(__file__).parent
+    _candidates_25 = [
+        _CONTEXT_GUARANTOR_ROOT / "Structured Data" / "Veracity" / "AFS" / "VeracityPropertyHoldings_2025_structured.json",
+        _repo_root / "data" / "guarantor" / "VeracityPropertyHoldings_2025_structured.json",
+    ]
+    _candidates_24 = [
+        _CONTEXT_GUARANTOR_ROOT / "Structured Data" / "Veracity" / "AFS" / "VeracityPropertyHoldings_2024_structured.json",
+        _repo_root / "data" / "guarantor" / "VeracityPropertyHoldings_2024_structured.json",
+    ]
     d25, d24 = {}, {}
-    if p25.exists():
-        with open(p25, 'r') as f:
-            d25 = json.load(f)
-    if p24.exists():
-        with open(p24, 'r') as f:
-            d24 = json.load(f)
+    for p in _candidates_25:
+        if p.exists():
+            with open(p, 'r') as f:
+                d25 = json.load(f)
+            break
+    for p in _candidates_24:
+        if p.exists():
+            with open(p, 'r') as f:
+                d24 = json.load(f)
+            break
     return d25, d24
 
 
