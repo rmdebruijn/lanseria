@@ -480,10 +480,9 @@ def _estimate_table_height(pnl_rows: list[tuple], year_count: int) -> int:
             row_height += 34
         else:
             row_height += 28
-    # Header + bottom padding + tooltip overflow buffer + inline accordion.
-    # The accordion row expands inside the table; scrolling=True handles
-    # deep heritage trees that push beyond the estimated height.
-    return row_height + 38 + 350
+    # Header + bottom padding. Heritage accordion expands inside the
+    # iframe; scrolling=True handles overflow when user clicks to expand.
+    return row_height + 38 + 40
 
 
 def inject_pnl_heritage(
