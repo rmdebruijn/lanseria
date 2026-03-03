@@ -2750,6 +2750,7 @@ def build_sub_annual_model(entity_key):
         entity_data=entity_data,
         structure=structure,
         sr_schedule=er["sr_schedule"],
+        semi_annual_pl=er.get("semi_annual_pl"),
     )
 
     return {

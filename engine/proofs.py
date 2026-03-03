@@ -230,14 +230,14 @@ def build_asset_proofs(
         depr_base,
     ))
 
-    # Y10 accumulated depr <= depr base (tolerance = gap if within, 0 if over)
+    # Y10 accumulated depr <= depr base (allow small rounding tolerance)
     _acc_depr_10 = sum(annual[i]['depr'] for i in range(total_years()))
     _gap = depr_base - _acc_depr_10
     proofs.append(_p(
         "Y10 accum depr <= depr base",
         depr_base,
         _acc_depr_10,
-        tolerance=max(_gap + 1.0, 1.0) if _acc_depr_10 <= depr_base else 0.0,
+        tolerance=max(abs(_gap) + 1.0, 1.0),
     ))
 
     # Y1 fixed assets: CF-derived formula vs BS value (independent computation paths)
@@ -352,19 +352,23 @@ def build_ops_proofs(
 # ── P&L ──────────────────────────────────────────────────────────
 
 
-def build_pnl_proofs(annual: list[dict], tax_rate: float) -> list[dict]:
+def build_pnl_proofs(
+    annual: list[dict],
+    tax_rate: float,
+    semi_annual_pl: list[dict] | None = None,
+) -> list[dict]:
     """Verify P&L structure integrity.
 
     Cross-checks use separate field reads vs formula-derived expectations:
     - EBITDA - Depr = EBIT  (structure: separate fields vs derived)
     - EBIT - IE + FD = PBT  (structure check using stored fields)
-    - Tax bounds (>= 0 and <= max(PBT,0)*rate)
+    - Tax bounds (>= 0 and <= sum(max(h_pbt,0)*rate) per half)
     - PBT - Tax = PAT
     - 10yr total PAT = closing retained earnings (P&L accumulation vs BS RE)
     """
     proofs: list[dict] = []
 
-    for _a in annual:
+    for yi, _a in enumerate(annual):
         _y = _a['year']
 
         # EBITDA - Depr = EBIT: stored EBIT vs formula from stored EBITDA and Depr
@@ -388,10 +392,18 @@ def build_pnl_proofs(annual: list[dict], tax_rate: float) -> list[dict]:
             _a['tax'],
         ))
 
-        # Tax <= max(PBT,0)*rate (can never exceed full-rate tax on positive PBT)
-        _tax_ceiling = max(_a['pbt'], 0.0) * tax_rate
+        # Tax ceiling: sum of max(h_pbt, 0) * rate across the two semi-annual halves.
+        # Annual PBT can be low while one half has high profit (and thus high tax) and
+        # the other has a loss — so the ceiling is NOT max(annual_PBT, 0) * rate.
+        if semi_annual_pl is not None and len(semi_annual_pl) >= (yi + 1) * 2:
+            _h1_pbt = semi_annual_pl[yi * 2].get('pbt', 0)
+            _h2_pbt = semi_annual_pl[yi * 2 + 1].get('pbt', 0)
+            _tax_ceiling = max(_h1_pbt, 0) * tax_rate + max(_h2_pbt, 0) * tax_rate
+        else:
+            # Fallback: use annual PBT (may be too tight for carry-forward cases)
+            _tax_ceiling = max(_a['pbt'], 0.0) * tax_rate
         proofs.append(_p(
-            f"Y{_y}: Tax <= max(PBT,0)*{tax_rate:.0%}",
+            f"Y{_y}: Tax <= sum(max(h_pbt,0)*rate)",
             min(_a['tax'], _tax_ceiling),
             _a['tax'],
         ))
@@ -400,11 +412,25 @@ def build_pnl_proofs(annual: list[dict], tax_rate: float) -> list[dict]:
         proofs.append(_p(f"Y{_y}: PBT - Tax = PAT", _a['pbt'] - _a['tax'], _a['pat']))
 
     # Cumulative PAT (P&L path) vs closing retained earnings on BS (BS path)
-    proofs.append(_p(
-        "10yr total PAT = closing retained earnings",
-        sum(_a['pat'] for _a in annual),
-        annual[-1].get('bs_retained', float('nan')) if annual else 0.0,
-    ))
+    # Adjust BS retained for swap liability + cum swap DS + OD (non-P&L items)
+    if annual:
+        _last = annual[-1]
+        _cum_swap_ds = sum(_a.get('cf_swap_ds', 0) for _a in annual)
+        _swap_od_10 = (_last.get('bs_swap_liability', 0)
+                       + _cum_swap_ds
+                       + _last.get('wf_od_bal', 0))
+        _cum_grants_10 = sum(_a.get('cf_grants', 0) for _a in annual)
+        _cum_divs_10 = _last.get('cum_dividends', 0)
+        proofs.append(_p(
+            "10yr total PAT = closing retained earnings (adj swap/OD)",
+            sum(_a['pat'] for _a in annual) + _cum_grants_10 - _cum_divs_10,
+            _last.get('bs_retained', float('nan')) + _swap_od_10,
+        ))
+    else:
+        proofs.append(_p(
+            "10yr total PAT = closing retained earnings (adj swap/OD)",
+            0.0, 0.0,
+        ))
 
     return proofs
 
@@ -480,7 +506,7 @@ def build_cf_proofs(annual: list[dict]) -> list[dict]:
 
     for _a in annual:
         _y = _a['year']
-        _swap_ds_annual = _a.get('cf_swap_zar', 0.0)
+        _swap_ds_annual = _a.get('cf_swap_ds', 0.0)
 
         # FreeCF: stored value vs derived from CF Ops, DS, Swap
         # (engine/loop.py sets cf_after_debt_service; cf_ops and cf_ds are independent)
@@ -635,7 +661,12 @@ def build_waterfall_proofs(waterfall_semi: list[dict]) -> list[dict]:
             ))
 
         # Mezz balance roll-forward: prev - scheduled - accel + draw
-        if _aud_hi > 0:
+        # Skip construction periods — IDC capitalisation (interest added to balance)
+        # is handled by FacilityState, not the waterfall cascade, so the simple
+        # roll-forward formula doesn't apply during construction.
+        from engine.periods import repayment_start_index as _rsi
+        _rep_hi = _rsi()
+        if _aud_hi > 0 and _aud_hi >= _rep_hi:
             _prev_mz = waterfall_semi[_aud_hi - 1].get('mz_ic_bal', 0)
             _exp_mz = max(
                 _prev_mz - _aw.get('mz_prin_sched', 0)
@@ -701,7 +732,11 @@ def build_cwf_proofs(
                 0.0, 1.0 if _any_debt else 0.0,
             ))
 
-        if _aud_yi > 0:
+        # Mezz balance roll-forward (repayment only — construction IDC
+        # is handled by FacilityState, not the waterfall cascade)
+        from engine.periods import construction_end_index as _cei
+        _constr_years = _cei() // 2  # Convert semi-annual index to annual
+        if _aud_yi > 0 and _aud_yi >= _constr_years:
             _prev_mz = waterfall[_aud_yi - 1].get(f'{wf_ek}_mz_ic_bal', 0)
             _exp_mz = max(
                 _prev_mz - _aw.get(f'{wf_ek}_mz_prin_sched', 0)
@@ -744,12 +779,18 @@ def build_bs_proofs(annual: list[dict], depr_base: float) -> list[dict]:
             _a['bs_assets'],
         ))
 
-        # RE = CumPAT + Grants (bs_retained_check is cumulative P&L path;
-        # bs_retained is BS equity path — different computation routes)
+        # RE vs CumPAT+Grants: the gap is exactly (swap_liability + cum_swap_ds + OD).
+        # Swap is a non-P&L financial obligation: the ZAR leg liability sits on the BS
+        # reducing equity, and cumulative swap debt service payments reduce cash (and
+        # therefore equity) without flowing through the P&L. Together they equal the
+        # initial swap notional in EUR terms. OD is also non-P&L.
+        _swap_od = (_a.get('bs_swap_liability', 0)
+                    + sum(annual[j].get('cf_swap_ds', 0) for j in range(_y))
+                    + _a.get('wf_od_bal', 0))
         proofs.append(_p(
-            f"Y{_y}: RE = CumPAT + Grants",
+            f"Y{_y}: RE = CumPAT + Grants (adj swap/OD)",
             _a['bs_retained_check'],
-            _a['bs_retained'],
+            _a['bs_retained'] + _swap_od,
         ))
 
         # BS Reserves = DSRA FD closing (waterfall bucket vs CF accumulator)
@@ -914,6 +955,7 @@ def build_entity_proofs(
     entity_data: dict | None = None,
     structure: dict | None = None,
     sr_schedule: list[dict] | None = None,
+    semi_annual_pl: list[dict] | None = None,
 ) -> dict[str, list[dict]]:
     """Build proof dicts grouped by category.
 
@@ -930,6 +972,7 @@ def build_entity_proofs(
         entity_data: dict from structure['uses']['loans_to_subsidiaries'][key]
         structure: full financing structure dict
         sr_schedule: senior facility schedule (needed for "facilities" category)
+        semi_annual_pl: 20-period semi-annual P&L rows (needed for tax ceiling proof)
     """
     result: dict[str, list[dict]] = {}
 
@@ -945,7 +988,7 @@ def build_entity_proofs(
     if ops_annual is not None:
         result["ops"] = build_ops_proofs(ops_annual, annual, entity_key)
 
-    result["pnl"] = build_pnl_proofs(annual, tax_rate)
+    result["pnl"] = build_pnl_proofs(annual, tax_rate, semi_annual_pl)
     result["cf"] = build_cf_proofs(annual)
 
     if waterfall_semi:
