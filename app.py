@@ -1039,7 +1039,7 @@ def filter_tabs(all_tab_names: list, allowed: list) -> list:
     return [t for t in all_tab_names if t in allowed]
 
 ALL_TAB_NAMES = ["Overview", "About", "Sources & Uses", "Facilities", "Assets", "Operations",
-                 "P&L", "Cash Flow", "Debt Sculpting", "Balance Sheet", "Graphs", "Sensitivity",
+                 "P&L", "Cash Flow", "Debt Sculpting", "Balance Sheet", "Graphs",
                  "Security", "Delivery", "Pipeline"]
 
 def make_tab_map(allowed_tabs: list) -> dict:
@@ -2740,18 +2740,24 @@ def build_sub_annual_model(entity_key):
 
     # Compute engine proofs (all categories) — UI just displays these
     entity_data = structure['uses']['loans_to_subsidiaries'].get(entity_key)
-    _proofs = build_entity_proofs(
-        annual=annual,
-        waterfall_semi=wf_semi,
-        entity_key=entity_key,
-        ops_annual=er["ops_annual"],
-        depr_base=er["depreciable_base"],
-        tax_rate=_TAX_RATE,
-        entity_data=entity_data,
-        structure=structure,
-        sr_schedule=er["sr_schedule"],
-        semi_annual_pl=er.get("semi_annual_pl"),
-    )
+    try:
+        _proofs = build_entity_proofs(
+            annual=annual,
+            waterfall_semi=wf_semi,
+            entity_key=entity_key,
+            ops_annual=er["ops_annual"],
+            depr_base=er["depreciable_base"],
+            tax_rate=_TAX_RATE,
+            entity_data=entity_data,
+            structure=structure,
+            sr_schedule=er["sr_schedule"],
+            semi_annual_pl=er.get("semi_annual_pl"),
+        )
+    except Exception as _proof_err:
+        import traceback as _tb
+        st.error(f"Proof computation failed: {type(_proof_err).__name__}: {_proof_err}")
+        st.code(_tb.format_exc())
+        _proofs = {}
 
     return {
         "annual": annual,
@@ -8603,6 +8609,9 @@ Ops Reserve → OpCo DSRA → Mezz IC Accel ({_CC_IRR_TARGET:.0%} eff.) → Sr I
 
                 st.divider()
 
+    # TODO: Sensitivity tab hidden — must be rebuilt to use One Big Loop engine
+    # result instead of batch waterfall (compute_entity_waterfall). Batch path
+    # is not authoritative; only waterfall_step() via run_entity_loop() is correct.
     # --- SENSITIVITY ---
     if "Sensitivity" in _tab_map:
         with _tab_map["Sensitivity"]:
@@ -12997,6 +13006,14 @@ if entity == "Catalytic Assets":
     _audit_lanred_ann = [_add_compat_fields(dict(a)) for a in _audit_model_data["entities"]["lanred"]["annual"]]
     _audit_twx_ann = [_add_compat_fields(dict(a)) for a in _audit_model_data["entities"]["timberworx"]["annual"]]
 
+    # TODO: SCLCA orchestrator below uses compute_entity_waterfall (batch path)
+    # which is NOT authoritative. Must migrate to read from engine result
+    # (_audit_model_data) which uses the One Big Loop (waterfall_step).
+    # SCLCA acceleration is a 1:1 mirror of subsidiary acceleration —
+    # if NWL accelerates senior IC, SCLCA accelerates senior to IIC.
+    # If NWL accelerates mezz IC, SCLCA accelerates mezz to CC/investor.
+    # Both facility levels. 1:1 pass-through. Not a separate waterfall.
+    # Read acceleration vectors from engine result per entity per period.
     # --- WATERFALL OVERLAY ---
     # Compute entity operating models for waterfall
     _nwl_ops, _nwl_ops_semi = _build_nwl_operating_annual_model()
