@@ -7823,11 +7823,7 @@ Ops Reserve → OpCo DSRA → Mezz IC Accel ({_CC_IRR_TARGET:.0%} eff.) → Sr I
             )
             st.plotly_chart(fig_bs_dsra, use_container_width=True)
 
-            st.info(
-                "**Pre-Revenue Hedge Flow:** CC → Hedge → FEC → Senior Debt (covers P1+P2)  \n"
-                "**Effect on NWL:** Senior IC ↓ (faster repayment at P1), Mezz IC ↑ (Pre-Revenue Hedge drawdown). Total debt unchanged, but higher avg rate.  \n"
-                f"**DSRA FD:** Surplus cash deposited at FD rate ({DSRA_RATE*100:.0f}% p.a. from config) — Opening + Deposit + Interest = Closing"
-            )
+            # (Removed: stale Pre-Revenue Hedge / DSRA FD explainer — needs rewrite)
 
             # ── AUDIT: Balance Sheet (engine-computed) ──
             if "bs" in _sub_proofs:
