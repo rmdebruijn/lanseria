@@ -8965,6 +8965,24 @@ Ops Reserve → OpCo DSRA → Mezz IC Accel ({_CC_IRR_TARGET:.0%} eff.) → Sr I
 revenue contracts (Layer 3) upstream through SCLCA to Invest International Capital B.V.
                     """)
                     st.divider()
+
+                    # ── NWL Exposure Reduction Waterfall (SVG) ──
+                    _nwl_sr_ic = entity_data['senior_portion']
+                    _sec_sr_detail = financing['loan_detail']['senior']
+                    _wf_grant_eur = _sec_sr_detail['grant_proceeds_to_early_repayment'] + _sec_sr_detail['gepf_bulk_proceeds']
+                    _wf_grant_zar = (financing['prepayments']['dtic_grant']['amount_zar']
+                                     + financing['prepayments']['gepf_bulk_services']['total_zar'])
+                    _wf_post_grants = _nwl_sr_ic - _wf_grant_eur
+                    _wf_overrides = {
+                        'wf_subtitle': f"IIC exposure waterfall: €{_nwl_sr_ic/1e6:.1f}M senior → €0.9–3.9M residual guaranteed by Veracity",
+                        'wf_bar1_val': f"€{_nwl_sr_ic/1e6:.1f}M",
+                        'wf_bar2_val': f"−€{_wf_grant_eur/1e6:.1f}M",
+                        'wf_bar2_zar': f"(R{_wf_grant_zar/1e6:.1f}M)",
+                        'wf_bar3_val': f"€{_wf_post_grants/1e6:.1f}M",
+                    }
+                    render_svg_from_data("nwl-exposure-waterfall.svg", overrides=_wf_overrides)
+
+                    st.divider()
                     st.subheader("Layered Risk Reduction")
                     if _sec_nwl_md:
                         for _sect in _sec_nwl_md.split("\n### "):
