@@ -9016,7 +9016,7 @@ revenue contracts (Layer 3) upstream through SCLCA to Invest International Capit
                     st.subheader("Layer 2 — Guarantees, Insurance & Credit Enhancements")
 
                     _colubris_eur = 1_721_925  # Dutch content trigger
-                    _eca_cover_eur = _bal_m36   # ECA sized to M36 exposed balance
+                    _eca_cover_eur = entity_data['total_loan']  # ECA sized to full IC loan
 
                     with st.container(border=True):
                         st.markdown("##### 1. Corporate Guarantee — Veracity Property Holdings")
