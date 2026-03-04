@@ -8956,104 +8956,14 @@ Ops Reserve → OpCo DSRA → Mezz IC Accel ({_CC_IRR_TARGET:.0%} eff.) → Sr I
                 if sub_sec.get('carve_out'):
                     pass  # LanRED: either independently underwritten or bank-to-bank swap — shown in L2
 
-                # ── NWL-specific: Exposure Reduction & ECA Argument ──
+                # ── NWL: same intro format as LanRED/TWX ──
                 if entity_key == "nwl":
                     _sec_nwl_md = load_content_md("SECURITY_CONTENT.md").get("nwl", "")
-                    if _sec_nwl_md:
-                        # Render the Exposure Narrative section
-                        for _sect in _sec_nwl_md.split("\n### "):
-                            if _sect.startswith("Exposure Narrative"):
-                                st.markdown(_sect.partition("\n")[2].strip())
-                                break
-                    else:
-                        st.markdown(
-                            "NWL is the **primary operating asset** in the IIC facility. "
-                            "Through grant-funded acceleration (DTIC + GEPF) and the Creation Capital DSRA, "
-                            "IIC's **actual credit exposure only begins at month 36** "
-                            "— and at a **substantially lower balance** than the NWL Senior IC loan."
-                        )
-
-                    # ── Build NWL Senior IC schedule to extract milestone balances ──
-                    _sec_sr_cfg = structure['sources']['senior_debt']
-                    _sec_sr_rate = _sec_sr_cfg['interest']['rate'] + INTERCOMPANY_MARGIN
-                    _sec_sr_repayments = _sec_sr_cfg['repayments']
-                    _sec_sr_principal = entity_data['senior_portion']
-                    _sec_total_sr = sum(l['senior_portion'] for l in structure['uses']['loans_to_subsidiaries'].values())
-                    _sec_sr_detail = financing['loan_detail']['senior']
-                    _sec_sr_drawdowns = _sec_sr_detail['drawdown_schedule']
-                    _sec_sr_periods = construction_period_labels()
-                    _sec_prepay_raw = _sec_sr_detail.get('prepayment_periods', {})
-                    _sec_prepay_alloc = _sec_sr_detail.get('prepayment_allocation', {})
-                    _sec_nwl_prepay_pct = _sec_prepay_alloc.get('nwl', 0.0)
-                    _sec_sr_prepayments = {k: v * _sec_nwl_prepay_pct for k, v in _sec_prepay_raw.items()} if _sec_nwl_prepay_pct > 0 else None
-
-                    _sec_sr_schedule = build_simple_ic_schedule(
-                        _sec_sr_principal, _sec_total_sr, _sec_sr_repayments, _sec_sr_rate,
-                        _sec_sr_drawdowns, _sec_sr_periods
-                    )
-
-                    # Extract milestone balances
-                    _bal_by_month = {r['Month']: r for r in _sec_sr_schedule}
-                    _bal_m0 = 0.0
-                    # End of construction (M18) = closing of last drawdown period
-                    _construction_rows = [r for r in _sec_sr_schedule if r['Period'] <= construction_end_index()]
-                    _drawdown_rows = [r for r in _sec_sr_schedule if r['Draw Down'] > 0 or r['Interest'] > 0 and r['Principle'] == 0]
-                    # Balance at M18 (end of drawdown phase, before repayments)
-                    _last_drawdown = [r for r in _sec_sr_schedule if r['Month'] <= 18]
-                    _bal_m18 = _last_drawdown[-1]['Closing'] if _last_drawdown else 0.0
-                    # Total drawdowns (sum of all positive drawdowns)
-                    _total_draws = sum(r['Draw Down'] for r in _sec_sr_schedule if r['Draw Down'] > 0)
-                    # Total IDC capitalised
-                    _total_idc = sum(r['Interest'] for r in _sec_sr_schedule if r['Principle'] == 0 and r['Month'] <= 18)
-                    # Acceleration amount
-                    _total_prepay = sum(abs(r.get('Acceleration', 0)) for r in _sec_sr_schedule if r.get('Acceleration', 0) < 0)
-                    # Balance at M24 (start of repayments = opening of period 1)
-                    _repay_rows = [r for r in _sec_sr_schedule if r['Period'] >= 1]
-                    _bal_m24 = _repay_rows[0]['Opening'] if _repay_rows else _bal_m18
-                    # DSRA principal at P1
-                    _dsra_p1 = abs(_repay_rows[0]['Principle']) if _repay_rows else 0.0
-                    # Balance after P1 (DSRA covers this)
-                    _bal_after_p1 = _repay_rows[0]['Closing'] if _repay_rows else _bal_m24
-                    # Balance after P2 (DSRA covers interest-only)
-                    _bal_after_p2 = _repay_rows[1]['Closing'] if len(_repay_rows) > 1 else _bal_after_p1
-                    # M36 = when IIC is first exposed
-                    _bal_m36 = _bal_after_p2
-
-                    st.divider()
-
-                    # ── Compute DSRA FD balance at M36 (Y3 closing) ──
-                    _sec_sub_model = build_sub_annual_model("nwl")
-                    _sec_sub_annual = _sec_sub_model["annual"]
-                    _dsra_bal_m36 = _sec_sub_annual[2]['dsra_bal'] if len(_sec_sub_annual) > 2 else 0.0  # Y3
-
-                    # ── 1. Exposure Reduction Waterfall ──
-                    st.subheader("IIC Exposure at Month 36")
-
-                    _nwl_sr_ic = entity_data['senior_portion']
-
-                    _se1, _se2, _se3, _se4 = st.columns(4)
-                    _se1.metric("NWL Senior IC", f"€{_nwl_sr_ic:,.0f}")
-                    _se2.metric("M36 Exposed Balance", f"€{_bal_m36:,.0f}")
-                    _se3.metric("DSRA at M36", f"€{_dsra_bal_m36:,.0f}",
-                                delta="cash collateral")
-                    _se4.metric("Net Exposure", f"€{max(_bal_m36 - _dsra_bal_m36, 0):,.0f}",
-                                delta=f"{(1 - _bal_m36 / _nwl_sr_ic) * 100:.0f}% below IC loan")
-
-                    # Exposure Reduction Waterfall (SVG)
-                    _wf_grant_eur = _sec_sr_detail['grant_proceeds_to_early_repayment'] + _sec_sr_detail['gepf_bulk_proceeds']
-                    _wf_grant_zar = (financing['prepayments']['dtic_grant']['amount_zar']
-                                     + financing['prepayments']['gepf_bulk_services']['total_zar'])
-                    _wf_post_grants = _nwl_sr_ic - _wf_grant_eur
-                    _wf_overrides = {
-                        'wf_subtitle': f"IIC exposure waterfall: €{_nwl_sr_ic/1e6:.1f}M senior → €0.9–3.9M residual guaranteed by Veracity",
-                        'wf_bar1_val': f"€{_nwl_sr_ic/1e6:.1f}M",
-                        'wf_bar2_val': f"−€{_wf_grant_eur/1e6:.1f}M",
-                        'wf_bar2_zar': f"(R{_wf_grant_zar/1e6:.1f}M)",
-                        'wf_bar3_val': f"€{_wf_post_grants/1e6:.1f}M",
-                    }
-                    render_svg_from_data("nwl-exposure-waterfall.svg", overrides=_wf_overrides)
-
-                    # ── Layered Risk Reduction (from MD) ──
+                    st.metric("Intercompany Loan from SCLCA", f"€{entity_data['total_loan']:,.0f}")
+                    st.markdown(f"""
+**Security flow:** {name} provides its guarantees & insurance (Layer 2) and physical assets &
+revenue contracts (Layer 3) upstream through SCLCA to Invest International Capital B.V.
+                    """)
                     st.divider()
                     st.subheader("Layered Risk Reduction")
                     if _sec_nwl_md:
