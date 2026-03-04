@@ -9382,103 +9382,115 @@ revenue contracts (Layer 3) upstream through SCLCA to Invest International Capit
                     l2 = sub_sec.get('layer_2', {})
                     st.subheader(l2.get('title', 'Layer 2 — Guarantees & Insurance'))
 
-                    # Timberworx: intro narrative from MD (Corporate Guarantee + Security Elements)
+                    # Timberworx: intro narrative from MD (Security Elements only — Phoenix guarantee hidden pending review)
                     if entity_key == 'timberworx':
                         _sec_twx_md = load_content_md("SECURITY_CONTENT.md").get("timberworx", "")
                         if _sec_twx_md:
                             _twx_md_sections = _sec_twx_md.split("\n### ")
-                            for _sect in _twx_md_sections:
-                                if _sect.startswith("Corporate Guarantee"):
-                                    st.markdown("### Corporate Guarantee")
-                                    st.markdown(_sect.partition("\n")[2].strip())
+                            # NOTE: Corporate Guarantee section hidden pending Phoenix numbers review
+                            # for _sect in _twx_md_sections:
+                            #     if _sect.startswith("Corporate Guarantee"):
+                            #         st.markdown("### Corporate Guarantee")
+                            #         st.markdown(_sect.partition("\n")[2].strip())
                             for _sect in _twx_md_sections:
                                 if _sect.startswith("Security Elements"):
                                     st.markdown("### Security Elements")
-                                    st.markdown(_sect.partition("\n")[2].strip())
+                                    # Filter out the Phoenix guarantee line
+                                    _se_lines = _sect.partition("\n")[2].strip().split("\n")
+                                    _se_filtered = [ln for ln in _se_lines if "Phoenix corporate guarantee" not in ln]
+                                    st.markdown("\n".join(_se_filtered))
                             st.divider()
 
-                    # Timberworx: single container mirroring NWL pattern
+                    # Timberworx: Phoenix guarantee — HIDDEN pending review of Phoenix numbers
+                    # To restore: uncomment the block below and remove the st.info placeholder
                     if entity_key == 'timberworx':
-                        _twx_eca_eur = entity_data['total_loan']  # Full IC loan — vanilla, fully guaranteed from M24
+                        _twx_eca_eur = entity_data['total_loan']
 
-                        _guar_cfg_twx = _load_guarantor_config()
+                        st.info(
+                            "Guarantor analysis for Timberworx is under review. "
+                            "Qualified guarantor assessment pending."
+                        )
 
-                        with st.container(border=True):
-                            st.markdown("##### 1. Corporate Guarantee — Phoenix Group (via VH Properties)")
-
-                            # ── 1. Metrics (Guarantee + ECA) ──
-                            _t1, _t2 = st.columns(2)
-                            _t1.metric("Phoenix Corporate Guarantee", f"€{_twx_eca_eur:,.0f}", delta="Full IC loan (Sr + Mz)")
-                            _t2.metric("Atradius ECA Cover", f"€{_twx_eca_eur:,.0f}", delta="To be applied — full IC loan")
-                            st.caption(
-                                f"VH Properties (40% in Phoenix Group) guarantees the full TWX IC loan. "
-                                f"Atradius ECA cover sized to **full IC loan** (€{_twx_eca_eur:,.0f}) — vanilla structure, "
-                                f"fully guaranteed from M24. **To be applied for** at Atradius DSB."
-                            )
-
-                            # L2 summary table
-                            _twx_l2_summary = [
-                                ("Phoenix Guarantee + Atradius ECA",
-                                 f"€{_twx_eca_eur:,.0f} (guarantee) + €{_twx_eca_eur:,.0f} (ECA)",
-                                 "Committed / To be applied",
-                                 "VH Properties guarantee (full IC) + Atradius ECA (full IC loan, vanilla from M24)"),
-                            ]
-                            _render_fin_table(_twx_l2_summary, ["Enhancement", "Amount", "Status", "Note"])
-
-                            # ── 2. SVG Organogram ──
-                            st.divider()
-                            st.markdown("##### Corporate Structure")
-                            render_svg("guarantor-phoenix.svg", "_none.md")
-
-                            # ── 3. VH Properties — Financial Summary (3 years) ──
-                            st.divider()
-                            st.markdown("##### VH Properties — Financial Summary (3 years)")
-                            st.info("VH Properties AFS awaiting — financial summary will be populated when structured data is available.")
-                            _vh_placeholder = [
-                                ("Total Assets", "—", "—", "—"),
-                                ("Investment Property", "—", "—", "—"),
-                                ("Total Equity", "—", "—", "—"),
-                                ("Revenue", "—", "—", "—"),
-                                ("**EBITDA (Operating Profit)**", "—", "—", "—"),
-                                ("Finance Costs", "—", "—", "—"),
-                                ("**Net Profit/(Loss)**", "—", "—", "—"),
-                                ("D/E Ratio", "—", "—", "—"),
-                                ("Interest Cover", "—", "—", "—"),
-                            ]
-                            _render_fin_table(_vh_placeholder, ["Metric", "FY2025", "FY2024", "FY2023"])
-                            st.caption("Source: Awaiting VH Properties AFS FY2023–FY2025.")
-                            with st.expander("Balance Sheet detail (3 years)", expanded=False):
-                                st.info("Awaiting VH Properties structured AFS data.")
-                            with st.expander("Profit & Loss detail (3 years)", expanded=False):
-                                st.info("Awaiting VH Properties structured AFS data.")
-
-                            # ── 4. Operating Entities (Asset-Owning — from report) ──
-                            st.divider()
-                            st.markdown("##### Operating Entities (Asset-Owning)")
-                            _phx_report_oe = _parse_report_operating_entities(
-                                Path(__file__).parent / "content" / "guarantor" / "Phoenix_Guarantor_Analysis.md"
-                            )
-                            if _phx_report_oe:
-                                _render_fin_table(_phx_report_oe, ["Entity", "Latest Stage", "Revenue", "EBITDA", "IC", "D/EBITDA", "LTV", "Equity"])
-                                st.caption("Source: Phoenix Guarantor Analysis Report (latest AFS + management accounts where available).")
-                            else:
-                                st.info("Operating entities data not available — Phoenix Guarantor Analysis report not found.")
-
-                            # ── 5. Phoenix Guarantor Analysis Report ──
-                            st.divider()
-                            _phx_report_path = Path(__file__).parent / "content" / "guarantor" / "Phoenix_Guarantor_Analysis.md"
-                            if _phx_report_path.exists():
-                                with st.expander("Phoenix Guarantor Analysis Report", expanded=False):
-                                    st.markdown(_phx_report_path.read_text(encoding="utf-8"))
-                            else:
-                                st.info("Phoenix analysis report not found.")
-
-                            # ── 6. Email Q&A ──
-                            if _guar_cfg_twx:
-                                st.divider()
-                                _render_email_qa(_guar_cfg_twx)
-
-                        st.divider()
+                        # ── Phoenix guarantee block — HIDDEN pending review (do not delete) ──
+                        # _guar_cfg_twx = _load_guarantor_config()
+                        #
+                        # with st.container(border=True):
+                        #     st.markdown("##### 1. Corporate Guarantee — Phoenix Group (via VH Properties)")
+                        #
+                        #     # ── 1. Metrics (Guarantee + ECA) ──
+                        #     _t1, _t2 = st.columns(2)
+                        #     _t1.metric("Phoenix Corporate Guarantee", f"€{_twx_eca_eur:,.0f}", delta="Full IC loan (Sr + Mz)")
+                        #     _t2.metric("Atradius ECA Cover", f"€{_twx_eca_eur:,.0f}", delta="To be applied — full IC loan")
+                        #     st.caption(
+                        #         f"VH Properties (40% in Phoenix Group) guarantees the full TWX IC loan. "
+                        #         f"Atradius ECA cover sized to **full IC loan** (€{_twx_eca_eur:,.0f}) — vanilla structure, "
+                        #         f"fully guaranteed from M24. **To be applied for** at Atradius DSB."
+                        #     )
+                        #
+                        #     # L2 summary table
+                        #     _twx_l2_summary = [
+                        #         ("Phoenix Guarantee + Atradius ECA",
+                        #          f"€{_twx_eca_eur:,.0f} (guarantee) + €{_twx_eca_eur:,.0f} (ECA)",
+                        #          "Committed / To be applied",
+                        #          "VH Properties guarantee (full IC) + Atradius ECA (full IC loan, vanilla from M24)"),
+                        #     ]
+                        #     _render_fin_table(_twx_l2_summary, ["Enhancement", "Amount", "Status", "Note"])
+                        #
+                        #     # ── 2. SVG Organogram ──
+                        #     st.divider()
+                        #     st.markdown("##### Corporate Structure")
+                        #     render_svg("guarantor-phoenix.svg", "_none.md")
+                        #
+                        #     # ── 3. VH Properties — Financial Summary (3 years) ──
+                        #     st.divider()
+                        #     st.markdown("##### VH Properties — Financial Summary (3 years)")
+                        #     st.info("VH Properties AFS awaiting — financial summary will be populated when structured data is available.")
+                        #     _vh_placeholder = [
+                        #         ("Total Assets", "—", "—", "—"),
+                        #         ("Investment Property", "—", "—", "—"),
+                        #         ("Total Equity", "—", "—", "—"),
+                        #         ("Revenue", "—", "—", "—"),
+                        #         ("**EBITDA (Operating Profit)**", "—", "—", "—"),
+                        #         ("Finance Costs", "—", "—", "—"),
+                        #         ("**Net Profit/(Loss)**", "—", "—", "—"),
+                        #         ("D/E Ratio", "—", "—", "—"),
+                        #         ("Interest Cover", "—", "—", "—"),
+                        #     ]
+                        #     _render_fin_table(_vh_placeholder, ["Metric", "FY2025", "FY2024", "FY2023"])
+                        #     st.caption("Source: Awaiting VH Properties AFS FY2023–FY2025.")
+                        #     with st.expander("Balance Sheet detail (3 years)", expanded=False):
+                        #         st.info("Awaiting VH Properties structured AFS data.")
+                        #     with st.expander("Profit & Loss detail (3 years)", expanded=False):
+                        #         st.info("Awaiting VH Properties structured AFS data.")
+                        #
+                        #     # ── 4. Operating Entities (Asset-Owning — from report) ──
+                        #     st.divider()
+                        #     st.markdown("##### Operating Entities (Asset-Owning)")
+                        #     _phx_report_oe = _parse_report_operating_entities(
+                        #         Path(__file__).parent / "content" / "guarantor" / "Phoenix_Guarantor_Analysis.md"
+                        #     )
+                        #     if _phx_report_oe:
+                        #         _render_fin_table(_phx_report_oe, ["Entity", "Latest Stage", "Revenue", "EBITDA", "IC", "D/EBITDA", "LTV", "Equity"])
+                        #         st.caption("Source: Phoenix Guarantor Analysis Report (latest AFS + management accounts where available).")
+                        #     else:
+                        #         st.info("Operating entities data not available — Phoenix Guarantor Analysis report not found.")
+                        #
+                        #     # ── 5. Phoenix Guarantor Analysis Report ──
+                        #     st.divider()
+                        #     _phx_report_path = Path(__file__).parent / "content" / "guarantor" / "Phoenix_Guarantor_Analysis.md"
+                        #     if _phx_report_path.exists():
+                        #         with st.expander("Phoenix Guarantor Analysis Report", expanded=False):
+                        #             st.markdown(_phx_report_path.read_text(encoding="utf-8"))
+                        #     else:
+                        #         st.info("Phoenix analysis report not found.")
+                        #
+                        #     # ── 6. Email Q&A ──
+                        #     if _guar_cfg_twx:
+                        #         st.divider()
+                        #         _render_email_qa(_guar_cfg_twx)
+                        #
+                        # st.divider()
+                        # ── End hidden Phoenix block ──
 
                     # LanRED: underwriter OR swap (show both, grey out unselected)
                     elif entity_key == 'lanred':
@@ -16462,55 +16474,59 @@ Ops Reserve -> OpCo DSRA ->
                             st.markdown(f":grey[**Cross-Currency Swap** (bank-to-bank) — €{_lr_total_ic:,.0f}]")
                 st.caption("Per asset and sculpting choices — either independent underwriting or bank-to-bank swap.")
 
-            # ── TWX L2 ──
+            # ── TWX L2 — HIDDEN pending Phoenix numbers review (do not delete) ──
             _twx_sec = security['subsidiaries']['timberworx']
             _twx_total_ic = _twx_sec['ic_loan_size_eur']
             with st.expander("Timberworx", expanded=False):
                 st.markdown(f"**IC Loan: €{_twx_total_ic:,.0f}**")
-                with st.container(border=True):
-                    st.markdown("##### Corporate Guarantee + Atradius ECA Cover")
-                    _t1, _t2 = st.columns(2)
-                    _t1.metric("Phoenix Corporate Guarantee", f"€{_twx_total_ic:,.0f}", delta="Full IC loan (Sr + Mz)")
-                    _t2.metric("Atradius ECA Cover", f"€{_twx_total_ic:,.0f}", delta="To be applied — full IC loan")
-                    st.caption(
-                        f"VH Properties (40% in Phoenix Group) guarantees full TWX IC loan. "
-                        f"Atradius ECA cover sized to **full IC loan** (€{_twx_total_ic:,.0f}) — vanilla, "
-                        f"from M24. Dutch content trigger: Panel Equipment (€200k). **To be applied for** at Atradius DSB."
-                    )
-
-                st.markdown("**Phoenix Group — Guarantee Capacity**")
-                _phx_subs_sec = _load_guarantor_jsons("Phoenix group")
-                _phx_opco_keys_sec = {
-                    "RidgeviewCentre_2025_structured": 0.40,
-                    "BrackenfellCorner_2025_structured": 0.40,
-                    "ChartwellCorner_2025_structured": 0.20,
-                    "JukskeiMeander_2025_structured": 0.40,
-                    "OlivedaleCorner_2025_structured": 0.40,
-                }
-                _phx_group_eb = 0
-                _phx_attr_eb = 0
-                for _pk, _own in _phx_opco_keys_sec.items():
-                    _pd = _phx_subs_sec.get(_pk, {})
-                    _ppl = _pd.get("statement_of_comprehensive_income", {})
-                    _op = (_gval(_ppl, "operating_profit") or _gval(_ppl, "operating_profit_loss"))
-                    if _op is None:
-                        _pat = (_gval(_ppl, "profit_loss_for_the_year") or _gval(_ppl, "profit_for_the_year") or _gval(_ppl, "loss_for_the_year"))
-                        _fc = abs(_gval(_ppl, "finance_costs") or 0)
-                        _op = (_pat or 0) + _fc
-                    _phx_group_eb += (_op or 0)
-                    _phx_attr_eb += (_op or 0) * _own
-                _twx_sr_eur = structure['uses']['loans_to_subsidiaries']['timberworx']['senior_portion']
-                _twx_loan_zar = _twx_sr_eur * FX_RATE
-                _phx_cov = ((_phx_attr_eb * 2) / _twx_loan_zar) if _twx_loan_zar > 0 else 0
-                _phx_data = [
-                    {"Metric": "Group EBITDA", "Value": _fmtr(_phx_group_eb, millions=True)},
-                    {"Metric": "VH Properties stake", "Value": "40%"},
-                    {"Metric": "Attributable EBITDA", "Value": _fmtr(_phx_attr_eb, millions=True)},
-                    {"Metric": "2-year cash generation", "Value": _fmtr(_phx_attr_eb * 2, millions=True)},
-                    {"Metric": "TWX Senior loan (ZAR)", "Value": _fmtr(_twx_loan_zar, millions=True)},
-                    {"Metric": "Coverage ratio (senior-only)", "Value": f"{_phx_cov:.2f}x"},
-                ]
-                render_table(pd.DataFrame(_phx_data), right_align=["Value"])
+                st.info(
+                    "Guarantor analysis for Timberworx is under review. "
+                    "Qualified guarantor assessment pending."
+                )
+                # with st.container(border=True):
+                #     st.markdown("##### Corporate Guarantee + Atradius ECA Cover")
+                #     _t1, _t2 = st.columns(2)
+                #     _t1.metric("Phoenix Corporate Guarantee", f"€{_twx_total_ic:,.0f}", delta="Full IC loan (Sr + Mz)")
+                #     _t2.metric("Atradius ECA Cover", f"€{_twx_total_ic:,.0f}", delta="To be applied — full IC loan")
+                #     st.caption(
+                #         f"VH Properties (40% in Phoenix Group) guarantees full TWX IC loan. "
+                #         f"Atradius ECA cover sized to **full IC loan** (€{_twx_total_ic:,.0f}) — vanilla, "
+                #         f"from M24. Dutch content trigger: Panel Equipment (€200k). **To be applied for** at Atradius DSB."
+                #     )
+                #
+                # st.markdown("**Phoenix Group — Guarantee Capacity**")
+                # _phx_subs_sec = _load_guarantor_jsons("Phoenix group")
+                # _phx_opco_keys_sec = {
+                #     "RidgeviewCentre_2025_structured": 0.40,
+                #     "BrackenfellCorner_2025_structured": 0.40,
+                #     "ChartwellCorner_2025_structured": 0.20,
+                #     "JukskeiMeander_2025_structured": 0.40,
+                #     "OlivedaleCorner_2025_structured": 0.40,
+                # }
+                # _phx_group_eb = 0
+                # _phx_attr_eb = 0
+                # for _pk, _own in _phx_opco_keys_sec.items():
+                #     _pd = _phx_subs_sec.get(_pk, {})
+                #     _ppl = _pd.get("statement_of_comprehensive_income", {})
+                #     _op = (_gval(_ppl, "operating_profit") or _gval(_ppl, "operating_profit_loss"))
+                #     if _op is None:
+                #         _pat = (_gval(_ppl, "profit_loss_for_the_year") or _gval(_ppl, "profit_for_the_year") or _gval(_ppl, "loss_for_the_year"))
+                #         _fc = abs(_gval(_ppl, "finance_costs") or 0)
+                #         _op = (_pat or 0) + _fc
+                #     _phx_group_eb += (_op or 0)
+                #     _phx_attr_eb += (_op or 0) * _own
+                # _twx_sr_eur = structure['uses']['loans_to_subsidiaries']['timberworx']['senior_portion']
+                # _twx_loan_zar = _twx_sr_eur * FX_RATE
+                # _phx_cov = ((_phx_attr_eb * 2) / _twx_loan_zar) if _twx_loan_zar > 0 else 0
+                # _phx_data = [
+                #     {"Metric": "Group EBITDA", "Value": _fmtr(_phx_group_eb, millions=True)},
+                #     {"Metric": "VH Properties stake", "Value": "40%"},
+                #     {"Metric": "Attributable EBITDA", "Value": _fmtr(_phx_attr_eb, millions=True)},
+                #     {"Metric": "2-year cash generation", "Value": _fmtr(_phx_attr_eb * 2, millions=True)},
+                #     {"Metric": "TWX Senior loan (ZAR)", "Value": _fmtr(_twx_loan_zar, millions=True)},
+                #     {"Metric": "Coverage ratio (senior-only)", "Value": f"{_phx_cov:.2f}x"},
+                # ]
+                # render_table(pd.DataFrame(_phx_data), right_align=["Value"])
 
             st.divider()
 

@@ -122,7 +122,7 @@
   <!-- NWL L2 Item 1 -->
   <text x="85" y="698" font-size="13" font-weight="700" fill="#93c5fd">1.</text>
   <text x="105" y="698" font-size="13" font-weight="600" fill="#93c5fd">Corporate Guarantee + ECA Cover</text>
-  <text x="115" y="715" font-size="12" fill="#dbeafe">&#x2022; Veracity corporate guarantee (full IC loan)</text>
+  <text x="115" y="715" font-size="12" fill="#dbeafe">&#x2022; Corporate guarantee (full IC loan)</text>
   <text x="115" y="731" font-size="12" fill="#dbeafe">&#x2022; Atradius ECA cover (to be applied, M36 balance)</text>
 
   <!-- NWL L2 Item 2 -->
@@ -212,8 +212,8 @@
   <text x="1130" y="673" text-anchor="middle" font-size="13" font-weight="700" fill="#ffffff">LAYER 2</text>
   <text x="1200" y="673" font-size="14" font-weight="600" fill="#fde68a">Guarantees &amp; Insurance</text>
 
-  <text x="1085" y="698" font-size="13" fill="#fef3c7">Phoenix corporate guarantee (full IC loan)</text>
-  <text x="1085" y="716" font-size="11" fill="#d2b48c" font-style="italic">VH Properties &#8212; 40% in Phoenix Group</text>
+  <text x="1085" y="698" font-size="13" fill="#fef3c7">Corporate guarantee (under review)</text>
+  <text x="1085" y="716" font-size="11" fill="#d2b48c" font-style="italic">Qualified guarantor assessment pending</text>
   <text x="1085" y="736" font-size="13" fill="#fef3c7">Atradius ECA cover &#8212; to be applied</text>
   <text x="1085" y="754" font-size="11" fill="#d2b48c" font-style="italic">Full IC loan &#8364;2,048,149 &#8212; vanilla, from M24</text>
   <text x="1085" y="772" font-size="11" fill="#d2b48c" font-style="italic">Dutch content: Panel Equipment (&#8364;200k)</text>
@@ -262,7 +262,7 @@
   <text x="190" y="1318" font-size="15" fill="#475569">SCLCA pledges IC loan receivables (&#8364;15,879,884) to IIC and 100% subsidiary equity (&#8364;99,000) to Creation Capital</text>
 
   <text x="100" y="1344" font-size="15" font-weight="700" fill="#1e293b">Layer 2:</text>
-  <text x="190" y="1344" font-size="14" fill="#475569">NWL: Veracity + Atradius ECA + DSRA/FEC or Swap + DTIC + GEPF | LanRED: Underwriting or Swap (bank-to-bank) | TWX: Phoenix + Atradius</text>
+  <text x="190" y="1344" font-size="14" fill="#475569">NWL: Corporate guarantee + Atradius ECA + DSRA/FEC or Swap + DTIC + GEPF | LanRED: Underwriting or Swap (bank-to-bank) | TWX: Corporate guarantee + Atradius</text>
 
   <text x="100" y="1370" font-size="15" font-weight="700" fill="#1e293b">Layer 3:</text>
   <text x="190" y="1370" font-size="15" fill="#475569">Physical assets (MABR, BoP, civil works, solar PV, BESS, CoE building, panel equipment) + revenue contracts (LOIs, PPAs, timber pipeline R177.9M)</text>

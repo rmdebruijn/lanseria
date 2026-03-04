@@ -45,23 +45,25 @@
   <text x="150" y="196" text-anchor="middle" class="tag" fill="white">NWL GUARANTOR</text>
 
   <!-- VPI -->
-  <rect x="367" y="148" width="246" height="52" class="box" fill="#E5E7EB" stroke="#9CA3AF"/>
-  <text x="490" y="167" text-anchor="middle" class="label-bold">Veracity Property Investments</text>
+  <rect x="367" y="148" width="246" height="52" class="box" fill="#F3F4F6" stroke="#9CA3AF"/>
+  <text x="490" y="167" text-anchor="middle" class="label-bold" style="fill:#9CA3AF">Veracity Property Investments</text>
   <text x="490" y="180" text-anchor="middle" class="label-sm">(VPI) — 100% — Development assets</text>
   <rect x="440" y="186" width="100" height="14" rx="3" fill="#9CA3AF"/>
-  <text x="490" y="196" text-anchor="middle" class="tag" fill="white">NO AFS</text>
+  <text x="490" y="196" text-anchor="middle" class="tag" fill="white">SIBLING</text>
 
   <!-- VI -->
-  <rect x="667" y="148" width="246" height="52" class="box" fill="#E5E7EB" stroke="#9CA3AF"/>
-  <text x="790" y="167" text-anchor="middle" class="label-bold">Veracity Investments</text>
+  <rect x="667" y="148" width="246" height="52" class="box" fill="#F3F4F6" stroke="#9CA3AF"/>
+  <text x="790" y="167" text-anchor="middle" class="label-bold" style="fill:#9CA3AF">Veracity Investments</text>
   <text x="790" y="180" text-anchor="middle" class="label-sm">(VI) — 100% — Divestment properties</text>
   <rect x="740" y="186" width="100" height="14" rx="3" fill="#9CA3AF"/>
-  <text x="790" y="196" text-anchor="middle" class="tag" fill="white">NO AFS</text>
+  <text x="790" y="196" text-anchor="middle" class="tag" fill="white">SIBLING</text>
 
   <!-- VH Properties (other group) -->
   <rect x="1060" y="148" width="240" height="52" class="box" fill="#F3F4F6" stroke="#9CA3AF"/>
   <text x="1180" y="167" text-anchor="middle" class="label-bold" style="fill:#9CA3AF">VH Properties (Pty) Ltd</text>
-  <text x="1180" y="180" text-anchor="middle" class="label-sm">TWX Guarantor (Phoenix Group)</text>
+  <text x="1180" y="180" text-anchor="middle" class="label-sm">(VHP) — 40% in Phoenix Group</text>
+  <rect x="1130" y="186" width="100" height="14" rx="3" fill="#9CA3AF"/>
+  <text x="1180" y="196" text-anchor="middle" class="tag" fill="white">SIBLING</text>
 
   <!-- ========== VPH → L4 bar (all VPH children) ========== -->
   <line x1="150" y1="200" x2="150" y2="228" class="line-solid"/>
@@ -143,21 +145,21 @@
   <rect x="535" y="405" width="80" height="12" rx="3" fill="#8B5CF6"/>
   <text x="575" y="414" text-anchor="middle" class="tag-lc" fill="white">GROWTH</text>
 
-  <!-- Aquaside -->
-  <rect x="670" y="358" width="130" height="60" class="box" fill="#FFFFFF" stroke="#D1D5DB"/>
-  <text x="735" y="375" text-anchor="middle" class="label-bold">Aquaside</text>
+  <!-- Aquaside (DISPOSED — units sold) -->
+  <rect x="670" y="358" width="130" height="60" class="box" fill="#F9FAFB" stroke="#D1D5DB" stroke-dasharray="3,3" opacity="0.6"/>
+  <text x="735" y="375" text-anchor="middle" class="label-bold" style="fill:#9CA3AF">Aquaside</text>
   <text x="735" y="388" text-anchor="middle" class="label-sm">Trading (100%)</text>
-  <text x="735" y="401" text-anchor="middle" class="label-sm">Residential, JHB+CT</text>
-  <rect x="695" y="405" width="80" height="12" rx="3" fill="#DC2626"/>
-  <text x="735" y="414" text-anchor="middle" class="tag-lc" fill="white">DISTRESSED</text>
+  <text x="735" y="401" text-anchor="middle" class="label-sm">Units sold</text>
+  <rect x="695" y="405" width="80" height="12" rx="3" fill="#6B7280"/>
+  <text x="735" y="414" text-anchor="middle" class="tag-lc" fill="white">DISPOSED</text>
 
-  <!-- Uvongo Falls -->
-  <rect x="830" y="358" width="130" height="60" class="box" fill="#FFFFFF" stroke="#D1D5DB"/>
-  <text x="895" y="375" text-anchor="middle" class="label-bold">Uvongo Falls</text>
+  <!-- Uvongo Falls (DISPOSED — shares sold) -->
+  <rect x="830" y="358" width="130" height="60" class="box" fill="#F9FAFB" stroke="#D1D5DB" stroke-dasharray="3,3" opacity="0.6"/>
+  <text x="895" y="375" text-anchor="middle" class="label-bold" style="fill:#9CA3AF">Uvongo Falls</text>
   <text x="895" y="388" text-anchor="middle" class="label-sm">No 26 (50%)</text>
-  <text x="895" y="401" text-anchor="middle" class="label-sm">Residential, KZN</text>
-  <rect x="855" y="405" width="80" height="12" rx="3" fill="#F59E0B"/>
-  <text x="895" y="414" text-anchor="middle" class="tag-lc" fill="white">STABILISING</text>
+  <text x="895" y="401" text-anchor="middle" class="label-sm">Shares sold</text>
+  <rect x="855" y="405" width="80" height="12" rx="3" fill="#6B7280"/>
+  <text x="895" y="414" text-anchor="middle" class="tag-lc" fill="white">DISPOSED</text>
 
   <!-- 6 On Kloof -->
   <rect x="990" y="358" width="130" height="60" class="box" fill="#FFFFFF" stroke="#9CA3AF" stroke-dasharray="5,3"/>
@@ -190,8 +192,7 @@
   <text x="422" y="495" class="label-sm">NWL Guarantor</text>
   <rect x="530" y="484" width="16" height="14" rx="3" fill="#F3F4F6" stroke="#9CA3AF" stroke-width="1.5"/>
   <text x="552" y="495" class="label-sm">Sibling (other group)</text>
-  <rect x="700" y="484" width="16" height="14" rx="3" fill="#E5E7EB" stroke="#9CA3AF" stroke-width="1.5"/>
-  <text x="722" y="495" class="label-sm">No AFS</text>
+  <!-- No AFS legend entry removed -->
   <rect x="810" y="484" width="16" height="14" rx="3" fill="#F9FAFB" stroke="#D1D5DB" stroke-width="1.5"/>
   <text x="832" y="495" class="label-sm">Intermediate Holding</text>
 
@@ -208,6 +209,8 @@
   <text x="450" y="521" text-anchor="middle" class="tag" fill="white">DISTRESSED</text>
   <rect x="488" y="510" width="50" height="14" rx="3" fill="#9CA3AF"/>
   <text x="513" y="521" text-anchor="middle" class="tag" fill="white">HOLDING</text>
+  <rect x="546" y="510" width="60" height="14" rx="3" fill="#6B7280"/>
+  <text x="576" y="521" text-anchor="middle" class="tag" fill="white">DISPOSED</text>
 
   <text x="40" y="530" class="label-sm" dy="12">Source: Audited AFS FY2023-FY2025, KCE Accountants and Auditors Inc. Lifecycle assessed from AFS + Dec 2025 management accounts.</text>
 </svg>

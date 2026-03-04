@@ -1,36 +1,138 @@
-# Annexure A — Commercial and Project Variables — Jan / Cradle Cloud
+# Annexure A — Worked Sample: Cradle Cloud (Lanseria BioHub)
 
-**Linked Agreement:** Joint Development Agreement (Draft)
-**Document Date:** 2026-02-18
+**Purpose:** Fully populated example for team reference. This is a Route A project — the Lanseria BioHub identified the need for a sovereign cloud/digital infrastructure platform, and a promoter was sourced.
 
-This annexure contains all variable terms for the Joint Development Agreement. Unless otherwise specified, the main body of the Agreement refers to this annexure for variable amounts, percentages, names, and other project-specific details.
+---
 
-| Category | Variable | Value / Description |
-| --- | --- | --- |
-| Project | Project Name | Cradle Cloud |
-| Project | Smart City / Territory | Lanseria Smart City / Cradle of Humankind, South Africa |
-| Project | Project Description | Africa's first sovereign, renewable-powered AI data centre — hosting Ubuntu AI and anchoring the Lanseria Smart City digital ecosystem |
-| Parties | Launch Entity Name | `[__]` |
-| Parties | Development Promoter Name | Jan `[surname / entity]` |
-| Equity | Promoter Equity Percentage | **20%** |
-| Equity | Equity Holding Level | Project vehicle / SPV for Cradle Cloud |
-| Success Fee | Success Fee Basis | Percentage of total financing amount at Financial Close |
-| Success Fee | Success Fee Amount | **1%** of total financing closed |
-| Success Fee | Success Fee Payment Trigger | First drawdown of project financing or receipt of committed funds (Clause 11.3) |
-| Success Fee | Offset Against Advance | Yes — Development Advance offsettable against Success Fee (Clause 11.4) |
-| Development Advance | Monthly Advance Amount | **EUR 5,000** |
-| Development Advance | Currency | EUR |
-| Development Advance | Commencement Trigger for Advance | Upon successful submission of a subsidy application under Contract A for Cradle Cloud |
-| Development Advance | Maximum Advance Cap (if any) | `[__]` |
-| Development Advance | Treatment of Advance | Advance against Success Fee; non-refundable if Financial Close is not achieved |
-| Development Advance | Renewal | **Renewable annually**, conditional on at least one subsidy application remaining active (submitted, under review, or awarded) at renewal date |
-| Catalytic Funding | Intended Funding Sources | DHI (NL), Finnpartnership (FI), Business Finland R&D, EU DIF, GG-ESIM |
-| Catalytic Funding | Funding Custodian (if applicable) | NexusNovus Capital B.V. (coordinates via Contract A / Contract B framework) |
-| Triggers | Financial Close Definition | Per Clause 3.1 — execution of binding financing documentation resulting in committed project funding |
-| Triggers | Equivalent Funding Events | DFI financing, ECA-backed facilities, or equivalent contract funding structures for Cradle Cloud |
-| Exclusivity | Exclusivity Scope | Sovereign / renewable-powered AI data centre within Lanseria Smart City territory |
-| Exclusivity | Exclusivity Duration | Co-extensive with Development Period |
-| Post-Close Role | Potential CXO Role | To be agreed separately |
-| Post-Close Role | Board or Advisory Role | To be agreed separately |
-| Legal | Governing Law | `[__]` |
-| Legal | Dispute Resolution Venue & Rules | `[__]` |
+## 1. Parties
+
+| Variable | Value |
+|---|---|
+| Launch Entity Name | Cradle Cloud (Pty) Ltd |
+| Launch Entity Jurisdiction | Republic of South Africa |
+| Development Promoter Name | Roots Digital B.V. |
+| Development Promoter Jurisdiction | the Netherlands |
+| Effective Date | *[Date of execution]* |
+
+---
+
+## 2. Origination
+
+| Variable | Value |
+|---|---|
+| Origination Route | **Route A (Venture Foundry)** |
+| Originating Party | Launch Entity (Lanseria DevCo / IWSA) |
+| Pre-existing Promoter IP | No |
+| Pre-existing Promoter IP Description | N/A |
+| Pre-existing Promoter Relationships | *[Document if promoter brings vendor/tech relationships]* |
+
+---
+
+## 3. Ecosystem
+
+| Variable | Value |
+|---|---|
+| Ecosystem Type | BioHub / Smart City |
+| Ecosystem Name | Lanseria BioHub |
+| Landholding Entity | Lanseria Landowners Consortium (LLC) |
+| Landholding Entity Role | Landholding only — not a party to this Agreement |
+
+---
+
+## 4. Project
+
+| Variable | Value |
+|---|---|
+| Project Name | Cradle Cloud |
+| Project Description | Dedicated sovereign digital infrastructure and cloud computing platform, designed to operate as an essential utility within the Lanseria BioHub ecosystem |
+| Project Objectives | Smart city operational systems and data orchestration; utility coordination and automation; data sovereignty and jurisdictional compliance; scalable deployment for regional or multi-city replication; support for continental AI infrastructure aspirations |
+| Project Platform Functions | Modular data centre architecture; edge computing and smart infrastructure management; sovereign cloud services; utility data integration; multi-tenant platform services |
+| Territory | Lanseria Smart City precinct and surrounding Gauteng region, with replication rights for other BioHub deployments |
+
+---
+
+## 5. Equity
+
+| Variable | Value |
+|---|---|
+| Promoter Equity Percentage | **20%** of development-stage equity (i.e., the equity held by parties who assumed development risk prior to Financial Close). This share dilutes pro rata with all other development equity holders when investor equity enters at or after Financial Close. |
+| Equity Holding Level | Project SPV (Cradle Cloud SPV, to be incorporated) |
+| Dilution Treatment | Pro rata with all development equity holders (Launch Entity, NexusNovus, Promoter) upon entry of DFI equity, strategic investors, or ECA-linked equity partners. No preferential anti-dilution — all development parties dilute equally. |
+
+---
+
+## 6. Success Fee
+
+| Variable | Value |
+|---|---|
+| Success Fee Basis | Percentage of total project capex |
+| Success Fee Amount | **1% of total project capex** |
+| Success Fee Payment Trigger | First drawdown of project financing |
+| Offset Against Advance | Yes — Development Advances paid shall be offset against the Success Fee |
+
+---
+
+## 7. Development Advance
+
+| Variable | Value |
+|---|---|
+| Monthly Advance Amount | **ZAR 100,000 per month** |
+| Currency | ZAR (South African Rand) |
+| Advance Commencement Trigger | **Upon closure of first catalytic funding / subsidy award** — advance does not commence on the Effective Date but upon confirmation that catalytic or subsidy funding has been awarded and is available for disbursement |
+| Advance Term | **12 months** initial term from Advance Commencement Trigger, renewable by mutual written agreement for successive 12-month periods. Renewal subject to review of project progress and milestone achievement. |
+| Maximum Advance per Term | ZAR 1.2m per 12-month term (12 x ZAR 100k) |
+| Treatment of Advance | Both — advance against Success Fee and reimbursable from Catalytic Funding |
+| Advance Shortfall Treatment | Launch Entity guarantees minimum advance from own resources if Catalytic Funding disbursement is delayed beyond 60 days after award, subject to promoter meeting milestone obligations |
+
+**Note on timing:** The advance commences post-subsidy closure, not on the Effective Date. This means the promoter works at risk during the subsidy application phase. The 20% equity and 1% success fee compensate for this front-loaded risk. If the subsidy application period is expected to exceed 6 months, consider an interim stipend or milestone-based pre-subsidy payments.
+
+---
+
+## 8. Catalytic Funding
+
+| Variable | Value |
+|---|---|
+| Intended Funding Sources | DHI (Danish Trade Council); RVO (Netherlands Enterprise Agency); EU Horizon programmes; South African DTIC incentives; potential Swedish/Finnish/Austrian bilateral programmes (aligned with pan-European export content) |
+| Funding Custodian | NexusNovus Capital B.V. (or designated catalytic funding manager) |
+
+---
+
+## 9. Triggers
+
+| Variable | Value |
+|---|---|
+| Financial Close Threshold | 85% of total project capex funded |
+| Equivalent Funding Events | PPP framework agreement with Lanseria/CoJ; sovereign guarantee-backed facility; ECA-backed vendor finance covering >85% of capex; combination of DFI + ECA structures achieving threshold |
+
+---
+
+## 10. Exclusivity
+
+| Variable | Value |
+|---|---|
+| Exclusivity Scope | Competing sovereign cloud or digital infrastructure platform within the Lanseria Smart City precinct and Gauteng BioHub territory |
+| Exclusivity Duration | Duration of Development Period |
+| Mutual Exclusivity (Route B) | No — Route A, one-directional exclusivity applies |
+
+---
+
+## 11. Post-Close Role
+
+| Variable | Value |
+|---|---|
+| Potential CXO Role | CSO (Chief Strategy/Sales Officer) or equivalent ecosystem development and commercial leadership role — to be discussed, not guaranteed. Promoter's core value is team-building, network access, and sourcing the right skillsets — post-close role should reflect this. |
+| Board or Advisory Role | Strategic advisory committee seat — to be formalised in shareholders' agreement |
+
+---
+
+## 12. Legal
+
+| Variable | Value |
+|---|---|
+| Governing Law | Laws of the Republic of South Africa |
+| Dispute Resolution Venue | Johannesburg |
+| Dispute Resolution Rules | AFSA Arbitration Rules |
+
+---
+
+*This Annexure is an integral part of the Joint Development Agreement dated [Effective Date] between [Launch Entity Name] and [Development Promoter Name].*
