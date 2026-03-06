@@ -1,6 +1,6 @@
 {
   "_metadata": {
-    "last_export": "2026-03-04T20:41:41.186630",
+    "last_export": "2026-03-06T12:10:29.909793",
     "total_applications": 15,
     "export_script": "export_subsidy_pipeline.py"
   },
@@ -499,7 +499,7 @@
       "status": "submitted",
       "decision_date": "2026-03-05",
       "target_amount_eur": 270000.0,
-      "days_until_decision": 0.22105108806863427
+      "days_until_decision": -1.423957279883325
     },
     {
       "application_id": 1,
@@ -510,7 +510,7 @@
       "status": "under_review",
       "decision_date": "2026-03-15",
       "target_amount_eur": 160000.0,
-      "days_until_decision": 10.221051088068634
+      "days_until_decision": 8.576042720116675
     }
   ],
   "upcoming_windows": [],

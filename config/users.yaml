@@ -4,6 +4,22 @@ cookie:
   name: sclca_fm_auth
 credentials:
   usernames:
+    Freek:
+      email: freek.vanmuiswinkel@investinternational.nl
+      first_name: Freek
+      last_name: van Muiswinkel
+      name: Freek van Muiswinkel
+      password: $2b$12$CnAaHkwmebW5NPp6Uk0Jie3pjF.1HTbHZbBVEUPmn9mlAhfA1ZdtK
+      permissions:
+        can_manage_users: false
+        entities:
+        - '*'
+        mgmt_pages:
+        - '*'
+        tabs:
+        - '*'
+      roles:
+      - promotor_opco
     andrew:
       email: andrew@westgrove.co.za
       first_name: Andrew
