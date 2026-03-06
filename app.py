@@ -9264,11 +9264,11 @@ revenue contracts (Layer 3) upstream through SCLCA to Invest International Capit
 
                     # Assets & liabilities over time (from annual model)
                     st.markdown("**Asset & Liability Trajectory (10 years)**")
-                    _sec_years = [f"Y{a['year']}" for a in _sec_sub_annual]
-                    _sec_fixed = [a['bs_fixed_assets'] for a in _sec_sub_annual]
-                    _sec_dsra_fd = [a['bs_dsra'] for a in _sec_sub_annual]
-                    _sec_sr_bal = [a['bs_sr'] for a in _sec_sub_annual]
-                    _sec_mz_bal = [a['bs_mz'] for a in _sec_sub_annual]
+                    _sec_years = [f"Y{a['year']}" for a in _sub_annual]
+                    _sec_fixed = [a['bs_fixed_assets'] for a in _sub_annual]
+                    _sec_dsra_fd = [a['bs_dsra'] for a in _sub_annual]
+                    _sec_sr_bal = [a['bs_sr'] for a in _sub_annual]
+                    _sec_mz_bal = [a['bs_mz'] for a in _sub_annual]
 
                     _fig_al = go.Figure()
                     _fig_al.add_trace(go.Bar(x=_sec_years, y=[v / 1e6 for v in _sec_fixed],
