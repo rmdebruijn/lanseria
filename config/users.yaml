@@ -273,6 +273,14 @@ credentials:
       password: $2b$12$wOuXzxmw8WSpP8WX5rsUg.HhJ5UCY0B7CtEZ82o3ZqYEcnrEFxnQu
       roles:
       - admin
+    testuser:
+      email: test@test.com
+      first_name: Test
+      last_name: User
+      name: Test User
+      password: $2b$12$qODk5ACr4622PCXmulT5yuZfYHLY.w2oSi.Yt2DnQOL/4Ok1JkfKu
+      roles:
+      - admin
     saskia:
       email: s.bruinders@nexusnovus.com
       first_name: Saskia

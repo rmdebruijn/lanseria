@@ -1,7 +1,7 @@
 {
   "_metadata": {
     "description": "Canonical entity registry — single source of truth for all corporate entity names, codes, and metadata throughout the financial model and SVG diagrams.",
-    "last_updated": "2026-02-24"
+    "last_updated": "2026-03-03"
   },
 
   "entities": {
@@ -24,9 +24,9 @@
 
     "sclca": {
       "name": "Catalytic Assets",
-      "legal_name": "Catalytic Assets (Pty) Ltd",
+      "legal_name": "LSC Catalytic Assets (Pty) Ltd",
       "code": "SCLCA",
-      "registration": "CIPC application pending",
+      "registration": "2026/185606/07",
       "type": "financial_holding",
       "country": "ZA",
       "description": "Financial holding company — borrower and onward lender to operating subsidiaries",
@@ -123,9 +123,9 @@
 
     "cradle_cloud": {
       "name": "Cradle Cloud",
-      "legal_name": "Cradle Cloud (Pty) Ltd",
+      "legal_name": "Lanseria Cradle Cloud (Pty) Ltd",
       "code": "CC",
-      "registration": "CIPC application pending",
+      "registration": "2026/185631/07",
       "type": "spv",
       "country": "ZA",
       "description": "Sovereign AI data centre",
