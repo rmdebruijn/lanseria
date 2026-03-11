@@ -278,6 +278,9 @@ class FacilityState:
 
                 # Re-init repayment profile with new end-of-construction balance
                 self._init_repayment_profile()
+
+                # Restore balance to THIS period's closing (rebuild advanced it)
+                self.balance = row["Closing"]
             else:
                 self.balance = row["Closing"]
             return
