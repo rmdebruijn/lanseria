@@ -137,18 +137,18 @@ def waterfall_step(
     ci = cash_inflows or {}
     dtic_grant = ci.get("dtic_grant", 0)
     iic_grant = ci.get("iic_grant", 0)
-    gepf_bulk = ci.get("gepf_bulk", 0)
+    bulk_in_ebitda = ci.get("bulk_in_ebitda", 0)  # tagging hint: bulk services in EBITDA → special
     mezz_draw = ci.get("mezz_draw", 0)
     eur_leg = ci.get("eur_leg_repayment", 0)
     pre_rev_hedge = mezz_draw + eur_leg
 
-    # Tag sources as special
-    special_cash = dtic_grant + gepf_bulk + pre_rev_hedge
+    # Tag sources as special — GEPF is inside EBITDA but grant-sourced → special
+    special_cash = dtic_grant + bulk_in_ebitda + pre_rev_hedge
     if half_month == 6:
         special_cash += ebitda
     normal_cash = iic_grant
     if half_month != 6:
-        normal_cash += ebitda
+        normal_cash += (ebitda - bulk_in_ebitda)
 
     # Mezz draw increases Mezz IC balance
     if mezz_draw > 0:
@@ -404,7 +404,6 @@ def waterfall_step(
         "deficit": deficit,
         "dtic_grant": dtic_grant,
         "iic_grant": iic_grant,
-        "gepf_bulk": gepf_bulk,
         "specials": special_cash,
         "pre_rev_hedge": pre_rev_hedge,
         "mezz_draw": mezz_draw,
@@ -620,18 +619,18 @@ def compute_entity_waterfall(
         ci = cash_inflows[hi] if cash_inflows and hi < len(cash_inflows) else {}
         dtic_grant = ci.get("dtic_grant", 0)
         iic_grant = ci.get("iic_grant", 0)
-        gepf_bulk = ci.get("gepf_bulk", 0)
+        bulk_in_ebitda = ci.get("bulk_in_ebitda", 0)  # tagging hint: bulk services in EBITDA → special
         mezz_draw = ci.get("mezz_draw", 0)
         eur_leg = ci.get("eur_leg_repayment", 0)
         pre_rev_hedge = mezz_draw + eur_leg
 
-        # Tag sources as special
-        special_cash = dtic_grant + gepf_bulk + pre_rev_hedge
+        # Tag sources as special — GEPF is inside EBITDA but grant-sourced → special
+        special_cash = dtic_grant + bulk_in_ebitda + pre_rev_hedge
         if half_month == 6:  # C2 period: EBITDA treated as special cash
             special_cash += ebitda
         normal_cash = iic_grant
         if half_month != 6:  # Non-C2 periods: EBITDA is normal cash
-            normal_cash += ebitda
+            normal_cash += (ebitda - bulk_in_ebitda)
 
         # Mezz draw increases Mezz IC balance (local modification for this period)
         if mezz_draw > 0:
@@ -849,7 +848,6 @@ def compute_entity_waterfall(
             "deficit": deficit,
             "dtic_grant": dtic_grant,
             "iic_grant": iic_grant,
-            "gepf_bulk": gepf_bulk,
             "specials": special_cash,
             "pre_rev_hedge": pre_rev_hedge,
             "mezz_draw": mezz_draw,

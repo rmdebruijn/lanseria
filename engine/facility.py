@@ -95,45 +95,62 @@ class FacilityState:
         self._init_repayment_profile()
 
     def _run_construction(self) -> None:
-        """Run construction phase as batch (no circularity).
+        """Run construction phase as batch — DD + IDC only.
 
-        Unified formula: Closing = Opening + DD + Interest + (-Interest_paid + IDC) - Principal - Accel
-        Construction: Interest_paid=0, IDC=Interest → net = +Interest (capitalised)
+        Acceleration is handled by the waterfall via finalize_period().
+        Closing = Opening + DD + IDC (no acceleration at init).
         """
         for idx, period in enumerate(self.construction_periods):
             month = period_start_month(period)
             year = month / 12
             opening = self.balance
             interest = opening * self.rate / 2
-            idc = interest  # Construction: IDC = Interest (capitalised)
-            interest_paid = 0.0  # Construction: no cash interest payment
+            idc = interest
             dd = (
                 self.drawdown_schedule[idx] * self._pro_rata
                 if idx < len(self.drawdown_schedule) else 0.0
             )
-            principal = 0.0
-            accel = 0.0
-            if self.grant_acceleration and str(period) in self.grant_acceleration:
-                accel = self.grant_acceleration[str(period)]
-            # Unified: Opening + DD + Interest + (-Interest_paid + IDC) - Principal - Accel
-            # = Opening + DD + Interest + (0 + Interest) - 0 - Accel
-            # = Opening + DD + 2*Interest - Accel ... NO
-            # Wait: the formula is Closing = Opening + DD + IDC - Principal - Accel
-            # Because: Interest + (-Interest_paid + IDC) = Interest - 0 + Interest = 2*Interest? No.
-            # The columns: Interest is computed. -Interest_paid is cash out. +IDC is capitalised.
-            # Net interest impact = -Interest_paid + IDC = -0 + Interest = +Interest
-            # So: Closing = Opening + DD + (net interest impact) - Principal - Accel
-            #            = Opening + DD + Interest - 0 - Accel
-            movement = dd + idc - accel
+            movement = dd + idc
             self.balance = opening + movement
             self.schedule.append({
                 "Period": period, "Month": month, "Year": year,
                 "Opening": opening, "Draw Down": dd, "Interest": interest,
                 "IDC": idc,
                 "Principle": 0,
-                "Acceleration": -accel if accel > 0 else 0,
+                "Acceleration": 0,
                 "Movement": movement, "Closing": self.balance,
             })
+
+    def _rebuild_construction_period(self, idx: int) -> None:
+        """Recalculate a single construction period using current self.balance.
+
+        Called after acceleration during an earlier construction period
+        reduces the balance, requiring all subsequent construction periods
+        to be recalculated (lower opening -> lower IDC -> lower closing).
+
+        DD + IDC only — no acceleration. Waterfall acceleration for this
+        period will be applied when finalize_period(idx) is called.
+        """
+        period = self.construction_periods[idx]
+        month = period_start_month(period)
+        year = month / 12
+        opening = self.balance
+        interest = opening * self.rate / 2
+        idc = interest
+        dd = (
+            self.drawdown_schedule[idx] * self._pro_rata
+            if idx < len(self.drawdown_schedule) else 0.0
+        )
+        movement = dd + idc
+        self.balance = opening + movement
+        self.schedule[idx] = {
+            "Period": period, "Month": month, "Year": year,
+            "Opening": opening, "Draw Down": dd, "Interest": interest,
+            "IDC": idc,
+            "Principle": 0,
+            "Acceleration": 0,
+            "Movement": movement, "Closing": self.balance,
+        }
 
     def _init_repayment_profile(self) -> None:
         """Set initial P_constant based on balance at end of construction."""
@@ -241,8 +258,25 @@ class FacilityState:
                 is NOT called again.  Pass this to avoid the redundant second
                 call that the loop already made.
         """
-        # Construction periods are already finalized in __post_init__
+        # Construction periods: row already exists from _run_construction().
+        # Apply waterfall acceleration by updating the row in-place,
+        # then cascade the lower balance through subsequent construction periods.
         if hi < len(self.construction_periods):
+            row = self.schedule[hi]
+            if acceleration > 0:
+                accel = min(acceleration, max(row["Closing"], 0.0))
+                row["Acceleration"] = -accel
+                row["Movement"] = row["Draw Down"] + row["IDC"] - accel
+                row["Closing"] = row["Opening"] + row["Movement"]
+
+                # Rebuild subsequent construction periods (lower balance → lower IDC)
+                for rebuild_idx in range(hi + 1, len(self.construction_periods)):
+                    self._rebuild_construction_period(rebuild_idx)
+
+                # Re-init repayment profile with new end-of-construction balance
+                self._init_repayment_profile()
+            # Always sync balance to this period's closing
+            self.balance = row["Closing"]
             return
 
         fp = precomputed if precomputed is not None else self.compute_period(hi)

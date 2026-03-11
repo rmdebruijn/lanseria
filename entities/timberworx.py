@@ -20,7 +20,6 @@ from engine.currency import ZAR
 from engine.facility import build_entity_schedule, build_schedule, extract_facility_vectors
 from engine.loop import run_entity_loop, build_annual, to_annual, _WATERFALL_STOCK_KEYS
 from engine.pnl import build_semi_annual_pnl, extract_tax_vector
-from engine.waterfall import compute_entity_waterfall
 from engine.periods import (
     total_periods, total_years, annual_month_range,
     construction_period_labels, construction_end_index, repayment_start_month,

@@ -14,7 +14,6 @@ from engine.config import ModelConfig, ScenarioInputs, load_config
 from engine.facility import build_schedule, build_entity_schedule, extract_facility_vectors
 from engine.loop import run_entity_loop, build_annual, to_annual, _WATERFALL_STOCK_KEYS
 from engine.pnl import build_semi_annual_pnl, extract_tax_vector
-from engine.waterfall import compute_entity_waterfall
 from engine.swap import build_nwl_swap_schedule, extract_swap_vectors, compute_nwl_swap_bounds
 from engine.types import EntityResult
 from engine.currency import EUR, ZAR
@@ -635,11 +634,15 @@ def build_nwl_entity(cfg: ModelConfig, inputs: ScenarioInputs) -> EntityResult:
 
     # ── Step 6: Cash inflows ──
     cash_inflows: list[dict] = [{} for _ in range(total_periods())]
-    # M12 = semi-annual index 2 (C3): DTIC grant + IIC TA grant + GEPF bulk services
+    # M12 = semi-annual index 2 (C3): DTIC grant + IIC TA grant
+    # Bulk services (GEPF + social housing) is already in EBITDA via rev_bulk_services.
+    # bulk_in_ebitda is a tagging hint — tells waterfall to route that portion
+    # of EBITDA to the special pool for senior IC acceleration. No new cash.
+    bulk_eur_c3 = ops_semi_annual[2].get("rev_bulk_services", 0)
     cash_inflows[2] = {
         "dtic_grant": dtic_grant_entity,
         "iic_grant": ta_grant_entity,
-        "gepf_bulk": gepf_grant_entity,
+        "bulk_in_ebitda": bulk_eur_c3,
     }
     # M24 = semi-annual index 4 (R1): EUR leg repayment (swap) OR mezz draw (FEC)
     if swap_active:

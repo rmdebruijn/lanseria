@@ -643,12 +643,12 @@ _n("iic_grant", "IIC TA grant inflow at C3", ("ta_grant_entity",),
    label="IIC TA Grant Inflow (waterfall)",
    source="engine/waterfall.py:waterfall_step", unit="EUR")
 
-_n("gepf_bulk", "GEPF bulk services inflow at C3", ("gepf_grant_entity",),
-   label="GEPF Bulk Services Inflow (waterfall)",
+_n("bulk_in_ebitda", "Bulk services revenue in EBITDA (tagging hint → special pool)", ("rev_bulk_services",),
+   label="Bulk Services in EBITDA (tag → special)",
    source="engine/waterfall.py:waterfall_step", unit="EUR")
 
-_n("specials", "dtic_grant + gepf_bulk + pre_rev_hedge + (ebitda if C2)", (
-    "dtic_grant", "gepf_bulk", "pre_rev_hedge",
+_n("specials", "dtic_grant + bulk_in_ebitda + pre_rev_hedge + (ebitda if C2)", (
+    "dtic_grant", "bulk_in_ebitda", "pre_rev_hedge",
 ), label="Special Cash Pool",
    source="engine/waterfall.py:waterfall_step", unit="EUR")
 

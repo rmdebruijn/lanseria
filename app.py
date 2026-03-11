@@ -23,17 +23,11 @@ from engine.convergence import run_model
 from engine.config import ModelConfig, ScenarioInputs
 from engine.types import EntityResult, ModelResult
 from engine.facility import build_schedule as _engine_build_schedule
-from engine.facility import extract_facility_vectors as _engine_extract_vectors
 from engine.facility import extract_idc_table
-from engine.waterfall import compute_entity_waterfall as _engine_waterfall
 from engine.waterfall import aggregate_to_annual as _engine_aggregate_to_annual
 from engine.swap import build_nwl_swap_schedule as _engine_nwl_swap
 from engine.swap import build_lanred_swap_schedule as _engine_lanred_swap
-from engine.swap import extract_swap_vectors as _engine_extract_swap_vectors
 from engine.swap import compute_nwl_swap_bounds as _engine_swap_bounds
-from engine.pnl import build_semi_annual_pnl as _engine_build_pnl
-from engine.pnl import extract_tax_vector as _engine_extract_tax
-from engine.depreciation import build_tranche_s12c_vector as _engine_tranche_s12c
 from engine.periods import (
     annual_month_range, construction_end_index, construction_period_labels,
     period_lookup, period_start_month, repayment_start_index,
@@ -1065,7 +1059,7 @@ if _DEV_MODE:
     # Dev mode: bypass authentication for automated testing
     st.session_state['authentication_status'] = True
     _usernames = _auth_config.get('credentials', {}).get('usernames', {})
-    st.session_state['username'] = list(_usernames.keys())[0] if _usernames else 'admin'
+    st.session_state['username'] = 'rutger' if 'rutger' in _usernames else (list(_usernames.keys())[0] if _usernames else 'admin')
     authenticator = None
 else:
     authenticator = stauth.Authenticate(
@@ -1380,94 +1374,6 @@ def _get_next_sr_pi(entity_sr_sched, after_month):
         if r['Month'] > after_month and r['Month'] >= repayment_start_month():
             return r['Interest'] + abs(r['Principle'])
     return 0.0
-
-
-def _compute_entity_waterfall_inputs(entity_key, ops_annual, entity_sr_sched, entity_mz_sched,
-                                      *, lanred_deficit_vector=None, nwl_swap_schedule=None,
-                                      lanred_swap_schedule=None, sweep_pct=1.0,
-                                      ops_semi_annual=None, cash_inflows=None,
-                                      semi_annual_tax=None):
-    """Thin wrapper → engine.waterfall.compute_entity_waterfall().
-
-    Builds the required sr_vectors, mz_vectors, semi_annual_pl, semi_annual_tax,
-    and swap_vectors from the raw schedules, then delegates to the engine.
-    """
-    cfg = ModelConfig.load()
-
-    # Build facility vectors (required by engine waterfall)
-    sr_vectors = _engine_extract_vectors(entity_sr_sched)
-    mz_vectors = _engine_extract_vectors(entity_mz_sched)
-
-    # Build semi-annual P&L (always needed — provides EBITDA, opex, tax)
-    semi_annual_pl = None
-    if semi_annual_tax is None:
-        # Need depreciable base for P&L — use entity total_loan as proxy
-        entity_data = cfg.entity_loans().get(entity_key, {})
-        depreciable_base = entity_data.get("total_loan", 0.0)
-        # Per-tranche S12C: each construction drawdown gets its own 40/20/20/20
-        # Align with engine/loop.py: S12C applies only to (depreciable_base - straight_line_base).
-        # TWX splits building (straight-line 20yr) vs equipment (S12C); NWL/LanRED use full base.
-        if entity_key == 'timberworx':
-            _coe_items = cfg.assets["assets"].get("coe", {}).get("line_items", [])
-            _building_budget = 0.0
-            _equipment_budget = 0.0
-            for _item in _coe_items:
-                _item_id = _item.get("id", "")
-                _delivery = (_item.get("delivery", "") or "").lower()
-                if _item_id == "coe_001" or "centre" in _delivery or "center" in _delivery:
-                    _building_budget += float(_item.get("budget", 0))
-                else:
-                    _equipment_budget += float(_item.get("budget", 0))
-            _asset_budget_total = _building_budget + _equipment_budget
-            straight_line_base = (depreciable_base * (_building_budget / _asset_budget_total)
-                                  if _asset_budget_total > 0 else 0.0)
-        else:
-            straight_line_base = 0.0
-        s12c_base = depreciable_base - straight_line_base
-        _rep_month = repayment_start_month()
-        n_constr = len([r for r in entity_sr_sched if r.get("Month", 999) < _rep_month])
-        if n_constr == 0:
-            n_constr = min(4, len(entity_sr_sched))
-        _sr_draws = [entity_sr_sched[i].get("Draw Down", 0) for i in range(n_constr)]
-        _mz_draws = [entity_mz_sched[i].get("Draw Down", 0) for i in range(min(n_constr, len(entity_mz_sched)))]
-        _mz_draws += [0.0] * (n_constr - len(_mz_draws))
-        _total_draws = [s + m for s, m in zip(_sr_draws, _mz_draws)]
-        _draw_sum = sum(_total_draws)
-        if _draw_sum > 0 and depreciable_base > 0:
-            _s12c_fraction = s12c_base / depreciable_base
-            _s12c_draws = [d * _s12c_fraction for d in _total_draws]
-        else:
-            _s12c_draws = _total_draws
-        _depr_vector = _engine_tranche_s12c(_s12c_draws, total_periods())
-        semi_annual_pl = _engine_build_pnl(
-            ops_annual, ops_semi_annual,
-            entity_sr_sched, entity_mz_sched,
-            depreciable_base, tax_rate=cfg.tax_rate,
-            depr_vector=_depr_vector,
-        )
-        semi_annual_tax = _engine_extract_tax(semi_annual_pl)
-
-    # Build swap vectors for INDEX-based reads (if swap schedule provided)
-    swap_vectors = None
-    _active_swap = nwl_swap_schedule or lanred_swap_schedule
-    if _active_swap:
-        swap_vectors = _engine_extract_swap_vectors(_active_swap, cfg.fx_rate)
-
-    rows = _engine_waterfall(
-        entity_key, ops_annual, entity_sr_sched, entity_mz_sched, cfg,
-        sr_vectors=sr_vectors, mz_vectors=mz_vectors,
-        semi_annual_tax=semi_annual_tax,
-        semi_annual_pl=semi_annual_pl,
-        swap_vectors=swap_vectors,
-        lanred_deficit_vector=lanred_deficit_vector,
-        nwl_swap_schedule=nwl_swap_schedule,
-        lanred_swap_schedule=lanred_swap_schedule,
-        sweep_pct=sweep_pct,
-        ops_semi_annual=ops_semi_annual,
-        cash_inflows=cash_inflows,
-    )
-    # Apply engine→app field name compatibility so all display code works
-    return [_add_compat_fields(dict(r)) for r in rows]
 
 
 def _aggregate_entity_wf_to_annual(wf_semi):
@@ -3372,10 +3278,8 @@ This means:
                 "Draw Down": "€{:,.0f}",
                 "Interest": "€{:,.0f}",
                 "Principal": "€{:,.0f}",
-                "Principle": "€{:,.0f}",
-                "Acceleration": "€{:,.0f}",
                 "P+I": "€{:,.0f}",
-                "Repayment": "€{:,.0f}",
+                "Acceleration": "€{:,.0f}",
                 "Movement": "€{:,.0f}",
                 "Closing": "€{:,.0f}"
             }
@@ -3384,21 +3288,20 @@ This means:
             _sr_key_map = {
                 "Opening": "sr_opening", "Draw Down": "sr_draw_down",
                 "Interest": "ie_sr", "Principal": "sr_principal",
-                "Principle": "sr_principal", "P+I": "sr_pi",
-                "Acceleration": "sr_accel", "Repayment": "sr_repayment",
+                "P+I": "sr_pi", "Acceleration": "sr_accel",
                 "Movement": "sr_movement", "Closing": "sr_closing",
             }
             _mz_key_map = {
                 "Opening": "mz_opening", "Draw Down": "mz_draw_down",
-                "Interest": "ie_mz", "Principle": "mz_principal",
-                "Principal": "mz_principal", "P+I": "mz_pi",
-                "Acceleration": "mz_accel", "Repayment": "mz_repayment",
+                "Interest": "ie_mz", "Principal": "mz_principal",
+                "P+I": "mz_pi", "Acceleration": "mz_accel",
                 "Movement": "mz_movement", "Closing": "mz_closing",
             }
             _zar_key_map = {
                 "Opening": "swap_zar_opening", "Interest": "swap_zar_interest",
-                "Principal": "swap_zar_p", "Payment": "swap_zar_payment",
-                "Acceleration": "swap_zar_accel", "Closing": "swap_zar_closing",
+                "Principal": "swap_zar_p", "P+I": "swap_zar_pi",
+                "Acceleration": "swap_zar_accel", "Movement": "swap_zar_movement",
+                "Closing": "swap_zar_closing",
             }
 
             loans = structure['uses']['loans_to_subsidiaries']
@@ -3414,6 +3317,7 @@ This means:
             mezz_ic_periods = construction_period_labels()
 
             _facility_logo = LOGO_DIR / ENTITY_LOGOS.get("sclca", "")
+            _rep_start = repayment_start_index()
 
             if entity_key == "nwl":
                 loans = structure['uses']['loans_to_subsidiaries']
@@ -3478,7 +3382,6 @@ This means:
                 # After convergence, the schedule already contains acceleration from waterfall.
                 nwl_sr_num_repayments = senior['repayments']
                 nwl_sr_rows = []
-                _rep_start = repayment_start_index()
                 for r in _sub_sr_schedule:
                     _opening = r["Opening"]
                     _closing = r["Closing"]
@@ -3583,7 +3486,8 @@ This means:
                     _closing = r["Closing"]
                     _principal = r["Principle"]
                     _interest = r["Interest"]
-                    _accel = r["Acceleration"]
+                    _accel = r.get("Acceleration", 0)
+                    _is_repay = r["Period"] >= _rep_start
                     nwl_mz_rows.append({
                         "Period": period_lookup(r["Period"])["label"],
                         "Month": r["Month"],
@@ -3591,8 +3495,8 @@ This means:
                         "Opening": _opening,
                         "Draw Down": r["Draw Down"],
                         "Interest": _interest,
-                        "Principle": _principal,
-                        "Repayment": _principal + _interest + _accel,
+                        "Principal": _principal,
+                        "P+I": -(abs(_principal) + _interest) if _is_repay else 0,
                         "Acceleration": _accel,
                         "Movement": _closing - _opening,
                         "Closing": _closing,
@@ -3656,8 +3560,9 @@ This means:
                                     "Year": _m / 12,
                                     "Opening": _wf_zar_opening, "Interest": _zar_interest,
                                     "Principal": _zar_principal,
-                                    "Payment": _zar_principal + _zar_interest,
+                                    "P+I": -(abs(_zar_principal) + _zar_interest),
                                     "Acceleration": -_zar_accel_zar if _zar_accel_zar > 0.01 else 0,
+                                    "Movement": _wf_zar_closing - _wf_zar_opening,
                                     "Closing": _wf_zar_closing,
                                 })
                                 _zar_running_bal = _wf_zar_closing
@@ -3669,8 +3574,9 @@ This means:
                                     "Year": _m / 12,
                                     "Opening": row['opening'], "Interest": row['interest'],
                                     "Principal": row.get('principal', 0),
-                                    "Payment": row.get('payment', 0),
+                                    "P+I": 0,
                                     "Acceleration": 0,
+                                    "Movement": row['closing'] - row['opening'],
                                     "Closing": row['closing'],
                                 })
                                 _zar_running_bal = row['closing']
@@ -3680,8 +3586,8 @@ This means:
                         _zar_fmt = {
                             "Year": "{:.1f}",
                             "Opening": "R{:,.0f}", "Interest": "R{:,.0f}",
-                            "Principal": "R{:,.0f}", "Payment": "R{:,.0f}",
-                            "Acceleration": "R{:,.0f}",
+                            "Principal": "R{:,.0f}", "P+I": "R{:,.0f}",
+                            "Acceleration": "R{:,.0f}", "Movement": "R{:,.0f}",
                             "Closing": "R{:,.0f}",
                         }
                         inject_df_heritage(pd.DataFrame(_zar_rows), key_map=_zar_key_map, formats=_zar_fmt, label_col="Period")
@@ -3711,13 +3617,14 @@ This means:
                         _closing = r["Closing"]
                         _principal = r["Principle"]
                         _interest = r["Interest"]
-                        _accel = r["Acceleration"]
+                        _accel = r.get("Acceleration", 0)
+                        _is_repay = r["Period"] >= _rep_start
                         _lr_sr_rows.append({
                             "Period": period_lookup(r["Period"])["label"],
                             "Month": r["Month"], "Year": r["Year"],
                             "Opening": _opening, "Draw Down": r["Draw Down"],
-                            "Interest": _interest, "Principle": _principal,
-                            "Repayment": _principal + _interest + _accel,
+                            "Interest": _interest, "Principal": _principal,
+                            "P+I": -(abs(_principal) + _interest) if _is_repay else 0,
                             "Acceleration": _accel,
                             "Movement": _closing - _opening, "Closing": _closing,
                         })
@@ -3733,13 +3640,14 @@ This means:
                         _closing = r["Closing"]
                         _principal = r["Principle"]
                         _interest = r["Interest"]
-                        _accel = r["Acceleration"]
+                        _accel = r.get("Acceleration", 0)
+                        _is_repay = r["Period"] >= _rep_start
                         _lr_mz_rows.append({
                             "Period": period_lookup(r["Period"])["label"],
                             "Month": r["Month"], "Year": r["Year"],
                             "Opening": _opening, "Draw Down": r["Draw Down"],
-                            "Interest": _interest, "Principle": _principal,
-                            "Repayment": _principal + _interest + _accel,
+                            "Interest": _interest, "Principal": _principal,
+                            "P+I": -(abs(_principal) + _interest) if _is_repay else 0,
                             "Acceleration": _accel,
                             "Movement": _closing - _opening, "Closing": _closing,
                         })
@@ -3779,8 +3687,9 @@ This means:
                                     "Year": _m_lr / 12,
                                     "Opening": _wf_zar_lr_opening, "Interest": _zar_lr_interest,
                                     "Principal": _zar_lr_principal,
-                                    "Payment": _zar_lr_principal + _zar_lr_interest,
+                                    "P+I": -(abs(_zar_lr_principal) + _zar_lr_interest),
                                     "Acceleration": -_zar_lr_accel_zar if _zar_lr_accel_zar > 0.01 else 0,
+                                    "Movement": _wf_zar_lr_closing - _wf_zar_lr_opening,
                                     "Closing": _wf_zar_lr_closing,
                                 })
                                 _zar_lr_running_bal = _wf_zar_lr_closing
@@ -3791,8 +3700,9 @@ This means:
                                     "Year": _m_lr / 12,
                                     "Opening": row['opening'], "Interest": row['interest'],
                                     "Principal": row.get('principal', 0),
-                                    "Payment": row.get('payment', 0),
+                                    "P+I": 0,
                                     "Acceleration": 0,
+                                    "Movement": row['closing'] - row['opening'],
                                     "Closing": row['closing'],
                                 })
                                 _zar_lr_running_bal = row['closing']
@@ -3802,8 +3712,8 @@ This means:
                         _zar_lr_fmt = {
                             "Year": "{:.1f}",
                             "Opening": "R{:,.0f}", "Interest": "R{:,.0f}",
-                            "Principal": "R{:,.0f}", "Payment": "R{:,.0f}",
-                            "Acceleration": "R{:,.0f}",
+                            "Principal": "R{:,.0f}", "P+I": "R{:,.0f}",
+                            "Acceleration": "R{:,.0f}", "Movement": "R{:,.0f}",
                             "Closing": "R{:,.0f}",
                         }
                         inject_df_heritage(pd.DataFrame(_zar_lr_rows), key_map=_zar_key_map, formats=_zar_lr_fmt, label_col="Period")
@@ -3841,10 +3751,12 @@ This means:
                     for r in _twx_sr_ev:
                         r["Label"] = period_lookup(r["Period"])["label"]
                         r["Movement"] = r["Closing"] - r["Opening"]
-                        r["Repayment"] = r["Principle"] + r["Interest"] + r.get("Acceleration", 0)
+                        _is_repay = r["Period"] >= _rep_start
+                        r["Principal"] = r["Principle"]
+                        r["P+I"] = -(abs(r["Principle"]) + r["Interest"]) if _is_repay else 0
                     df_twx_senior = pd.DataFrame(_twx_sr_ev)
                     _ev_ic_cols = ["Label", "Month", "Year", "Opening", "Draw Down",
-                                   "Interest", "Principle", "Repayment", "Movement", "Closing"]
+                                   "Interest", "Principal", "P+I", "Acceleration", "Movement", "Closing"]
                     inject_df_heritage(df_twx_senior[_ev_ic_cols], key_map=_sr_key_map, formats=ic_format, label_col="Label")
 
                 # Mezz IC Facility
@@ -3857,7 +3769,9 @@ This means:
                     for r in _twx_mz_ev:
                         r["Label"] = period_lookup(r["Period"])["label"]
                         r["Movement"] = r["Closing"] - r["Opening"]
-                        r["Repayment"] = r["Principle"] + r["Interest"] + r.get("Acceleration", 0)
+                        _is_repay = r["Period"] >= _rep_start
+                        r["Principal"] = r["Principle"]
+                        r["P+I"] = -(abs(r["Principle"]) + r["Interest"]) if _is_repay else 0
                     df_twx_mz = pd.DataFrame(_twx_mz_ev)
                     inject_df_heritage(df_twx_mz[_ev_ic_cols], key_map=_mz_key_map, formats=ic_format, label_col="Label")
 
@@ -4167,23 +4081,93 @@ This means:
                         "Annual Depreciation": "\u20ac{:,.0f}",
                     })
 
-                    # Section 12C accelerated depreciation schedule
+                    # Section 12C accelerated depreciation — per-delivery-period breakdown
+                    # Each construction tranche (C1-C4) starts its own 40/20/20/20
+                    # curve from the semi-annual period AFTER delivery.
                     _depr_total = df_assets["Depreciable Base"].iloc[-1]  # Total row
-                    _s12c_schedule = [
-                        {"Year": "Y1", "Rate": "40%", "Depreciation": _depr_total * 0.40},
-                        {"Year": "Y2", "Rate": "20%", "Depreciation": _depr_total * 0.20},
-                        {"Year": "Y3", "Rate": "20%", "Depreciation": _depr_total * 0.20},
-                        {"Year": "Y4", "Rate": "20%", "Depreciation": _depr_total * 0.20},
-                    ]
-                    st.markdown("**Tax Depreciation — Section 12C (Income Tax Act)**")
-                    st.caption("Manufacturing plant qualifies for accelerated write-off: "
-                               "40% in year of commissioning, 20% in each of the following 3 years. "
-                               "Each construction drawdown tranche starts its own 40/20/20/20 curve "
-                               "from the period after delivery. Curves stack -- "
-                               "total depreciation equals total capex drawn.")
-                    _s12c_df = pd.DataFrame(_s12c_schedule)
-                    _s12c_df.loc[len(_s12c_df)] = {"Year": "**Total**", "Rate": "100%", "Depreciation": _depr_total}
-                    render_table(_s12c_df, {"Depreciation": "\u20ac{:,.0f}"})
+
+                    # Entity pro-rata: entity_portion / facility_total
+                    _sr_dd_sched = senior_detail['drawdown_schedule']
+                    _mz_dd_sched = [mezz_amount_eur] + [0] * (len(_sr_dd_sched) - 1)
+                    _sr_entity = entity_data.get('senior_portion', entity_data.get('senior', 0))
+                    _mz_entity = entity_data.get('mezz_portion', entity_data.get('mezz', 0))
+                    _sr_pro_rata = _sr_entity / senior_total if senior_total > 0 else 0
+                    _mz_pro_rata = _mz_entity / mezz_total if mezz_total > 0 else 0
+
+                    # Entity-level draw per construction period (Sr + Mz)
+                    _n_constr = len(_sr_dd_sched)
+                    _entity_draws = []
+                    for ci in range(_n_constr):
+                        sr_d = _sr_dd_sched[ci] * _sr_pro_rata if ci < len(_sr_dd_sched) else 0
+                        mz_d = _mz_dd_sched[ci] * _mz_pro_rata if ci < len(_mz_dd_sched) else 0
+                        _entity_draws.append(sr_d + mz_d)
+
+                    # Scale draws to match depreciable base (includes allocated fees)
+                    _draw_sum = sum(_entity_draws)
+                    _s12c_scale = _depr_total / _draw_sum if _draw_sum > 0 and _depr_total > 0 else 1.0
+
+                    # S12C rates: year 0 = 40%, years 1-3 = 20% each.
+                    _s12c_pcts = [0.40, 0.20, 0.20, 0.20]
+                    _n_years = 10
+
+                    # For each tranche (delivered at semi-annual index T), compute annual depreciation.
+                    # S12C starts at hi=T+1. Annual year for hi: yi = hi // 2 (0-based).
+                    # S12C year for hi relative to T: s12c_yr = (hi - T - 1) // 2.
+                    _tranche_annual = []
+                    for ti in range(_n_constr):
+                        draw_amount = _entity_draws[ti] * _s12c_scale
+                        yr_depr = [0.0] * _n_years
+                        if draw_amount > 0:
+                            for hi in range(ti + 1, 20):
+                                s12c_yr = (hi - ti - 1) // 2
+                                if s12c_yr >= len(_s12c_pcts):
+                                    break
+                                annual_yi = hi // 2
+                                if annual_yi < _n_years:
+                                    yr_depr[annual_yi] += draw_amount * _s12c_pcts[s12c_yr] / 2.0
+                        _tranche_annual.append({
+                            "label": f"C{ti+1}",
+                            "draw": draw_amount,
+                            "years": yr_depr,
+                        })
+
+                    st.markdown("**Tax Depreciation \u2014 Section 12C (Income Tax Act)**")
+                    st.caption(
+                        "Manufacturing plant qualifies for accelerated write-off: "
+                        "40% in year of commissioning, 20% in each of the following 3 years. "
+                        "Each construction drawdown tranche starts its own 40/20/20/20 curve "
+                        "from the period after delivery. Curves stack \u2014 "
+                        "total depreciation equals total capex drawn."
+                    )
+
+                    # Find range of years with non-zero depreciation
+                    _yr_totals = [0.0] * _n_years
+                    for t in _tranche_annual:
+                        for yi in range(_n_years):
+                            _yr_totals[yi] += t["years"][yi]
+                    _last_yr = max((yi for yi in range(_n_years) if _yr_totals[yi] > 0.01), default=0)
+                    _display_years = list(range(_last_yr + 1))
+
+                    _s12c_rows = []
+                    for t in _tranche_annual:
+                        row = {"Delivery": t["label"], "Draw": t["draw"]}
+                        for yi in _display_years:
+                            row[f"Y{yi+1}"] = t["years"][yi]
+                        row["Total"] = sum(t["years"])
+                        _s12c_rows.append(row)
+
+                    # Total row
+                    _total_row = {"Delivery": "**Total**", "Draw": sum(t["draw"] for t in _tranche_annual)}
+                    for yi in _display_years:
+                        _total_row[f"Y{yi+1}"] = _yr_totals[yi]
+                    _total_row["Total"] = sum(_yr_totals[yi] for yi in _display_years)
+                    _s12c_rows.append(_total_row)
+
+                    _s12c_df = pd.DataFrame(_s12c_rows)
+                    _s12c_fmt = {"Draw": "\u20ac{:,.0f}", "Total": "\u20ac{:,.0f}"}
+                    for yi in _display_years:
+                        _s12c_fmt[f"Y{yi+1}"] = "\u20ac{:,.0f}"
+                    render_table(_s12c_df, _s12c_fmt)
                 else:
                     st.info("No registered assets for this subsidiary.")
 
@@ -6471,7 +6455,7 @@ split is well-balanced: BESS provides grid independence and peak shaving while P
                 name='Operating Revenue', marker_color='#10B981',
                 offsetgroup='in', legendgroup='Inflows'
             ))
-            # Outflows: Capex + Grant Accel + Opex + Tax + Debt Service (stacked, right)
+            # Outflows: Capex + Grant Prepayment (M12) + Opex + Tax + Debt Service (stacked, right)
             fig_ccf.add_trace(go.Bar(
                 x=_years, y=[a.get('cf_capex', 0) for a in _sub_annual],
                 name='Capital Expenditure', marker_color='#1E3A5F',
@@ -6479,7 +6463,7 @@ split is well-balanced: BESS provides grid independence and peak shaving while P
             ))
             fig_ccf.add_trace(go.Bar(
                 x=_years, y=[a.get('cf_grant_accel', a.get('cf_prepay', 0)) for a in _sub_annual],
-                name='Grant Acceleration', marker_color='#7C3AED',
+                name='Grant Prepayment (M12)', marker_color='#7C3AED',
                 offsetgroup='out', legendgroup='Outflows'
             ))
             fig_ccf.add_trace(go.Bar(
@@ -6600,11 +6584,11 @@ split is well-balanced: BESS provides grid independence and peak shaving while P
             _cf_line('Total Grants', 'cf_grants', row_type='sub')
             _cf_spacer()
 
-            # --- IC LOAN ACCELERATION (Grant-funded) ---
-            _cf_section('IC LOAN ACCELERATION (Grant-funded)')
-            _cf_line('From DTIC Grant', 'cf_prepay_dtic', -1.0)
-            _cf_line('From Bulk Services (GEPF)', 'cf_prepay_gepf', -1.0)
-            _cf_line('Total Grant Acceleration', 'cf_prepay', -1.0, row_type='sub')
+            # --- GRANT PREPAYMENT (one-off at M12, not ongoing waterfall acceleration) ---
+            _cf_section('GRANT PREPAYMENT (one-off, M12)')
+            _cf_line('DTIC Grant Prepayment', 'cf_prepay_dtic', -1.0)
+            _cf_line('Bulk Services (GEPF) Prepayment', 'cf_prepay_gepf', -1.0)
+            _cf_line('Total Grant Prepayment', 'cf_prepay', -1.0, row_type='sub')
             _cf_computed('Net Grants & Equity',
                          [a.get('cf_equity', 0) + a.get('cf_grants', 0) - a.get('cf_grant_accel', a.get('cf_prepay', 0)) for a in _sub_annual], row_type='sub')
             _cf_spacer()
@@ -7045,18 +7029,8 @@ NWL benefits from **two grant-funded accelerations** that reduce Senior IC expos
                 # ════════════════════════════════════════════════════
                 st.subheader("3. Waterfall")
 
-                # Construct typed cash inflows for NWL waterfall
-                _ds_iic_ta_eur = _ds_grants.get('invest_int_ta', {}).get('amount_eur', 0)
-                _ds_cash_inflows = [{} for _ in range(total_periods())]
-                _ds_cash_inflows[2] = {  # M12 = index 2 (C3)
-                    'dtic_grant': _dtic_eur,
-                    'iic_grant': _ds_iic_ta_eur,
-                    'gepf_bulk': _gepf_eur,
-                }
-                if _ds_swap_active:
-                    _ds_cash_inflows[4] = {'eur_leg_repayment': _ds_pre_revenue_hedge}  # M24 = index 4 (R1)
-                else:
-                    _ds_cash_inflows[4] = {'mezz_draw': _ds_pre_revenue_hedge}  # M24 = index 4 (R1)
+                # Cash inflows from entity builder (single source of truth)
+                _ds_cash_inflows = _sub_model["cash_inflows"]
 
                 # Read converged waterfall from entity builder (single source of truth)
                 _ent_wf_semi = _sub_model["waterfall_semi"]
@@ -7217,28 +7191,12 @@ The gap of **{_ds_cc_gap:.2%}** creates two separate obligations:
 | **Payout** | FD balance paid as one-time dividend slug to SCLCA/CC | When Mezz IC fully repaid |
 """)
 
-                    # --- Compute waterfall for dividend display ---
-                    if _ds_swap_active:
-                        _div_sr_sched = _nwl_sr_vanilla
-                        _div_mz_sched = _nwl_mz_vanilla
-                        _div_swap = _ds_swap_sched
-                    else:
-                        _div_sr_sched = _sub_sr_schedule
-                        _div_mz_sched = _sub_mz_schedule
-                        _div_swap = None
-                    _ent_wf_div = _aggregate_entity_wf_to_annual(
-                        _compute_entity_waterfall_inputs(
-                            entity_key, _sub_ops_annual,
-                            _div_sr_sched, _div_mz_sched,
-                            nwl_swap_schedule=_div_swap,
-                            sweep_pct=_sweep_pct,
-                            ops_semi_annual=_sub_ops_semi,
-                            cash_inflows=_ds_cash_inflows,
-                            semi_annual_tax=_sub_semi_annual_tax))
+                    # --- Read waterfall from One Big Loop engine result ---
+                    _ent_wf_div = _sub_model["waterfall_annual"]
 
                     # Extract year-by-year data from engine
                     _div_mz_opening = 0.0
-                    for _r in _div_mz_sched:
+                    for _r in _sub_mz_schedule:
                         if _r['Month'] >= repayment_start_month():
                             _div_mz_opening = _r.get('Opening', 0)
                             break
@@ -8599,9 +8557,7 @@ Ops Reserve → OpCo DSRA → Mezz IC Accel ({_CC_IRR_TARGET:.0%} eff.) → Sr I
 
                 st.divider()
 
-    # TODO: Sensitivity tab hidden — must be rebuilt to use One Big Loop engine
-    # result instead of batch waterfall (compute_entity_waterfall). Batch path
-    # is not authoritative; only waterfall_step() via run_entity_loop() is correct.
+    # TODO: Sensitivity tab hidden — must be rebuilt to use One Big Loop engine result.
     # --- SENSITIVITY ---
     if "Sensitivity" in _tab_map:
         with _tab_map["Sensitivity"]:
@@ -10217,6 +10173,24 @@ if _can_manage:
     _mgmt_items.append(("Users", ":material/group:"))
 
 # Single active nav item across both sections
+# Support deep-linking via ?entity=nwl or ?entity=LanRED
+_qp_entity = st.query_params.get("entity", "")
+if _qp_entity:
+    _ENTITY_KEY_MAP = {
+        "sclca": "Catalytic Assets", "nwl": "New Water Lanseria",
+        "lanred": "LanRED", "timberworx": "Timberworx",
+    }
+    _all_nav_names = [n for n, _ in _proj_items] + [n for n, _ in _mgmt_items]
+    _matched = _ENTITY_KEY_MAP.get(_qp_entity.lower(), "")
+    if not _matched:
+        for _n in _all_nav_names:
+            if _n.lower() == _qp_entity.lower():
+                _matched = _n
+                break
+    if _matched:
+        st.session_state.nav_entity = _matched
+        del st.query_params["entity"]
+        st.rerun()
 if "nav_entity" not in st.session_state:
     st.session_state.nav_entity = _proj_items[0][0] if _proj_items else "Summary"
 
@@ -12653,8 +12627,8 @@ if entity == "Catalytic Assets":
     _lr_is_brownfield = st.session_state.get("lanred_scenario", "Brownfield+") != "Greenfield"
     lanred_swap_enabled = _lr_is_brownfield and st.session_state.get("sclca_lanred_hedge", "No Hedging") == "Cross-Currency Swap"
 
-    # Sub-tabs for SCLCA (Pipeline is TWX-only)
-    _tab_map = make_tab_map([t for t in _allowed_tabs if t != "Pipeline"])
+    # Sub-tabs for SCLCA (Pipeline is TWX-only, Debt Sculpting is entity-only)
+    _tab_map = make_tab_map([t for t in _allowed_tabs if t not in ("Pipeline", "Debt Sculpting")])
 
     # Shared config
     senior_detail = financing['loan_detail']['senior']
@@ -12948,23 +12922,14 @@ if entity == "Catalytic Assets":
     _audit_lanred_ann = [_add_compat_fields(dict(a)) for a in _audit_model_data["entities"]["lanred"]["annual"]]
     _audit_twx_ann = [_add_compat_fields(dict(a)) for a in _audit_model_data["entities"]["timberworx"]["annual"]]
 
-    # TODO: SCLCA orchestrator below uses compute_entity_waterfall (batch path)
-    # which is NOT authoritative. Must migrate to read from engine result
-    # (_audit_model_data) which uses the One Big Loop (waterfall_step).
-    # SCLCA acceleration is a 1:1 mirror of subsidiary acceleration —
-    # if NWL accelerates senior IC, SCLCA accelerates senior to IIC.
-    # If NWL accelerates mezz IC, SCLCA accelerates mezz to CC/investor.
-    # Both facility levels. 1:1 pass-through. Not a separate waterfall.
-    # Read acceleration vectors from engine result per entity per period.
-    # --- WATERFALL OVERLAY ---
-    # Compute entity operating models for waterfall
-    _nwl_ops, _nwl_ops_semi = _build_nwl_operating_annual_model()
-    _lanred_ops = _build_lanred_operating_annual_model()
-    _twx_ops = _build_twx_operating_annual_model()
+    # --- WATERFALL: Read from One Big Loop engine result (single source of truth) ---
+    # Entity waterfalls are 20 semi-annual dicts from run_entity_loop().
+    # Apply _add_compat_fields for swap_leg_* → zar_leg_* mapping.
+    _nwl_wf = [_add_compat_fields(dict(w)) for w in _audit_model_data["entities"]["nwl"]["waterfall_semi"]]
+    _lanred_wf = [_add_compat_fields(dict(w)) for w in _audit_model_data["entities"]["lanred"]["waterfall_semi"]]
+    _twx_wf = [_add_compat_fields(dict(w)) for w in _audit_model_data["entities"]["timberworx"]["waterfall_semi"]]
 
-    # NWL swap schedule (must be computed BEFORE entity waterfall inputs)
-    # Notional driven by session_state["nwl_swap_notional"] (set by slider in Debt Sculpting).
-    # Bounds from compute_nwl_swap_bounds() — deterministic, same formula as FacilityState.
+    # NWL swap schedule (needed by _build_waterfall_model for SCLCA cascade display)
     _orch_swap_bounds = _engine_swap_bounds(ModelConfig.load())
     _dsra_min_orch = _orch_swap_bounds["min"]
     _swap_notional_max_orch = _orch_swap_bounds["max"]
@@ -12972,97 +12937,73 @@ if entity == "Catalytic Assets":
     nwl_swap_amount = 0.0
     _nwl_swap_eur_m24 = 0.0
     _nwl_swap_eur_m30 = 0.0
-    _nwl_last_sr_month = None  # None -> swap.py derives from config (zar_leg_start_month + (zar_leg_repayments-1)*6)
+    _nwl_last_sr_month = None
     if nwl_swap_enabled:
-        # Compute M24/M30 Senior IC P+I for EUR leg breakdown display
         for r in _entity_ic['nwl']['sr']:
             if r['Month'] == repayment_start_month():
                 _nwl_swap_eur_m24 = r['Interest'] + abs(r.get('Repayment', 0) or r.get('Principle', 0))
             elif r['Month'] == repayment_start_month() + 6:
                 _nwl_swap_eur_m30 = r['Interest'] + abs(r.get('Repayment', 0) or r.get('Principle', 0))
-        # Read from slider session state; fall back to DSRA minimum
         nwl_swap_amount = float(st.session_state.get("nwl_swap_notional", int(round(_dsra_min_orch))))
-        # Clamp to valid bounds
         nwl_swap_amount = max(_dsra_min_orch, min(_swap_notional_max_orch, nwl_swap_amount))
         _nwl_last_sr_month = max(
             (r['Month'] for r in _entity_ic['nwl']['sr']
              if r['Month'] >= repayment_start_month() and (abs(r.get('Principle', 0)) > 0 or abs(r.get('Repayment', 0)) > 0)),
-            default=None,  # None -> swap.py derives from config
+            default=None,
         )
     _swap_sched = (
         _build_nwl_swap_schedule(nwl_swap_amount, FX_RATE, last_sr_month=_nwl_last_sr_month)
         if nwl_swap_enabled else None
     )
 
-    # Compute and stamp excess notional (additional bullet to SCLCA IC)
     _nwl_swap_excess_notional = max(nwl_swap_amount - _dsra_min_orch, 0.0) if nwl_swap_enabled else 0.0
 
-    # LanRED swap schedule (Brownfield+ only)
     _lanred_swap_amount_eur = structure['uses']['loans_to_subsidiaries']['lanred']['senior_portion']
     _lanred_swap_sched = _build_lanred_swap_schedule(
         _lanred_swap_amount_eur, FX_RATE
     ) if lanred_swap_enabled else None
 
-    # Entity waterfall inputs — dependency-ordered orchestration:
-    # 1. LanRED first → extract deficit vector
-    _lanred_wf = _compute_entity_waterfall_inputs(
-        'lanred', _lanred_ops,
-        _entity_ic['lanred']['sr'], _entity_ic['lanred']['mz'],
-        lanred_swap_schedule=_lanred_swap_sched)
-    _lanred_deficit_vector = [row['deficit'] for row in _lanred_wf]
-
-    # 2. TWX (independent — no swap, no OD)
-    _twx_wf = _compute_entity_waterfall_inputs(
-        'timberworx', _twx_ops,
-        _entity_ic['timberworx']['sr'], _entity_ic['timberworx']['mz'])
-
-    # 3. NWL last → receives LanRED deficit vector + swap schedule
-    # Construct typed cash inflows for NWL
-    _orch_dtic_eur = financing.get('prepayments', {}).get('dtic_grant', {}).get('amount_eur', 0)
-    _orch_iic_ta_eur = financing.get('prepayments', {}).get('invest_int_ta', {}).get('amount_eur', 0)
-    _orch_nwl_ci = [{} for _ in range(total_periods())]
-    _orch_nwl_ci[2] = {'dtic_grant': _orch_dtic_eur, 'iic_grant': _orch_iic_ta_eur}  # M12 = index 2 (C3)
-    if nwl_swap_enabled:
-        _orch_nwl_ci[4] = {'eur_leg_repayment': pre_revenue_hedge}  # M24 = index 4 (R1)
-    else:
-        _orch_nwl_ci[4] = {'mezz_draw': pre_revenue_hedge}  # M24 = index 4 (R1)
-
-    _nwl_sweep_pct = st.session_state.get("nwl_cash_sweep_pct", 100) / 100.0
-    _nwl_wf = _compute_entity_waterfall_inputs(
-        'nwl', _nwl_ops,
-        _entity_ic['nwl']['sr'], _entity_ic['nwl']['mz'],
-        lanred_deficit_vector=_lanred_deficit_vector,
-        nwl_swap_schedule=_swap_sched,
-        sweep_pct=_nwl_sweep_pct,
-        ops_semi_annual=_nwl_ops_semi,
-        cash_inflows=_orch_nwl_ci)
-
-    # 4. Second pass on LanRED: inject OD received amounts (20 semi-annual periods)
-    for _hi_od in range(total_periods()):
-        _od_received = _nwl_wf[_hi_od].get('od_lent', 0)
-        _lanred_wf[_hi_od]['od_received'] = _od_received
-
-    # ── Pass 2: NWL acceleration → IC schedule rebuild at SCLCA level ──────
-    # Ensures SCLCA IC receivables match entity IC liabilities (IC Reconciliation).
+    # ── Pass 2: ALL entity acceleration → IC schedule + facility rebuild ──────
+    # Ensures SCLCA IC receivables match entity IC liabilities (IC Reconciliation)
+    # AND that facility balances reflect acceleration pass-through from OpCos.
     # Semi-annual waterfall periods map directly to IC schedule periods: IC_period = hi - 2
-    _nwl_sr_accel_periods = {}
-    _nwl_mz_accel_periods = {}
-    _nwl_has_accel = False
-    for _hi_p2 in range(total_periods()):
-        _sr_a = _nwl_wf[_hi_p2].get('sr_accel_entity', 0)
-        _mz_a = _nwl_wf[_hi_p2].get('mz_accel_entity', 0)
-        _ic_period = _hi_p2 - 2  # IC repayment period number (1-based)
-        if _sr_a > 0.01 and _ic_period >= 1:
-            _nwl_has_accel = True
-            _pk = str(_ic_period)
-            _nwl_sr_accel_periods[_pk] = _nwl_sr_accel_periods.get(_pk, 0) + _sr_a
-        if _mz_a > 0.01 and _ic_period >= 1:
-            _nwl_has_accel = True
-            _pk = str(_ic_period)
-            _nwl_mz_accel_periods[_pk] = _nwl_mz_accel_periods.get(_pk, 0) + _mz_a
+    _entity_wf_map = {
+        'nwl': _nwl_wf,
+        'lanred': _lanred_wf,
+        'timberworx': _twx_wf,
+    }
+    _p2_entity_sr_accel = {}  # {entity_key: {period_str: amount}}
+    _p2_entity_mz_accel = {}  # {entity_key: {period_str: amount}}
+    _p2_any_accel = False
 
-    if _nwl_has_accel:
-        # Replicate build params from _build_all_entity_ic_schedules for NWL
+    # Aggregate per-entity, per-period acceleration from entity waterfalls
+    # Also build per-semi-annual-period totals for facility balance patching
+    _p2_fac_sr_accel_semi = [0.0] * total_periods()  # facility-level Sr accel per semi-annual
+    _p2_fac_mz_accel_semi = [0.0] * total_periods()  # facility-level Mz accel per semi-annual
+
+    for _ek, _ewf in _entity_wf_map.items():
+        _ek_sr_accel = {}
+        _ek_mz_accel = {}
+        for _hi_p2 in range(total_periods()):
+            _sr_a = _ewf[_hi_p2].get('sr_accel_entity', 0)
+            _mz_a = _ewf[_hi_p2].get('mz_accel_entity', 0)
+            _ic_period = _hi_p2 - 2  # IC repayment period number (1-based)
+            if _sr_a > 0.01 and _ic_period >= 1:
+                _p2_any_accel = True
+                _pk = str(_ic_period)
+                _ek_sr_accel[_pk] = _ek_sr_accel.get(_pk, 0) + _sr_a
+            if _mz_a > 0.01 and _ic_period >= 1:
+                _p2_any_accel = True
+                _pk = str(_ic_period)
+                _ek_mz_accel[_pk] = _ek_mz_accel.get(_pk, 0) + _mz_a
+            # Accumulate per-period totals for facility patching (at semi-annual level)
+            _p2_fac_sr_accel_semi[_hi_p2] += _sr_a
+            _p2_fac_mz_accel_semi[_hi_p2] += _mz_a
+        _p2_entity_sr_accel[_ek] = _ek_sr_accel
+        _p2_entity_mz_accel[_ek] = _ek_mz_accel
+
+    if _p2_any_accel:
+        # Common build params for IC schedule rebuild
         _p2_senior_cfg = structure['sources']['senior_debt']
         _p2_mezz_cfg = structure['sources']['mezzanine']
         _p2_sr_rate = _p2_senior_cfg['interest']['rate'] + INTERCOMPANY_MARGIN
@@ -13076,29 +13017,25 @@ if entity == "Catalytic Assets":
         _p2_mz_periods = construction_period_labels()
         _p2_total_sr = sum(l['senior_portion'] for l in structure['uses']['loans_to_subsidiaries'].values())
         _p2_total_mz = sum(l['mezz_portion'] for l in structure['uses']['loans_to_subsidiaries'].values())
-        _p2_nwl_ed = structure['uses']['loans_to_subsidiaries']['nwl']
-        _p2_nwl_sr_principal = _p2_nwl_ed['senior_portion']
-        _p2_nwl_mz_principal = _p2_nwl_ed['mezz_portion']
 
-        # Grant prepayments for NWL
-        _p2_prepay_raw = _p2_sr_detail.get('prepayment_periods', {})
-        _p2_prepay_alloc = _p2_sr_detail.get('prepayment_allocation', {})
-        _p2_nwl_prepay_pct = _p2_prepay_alloc.get('nwl', 0.0) if _p2_prepay_alloc else 0.0
-        _p2_nwl_grant_prepays = {k: v * _p2_nwl_prepay_pct for k, v in _p2_prepay_raw.items()} if _p2_nwl_prepay_pct > 0 else {}
+        # Rebuild IC schedules for ALL entities that have acceleration
+        for _ek in ['nwl', 'lanred', 'timberworx']:
+            _ek_sr_accel = _p2_entity_sr_accel.get(_ek, {})
+            _ek_mz_accel = _p2_entity_mz_accel.get(_ek, {})
+            if not _ek_sr_accel and not _ek_mz_accel:
+                continue
+            _p2_ek_ed = structure['uses']['loans_to_subsidiaries'][_ek]
+            _p2_ek_sr_principal = _p2_ek_ed['senior_portion']
+            _p2_ek_mz_principal = _p2_ek_ed['mezz_portion']
 
-        # Waterfall acceleration only — grants flow through waterfall as specials
-        _p2_combined_sr_prepays = dict(_nwl_sr_accel_periods)
-
-        # Rebuild NWL Senior IC (vanilla — no DSRA params)
-        _entity_ic['nwl']['sr'] = build_simple_ic_schedule(
-            _p2_nwl_sr_principal, _p2_total_sr, _p2_sr_repayments, _p2_sr_rate,
-            _p2_sr_drawdowns, _p2_sr_periods, _p2_combined_sr_prepays)
-
-        # Rebuild NWL Mezz IC if needed (vanilla)
-        if _nwl_mz_accel_periods:
-            _entity_ic['nwl']['mz'] = build_simple_ic_schedule(
-                _p2_nwl_mz_principal, _p2_total_mz, _p2_mz_repayments, _p2_mz_rate,
-                _p2_mz_drawdowns, _p2_mz_periods, _nwl_mz_accel_periods)
+            if _ek_sr_accel:
+                _entity_ic[_ek]['sr'] = build_simple_ic_schedule(
+                    _p2_ek_sr_principal, _p2_total_sr, _p2_sr_repayments, _p2_sr_rate,
+                    _p2_sr_drawdowns, _p2_sr_periods, _ek_sr_accel)
+            if _ek_mz_accel:
+                _entity_ic[_ek]['mz'] = build_simple_ic_schedule(
+                    _p2_ek_mz_principal, _p2_total_mz, _p2_mz_repayments, _p2_mz_rate,
+                    _p2_mz_drawdowns, _p2_mz_periods, _ek_mz_accel)
 
         # Re-aggregate _ic_sem from all 3 entities (same logic as _build_all_entity_ic_schedules)
         _all_sr_scheds = [_entity_ic[ek]['sr'] for ek in ['nwl', 'lanred', 'timberworx']]
@@ -13133,7 +13070,100 @@ if entity == "Catalytic Assets":
                 'isp': _isp, 'imp': _imp, 'ic_dsra_mz_draw': _ic_dsra_mz_draw,
             }
 
-        # Surgical patch of _sem (IC-derived fields only; facility fields unchanged)
+        # ── Facility balance patch: apply acceleration to _sem ──────────────
+        # Entity waterfall acceleration (sr_accel_entity / mz_accel_entity) represents
+        # cash flowing OpCo → SCLCA as IC loan prepayment. SCLCA uses the same amount
+        # to accelerate the corresponding external facility (IIC Senior / CC Mezz).
+        # Recompute facility balances forward from construction end with acceleration.
+        _p2_sr_fac_rate = _sr_rate  # Facility Senior rate (without IC margin)
+        _p2_mz_fac_rate = _mz_r    # Facility Mezz rate (without IC margin)
+
+        # Re-simulate Senior facility balance with acceleration
+        _p2_sb = _sem[0]['sc']  # Capture the pre-acceleration M0 closing
+        # Walk through and find the end-of-construction Senior balance
+        for _pi_r in range(total_periods()):
+            _m_r = _pi_r * 6
+            if _m_r < repayment_start_month():
+                _p2_sb = _sem[_pi_r]['sc']  # Track through construction (unchanged)
+                continue
+            break
+        # Get the balance at the start of repayment (end of construction)
+        # This is the M24 opening Senior balance, which should match the pre-accel value
+        _p2_sb = _sem[repayment_start_index()]['so'] if repayment_start_index() < len(_sem) else _p2_sb
+
+        # Use the original pre-acceleration facility balances as starting point.
+        # Walk forward through repayment, reducing balance by scheduled P + acceleration.
+        _p2_sr_fac_bal = _p2_sb
+        _p2_mz_fac_bal = _mz_after  # Mezz balance after rollup (M24 opening for Mezz repayment)
+        _p2_sr_remaining = _sr_num  # Total Senior repayment periods
+        _p2_mz_remaining = _mz_n   # Total Mezz repayment periods (10)
+        _p2_sr_p_per = _sr_p       # Initial Senior P per period (vanilla)
+        _p2_mz_p_per = _mz_p_per   # Initial Mezz P per period (vanilla)
+        # Apply pre-revenue hedge adjustments (same as original logic)
+        _p2_sr_in_hedge = False     # Track hedge transition
+
+        for _pi_r in range(total_periods()):
+            _m_r = _pi_r * 6
+            _sr_accel_this = _p2_fac_sr_accel_semi[_pi_r]
+            _mz_accel_this = _p2_fac_mz_accel_semi[_pi_r]
+
+            # Pre-repayment periods: facility balances unchanged by acceleration
+            if _m_r < repayment_start_month():
+                _sem[_pi_r]['sr_accel_fac'] = 0.0
+                _sem[_pi_r]['mz_accel_fac'] = 0.0
+                continue
+
+            # Senior facility: apply scheduled P + acceleration
+            _p2_sr_opening = _p2_sr_fac_bal
+            if _m_r == repayment_start_month() and _p2_sr_fac_bal > 1:
+                # P1: one principal instalment
+                _p2_sr_sched_p = min(_sr_p, _p2_sr_opening)
+            elif _m_r == repayment_start_month() + 6:
+                # P2: interest-only (hedge period)
+                _p2_sr_sched_p = 0.0
+            elif _p2_sr_fac_bal > 1:
+                # P3+: use current P_constant (may be recalculated after acceleration)
+                _p2_sr_sched_p = min(_p2_sr_p_per, _p2_sr_opening)
+            else:
+                _p2_sr_sched_p = 0.0
+
+            # Apply acceleration to Senior facility
+            _sr_accel_applied = min(_sr_accel_this, max(_p2_sr_fac_bal - _p2_sr_sched_p, 0))
+            _p2_sr_fac_bal = max(_p2_sr_fac_bal - _p2_sr_sched_p - _sr_accel_applied, 0)
+
+            # Recalculate P_constant for remaining Senior periods after acceleration
+            _p2_sr_remaining -= 1
+            if _sr_accel_applied > 0 and _p2_sr_remaining > 0 and _p2_sr_fac_bal > 0.01:
+                _p2_sr_p_per = _p2_sr_fac_bal / _p2_sr_remaining
+            # After P2 (hedge period): recalculate based on M30 end balance / 12
+            if _m_r == repayment_start_month() + 6 and not _p2_sr_in_hedge:
+                _p2_sr_in_hedge = True
+                if _p2_sr_fac_bal > 0.01:
+                    _p2_sr_p_per = _p2_sr_fac_bal / max(_p2_sr_remaining, 1)
+
+            # Mezz facility: starts at M30 (one period after Senior start)
+            if _m_r >= repayment_start_month() + 6 and _sem[_pi_r]['mo'] > 1:
+                _p2_mz_opening = _p2_mz_fac_bal
+                _p2_mz_sched_p = min(_p2_mz_p_per, _p2_mz_opening) if _p2_mz_fac_bal > 1 else 0.0
+                _mz_accel_applied = min(_mz_accel_this, max(_p2_mz_fac_bal - _p2_mz_sched_p, 0))
+                _p2_mz_fac_bal = max(_p2_mz_fac_bal - _p2_mz_sched_p - _mz_accel_applied, 0)
+                _p2_mz_remaining -= 1
+                if _mz_accel_applied > 0 and _p2_mz_remaining > 0 and _p2_mz_fac_bal > 0.01:
+                    _p2_mz_p_per = _p2_mz_fac_bal / _p2_mz_remaining
+            else:
+                _mz_accel_applied = 0.0
+
+            # Patch _sem with accelerated facility balances
+            # sp/mp remain scheduled-only (for cf_repay_out); acceleration is separate
+            _sem[_pi_r]['sc'] = _p2_sr_fac_bal
+            _sem[_pi_r]['mc'] = _p2_mz_fac_bal
+            _sem[_pi_r]['sp'] = _p2_sr_sched_p   # Scheduled principal only
+            if _m_r >= repayment_start_month() + 6 and _sem[_pi_r]['mo'] > 1:
+                _sem[_pi_r]['mp'] = _p2_mz_sched_p  # Scheduled principal only
+            _sem[_pi_r]['sr_accel_fac'] = _sr_accel_applied
+            _sem[_pi_r]['mz_accel_fac'] = _mz_accel_applied
+
+        # Surgical patch of _sem (IC-derived fields)
         for _pi_r in range(total_periods()):
             _ic = _ic_sem[_pi_r]
             _sem[_pi_r]['iso'] = _ic['iso']
@@ -13148,7 +13178,7 @@ if entity == "Catalytic Assets":
             _sem[_pi_r]['imp'] = _ic['imp']
             _sem[_pi_r]['ic_dsra_mz_draw'] = _ic['ic_dsra_mz_draw']
 
-        # Surgical patch of annual_model (IC-derived fields only)
+        # Surgical patch of annual_model (IC-derived + facility-accelerated fields)
         _p2_cum_ni = 0.0
         for _yi_r in range(total_years()):
             h1, h2 = _sem[_yi_r * 2], _sem[_yi_r * 2 + 1]
@@ -13166,8 +13196,19 @@ if entity == "Catalytic Assets":
             _am['bs_e'] = _am.get('bs_sh_equity', 0) + _am['bs_retained']
             # Cash interest from IC
             _am['cf_ii'] = h1['isi_cash'] + h2['isi_cash'] + h1['imi_cash'] + h2['imi_cash'] + _am.get('ii_dsra', 0)
-            # IC principal received (repayments)
+            # IC principal received (repayments + acceleration from entities)
             _am['cf_repay_in'] = h1['isp'] + h2['isp'] + h1['imp'] + h2['imp']
+            # Facility principal paid (scheduled + acceleration to facilities)
+            _am['cf_repay_out_sr'] = h1['sp'] + h2['sp']
+            _am['cf_repay_out_mz'] = h1['mp'] + h2['mp']
+            _am['cf_repay_out'] = _am['cf_repay_out_sr'] + _am['cf_repay_out_mz']
+            # Acceleration pass-through breakdown (for CF display)
+            _am['cf_sr_accel_fac'] = h1.get('sr_accel_fac', 0) + h2.get('sr_accel_fac', 0)
+            _am['cf_mz_accel_fac'] = h1.get('mz_accel_fac', 0) + h2.get('mz_accel_fac', 0)
+            _am['cf_accel_total'] = _am['cf_sr_accel_fac'] + _am['cf_mz_accel_fac']
+            # BS: facility liabilities (now accelerated)
+            _am['bs_sr'] = h2['sc']
+            _am['bs_mz'] = h2['mc']
             # BS: IC receivables
             _am['bs_isr'] = h2['isc']  # Senior IC closing (end of year = H2 closing)
             _am['bs_imz'] = h2['imc']  # Mezz IC closing
@@ -13175,6 +13216,22 @@ if entity == "Catalytic Assets":
             # Re-derive BS totals (SCLCA uses bs_financial, bs_a, bs_e)
             _am['bs_financial'] = _am['bs_ic'] + _am.get('bs_eq_subs', 0)
             _am['bs_a'] = _am['bs_financial'] + _am.get('bs_cash', 0)
+            # Re-derive pass-through liability (IC receivable > facility balance gap)
+            _bs_pt_raw = _am['bs_a'] - _am['bs_e'] - _am['bs_sr'] - _am['bs_mz']
+            _am['bs_dsra_liab'] = max(_bs_pt_raw, 0)
+            _am['bs_accrued_ir'] = max(-_bs_pt_raw, 0)
+            _am['bs_a'] = _am['bs_financial'] + _am.get('bs_cash', 0) + _am['bs_accrued_ir']
+            _am['bs_l'] = _am['bs_sr'] + _am['bs_mz'] + _am['bs_dsra_liab']
+    else:
+        # No acceleration — still initialize the facility accel fields to 0
+        for _pi_r in range(total_periods()):
+            _sem[_pi_r]['sr_accel_fac'] = 0.0
+            _sem[_pi_r]['mz_accel_fac'] = 0.0
+        for _yi_r in range(total_years()):
+            _am = annual_model[_yi_r]
+            _am['cf_sr_accel_fac'] = 0.0
+            _am['cf_mz_accel_fac'] = 0.0
+            _am['cf_accel_total'] = 0.0
 
     # Build waterfall
     _waterfall = _build_waterfall_model(
@@ -13855,15 +13912,23 @@ if entity == "Catalytic Assets":
                     st.caption("IDC")
                     st.markdown(f"**Roll-up, add to principal (+€{senior_detail['rolled_up_interest_idc']:,.0f})**")
 
-                # Build Senior Debt Schedule — vanilla from engine
+                # Build Senior Debt Schedule — with acceleration from entity waterfalls
                 interest_rate = senior['interest']['rate']
                 num_repayments = senior['repayments']  # 14
                 actual_drawdowns = senior_detail['drawdown_schedule']
                 _sr_total = senior_detail['loan_drawdown_total']
 
+                # Build facility-level Sr acceleration map from entity waterfall data
+                _sr_fac_accel_map = {}
+                for _hi_fac in range(total_periods()):
+                    _fac_accel_val = _p2_fac_sr_accel_semi[_hi_fac] if _p2_any_accel else 0.0
+                    if _fac_accel_val > 0.01:
+                        _sr_fac_accel_map[str(_hi_fac)] = _fac_accel_val
+
                 schedule_rows = build_simple_ic_schedule(
                     _sr_total, _sr_total, num_repayments, interest_rate,
                     actual_drawdowns, construction_period_labels(),
+                    _sr_fac_accel_map if _sr_fac_accel_map else None,
                 )
                 # Add canonical labels for display
                 for r in schedule_rows:
@@ -13877,8 +13942,14 @@ if entity == "Catalytic Assets":
                 new_p = balance_for_repay / num_repayments if num_repayments else 0
 
                 df_senior = pd.DataFrame(schedule_rows)
+                # Add Principal and P+I columns for display
+                for r in schedule_rows:
+                    r["Principal"] = r["Principle"]
+                    _is_repay = r["Period"] >= repayment_start_index()
+                    r["P+I"] = -(abs(r["Principle"]) + r["Interest"]) if _is_repay else 0
+                df_senior = pd.DataFrame(schedule_rows)
                 _sr_display_cols = [c for c in ["Label", "Month", "Year", "Opening", "Draw Down",
-                                    "IDC", "Interest", "Principle", "Acceleration", "Movement", "Closing"]
+                                    "IDC", "Interest", "Principal", "P+I", "Acceleration", "Movement", "Closing"]
                                     if c in df_senior.columns]
                 _sr_fac_fmt = {
                     "Year": "{:.1f}",
@@ -13886,15 +13957,17 @@ if entity == "Catalytic Assets":
                     "Draw Down": "€{:,.0f}",
                     "IDC": "€{:,.0f}",
                     "Interest": "€{:,.0f}",
-                    "Principle": "€{:,.0f}",
+                    "Principal": "€{:,.0f}",
+                    "P+I": "€{:,.0f}",
                     "Acceleration": "€{:,.0f}",
                     "Movement": "€{:,.0f}",
                     "Closing": "€{:,.0f}"
                 }
                 _sr_key_map = {
                     "Opening": "sr_opening", "Draw Down": "sr_draw_down",
-                    "IDC": "sr_idc", "Interest": "ie_sr", "Principle": "sr_principal",
-                    "Acceleration": "sr_accel", "Movement": "sr_movement", "Closing": "sr_closing",
+                    "IDC": "sr_idc", "Interest": "ie_sr", "Principal": "sr_principal",
+                    "P+I": "sr_pi", "Acceleration": "sr_accel",
+                    "Movement": "sr_movement", "Closing": "sr_closing",
                 }
                 inject_df_heritage(df_senior[_sr_display_cols], key_map=_sr_key_map, formats=_sr_fac_fmt, label_col="Label")
 
@@ -14006,18 +14079,29 @@ if entity == "Catalytic Assets":
                         st.caption("Funded at")
                         st.markdown(f"**Month {dsra['funded_at_month']}**")
 
-                # Build Mezzanine Schedule — vanilla from engine
+                # Build Mezzanine Schedule — with acceleration from entity waterfalls
                 mezz_rate = mezz['interest']['total_rate']
                 mezz_repayments = mezz.get('repayments', 10)
                 mezz_drawdown_schedule = [mezz_amount_eur, 0, 0, 0]
 
+                # Build facility-level Mz acceleration map from entity waterfall data
+                _mz_fac_accel_map = {}
+                for _hi_fac in range(total_periods()):
+                    _fac_accel_val = _p2_fac_mz_accel_semi[_hi_fac] if _p2_any_accel else 0.0
+                    if _fac_accel_val > 0.01:
+                        _mz_fac_accel_map[str(_hi_fac)] = _fac_accel_val
+
                 mezz_rows = build_simple_ic_schedule(
                     mezz_amount_eur, mezz_amount_eur, mezz_repayments, mezz_rate,
                     mezz_drawdown_schedule, construction_period_labels(),
+                    _mz_fac_accel_map if _mz_fac_accel_map else None,
                 )
                 for r in mezz_rows:
                     p_info = period_lookup(r["Period"])
                     r["Label"] = p_info["label"]
+                    r["Principal"] = r["Principle"]
+                    _is_repay = r["Period"] >= repayment_start_index()
+                    r["P+I"] = -(abs(r["Principle"]) + r["Interest"]) if _is_repay else 0
 
                 mezz_balance_for_repay = next(
                     (r["Closing"] for r in mezz_rows
@@ -14027,7 +14111,7 @@ if entity == "Catalytic Assets":
 
                 df_mezz = pd.DataFrame(mezz_rows)
                 _mz_display_cols = [c for c in ["Label", "Month", "Year", "Opening", "Draw Down",
-                                    "IDC", "Interest", "Principle", "Acceleration", "Movement", "Closing"]
+                                    "IDC", "Interest", "Principal", "P+I", "Acceleration", "Movement", "Closing"]
                                     if c in df_mezz.columns]
                 _mz_fac_fmt = {
                     "Year": "{:.1f}",
@@ -14035,15 +14119,17 @@ if entity == "Catalytic Assets":
                     "Draw Down": "€{:,.0f}",
                     "IDC": "€{:,.0f}",
                     "Interest": "€{:,.0f}",
-                    "Principle": "€{:,.0f}",
+                    "Principal": "€{:,.0f}",
+                    "P+I": "€{:,.0f}",
                     "Acceleration": "€{:,.0f}",
                     "Movement": "€{:,.0f}",
                     "Closing": "€{:,.0f}"
                 }
                 _mz_key_map = {
                     "Opening": "mz_opening", "Draw Down": "mz_draw_down",
-                    "IDC": "mz_idc", "Interest": "ie_mz", "Principle": "mz_principal",
-                    "Acceleration": "mz_accel", "Movement": "mz_movement", "Closing": "mz_closing",
+                    "IDC": "mz_idc", "Interest": "ie_mz", "Principal": "mz_principal",
+                    "P+I": "mz_pi", "Acceleration": "mz_accel",
+                    "Movement": "mz_movement", "Closing": "mz_closing",
                 }
                 inject_df_heritage(df_mezz[_mz_display_cols], key_map=_mz_key_map, formats=_mz_fac_fmt, label_col="Label")
 
@@ -14143,7 +14229,8 @@ if entity == "Catalytic Assets":
                 "Draw Down": "€{:,.0f}",
                 "IDC": "€{:,.0f}",
                 "Interest": "€{:,.0f}",
-                "Principle": "€{:,.0f}",
+                "Principal": "€{:,.0f}",
+                "P+I": "€{:,.0f}",
                 "Acceleration": "€{:,.0f}",
                 "Movement": "€{:,.0f}",
                 "Closing": "€{:,.0f}"
@@ -14153,14 +14240,14 @@ if entity == "Catalytic Assets":
             _sr_key_map = {
                 "Opening": "sr_opening", "Draw Down": "sr_draw_down",
                 "IDC": "sr_idc", "Interest": "ie_sr",
-                "Principle": "sr_principal", "Principal": "sr_principal",
+                "Principal": "sr_principal", "P+I": "sr_pi",
                 "Acceleration": "sr_accel",
                 "Movement": "sr_movement", "Closing": "sr_closing",
             }
             _mz_key_map = {
                 "Opening": "mz_opening", "Draw Down": "mz_draw_down",
                 "IDC": "mz_idc", "Interest": "ie_mz",
-                "Principle": "mz_principal", "Principal": "mz_principal",
+                "Principal": "mz_principal", "P+I": "mz_pi",
                 "Acceleration": "mz_accel",
                 "Movement": "mz_movement", "Closing": "mz_closing",
             }
@@ -14224,10 +14311,14 @@ if entity == "Catalytic Assets":
                     # Read NWL Senior IC from engine (single source of truth)
                     nwl_sr_rows = _entity_ic['nwl']['sr']
                     nwl_sr_num_repayments = senior['repayments']
-                    # Add canonical labels
+                    _rep_start_ic = repayment_start_index()
+                    # Add canonical labels + Principal/P+I columns
                     for r in nwl_sr_rows:
                         p_info = period_lookup(r["Period"])
                         r["Label"] = p_info["label"]
+                        r["Principal"] = r["Principle"]
+                        _is_repay = r["Period"] >= _rep_start_ic
+                        r["P+I"] = -(abs(r["Principle"]) + r["Interest"]) if _is_repay else 0
 
                     nwl_sr_balance_for_repay = next(
                         (r["Closing"] for r in nwl_sr_rows
@@ -14237,7 +14328,7 @@ if entity == "Catalytic Assets":
 
                     df_nwl_senior = pd.DataFrame(nwl_sr_rows)
                     _nwl_sr_cols = [c for c in ["Label", "Month", "Year", "Opening", "Draw Down",
-                                    "IDC", "Interest", "Principle", "Acceleration", "Movement", "Closing"]
+                                    "IDC", "Interest", "Principal", "P+I", "Acceleration", "Movement", "Closing"]
                                     if c in df_nwl_senior.columns]
                     inject_df_heritage(df_nwl_senior[_nwl_sr_cols], key_map=_sr_key_map, formats=ic_format, label_col="Label")
 
@@ -14286,6 +14377,9 @@ if entity == "Catalytic Assets":
                 for r in nwl_mz_rows:
                     p_info = period_lookup(r["Period"])
                     r["Label"] = p_info["label"]
+                    r["Principal"] = r["Principle"]
+                    _is_repay = r["Period"] >= _rep_start_ic
+                    r["P+I"] = -(abs(r["Principle"]) + r["Interest"]) if _is_repay else 0
 
                 nwl_mz_balance_for_repay = next(
                     (r["Closing"] for r in nwl_mz_rows
@@ -14295,7 +14389,7 @@ if entity == "Catalytic Assets":
 
                 df_nwl_mezz = pd.DataFrame(nwl_mz_rows)
                 _nwl_mz_cols = [c for c in ["Label", "Month", "Year", "Opening", "Draw Down",
-                                "IDC", "Interest", "Principle", "Acceleration", "Movement", "Closing"]
+                                "IDC", "Interest", "Principal", "P+I", "Acceleration", "Movement", "Closing"]
                                 if c in df_nwl_mezz.columns]
                 inject_df_heritage(df_nwl_mezz[_nwl_mz_cols], key_map=_mz_key_map, formats=ic_format, label_col="Label")
 
@@ -14336,9 +14430,12 @@ if entity == "Catalytic Assets":
                 _lr_sr = _entity_ic['lanred']['sr']
                 for r in _lr_sr:
                     r["Label"] = period_lookup(r["Period"])["label"]
+                    r["Principal"] = r["Principle"]
+                    _is_repay = r["Period"] >= _rep_start_ic
+                    r["P+I"] = -(abs(r["Principle"]) + r["Interest"]) if _is_repay else 0
                 df_lanred_senior = pd.DataFrame(_lr_sr)
                 _ic_display_cols = [c for c in ["Label", "Month", "Year", "Opening", "Draw Down",
-                                    "IDC", "Interest", "Principle", "Acceleration", "Movement", "Closing"]
+                                    "IDC", "Interest", "Principal", "P+I", "Acceleration", "Movement", "Closing"]
                                     if c in df_lanred_senior.columns]
                 inject_df_heritage(df_lanred_senior[_ic_display_cols], key_map=_sr_key_map, formats=ic_format, label_col="Label")
 
@@ -14347,6 +14444,9 @@ if entity == "Catalytic Assets":
                 _lr_mz = _entity_ic['lanred']['mz']
                 for r in _lr_mz:
                     r["Label"] = period_lookup(r["Period"])["label"]
+                    r["Principal"] = r["Principle"]
+                    _is_repay = r["Period"] >= _rep_start_ic
+                    r["P+I"] = -(abs(r["Principle"]) + r["Interest"]) if _is_repay else 0
                 df_lanred_mezz = pd.DataFrame(_lr_mz)
                 inject_df_heritage(df_lanred_mezz[_ic_display_cols], key_map=_mz_key_map, formats=ic_format, label_col="Label")
 
@@ -14379,6 +14479,9 @@ if entity == "Catalytic Assets":
                 _twx_sr = _entity_ic['timberworx']['sr']
                 for r in _twx_sr:
                     r["Label"] = period_lookup(r["Period"])["label"]
+                    r["Principal"] = r["Principle"]
+                    _is_repay = r["Period"] >= _rep_start_ic
+                    r["P+I"] = -(abs(r["Principle"]) + r["Interest"]) if _is_repay else 0
                 df_twx_senior = pd.DataFrame(_twx_sr)
                 inject_df_heritage(df_twx_senior[_ic_display_cols], key_map=_sr_key_map, formats=ic_format, label_col="Label")
 
@@ -14387,6 +14490,9 @@ if entity == "Catalytic Assets":
                 _twx_mz = _entity_ic['timberworx']['mz']
                 for r in _twx_mz:
                     r["Label"] = period_lookup(r["Period"])["label"]
+                    r["Principal"] = r["Principle"]
+                    _is_repay = r["Period"] >= _rep_start_ic
+                    r["P+I"] = -(abs(r["Principle"]) + r["Interest"]) if _is_repay else 0
                 df_twx_mezz = pd.DataFrame(_twx_mz)
                 inject_df_heritage(df_twx_mezz[_ic_display_cols], key_map=_mz_key_map, formats=ic_format, label_col="Label")
 
@@ -14844,15 +14950,29 @@ if entity == "Catalytic Assets":
                 [sum(a['cf_prepay_in'] - a['cf_prepay_out'] for a in annual_model)],
                 'sub')
 
-            # PRINCIPAL - REPAYMENTS
+            # PRINCIPAL - REPAYMENTS (scheduled)
             _cf_spacer()
-            _cf_section('PRINCIPAL - REPAYMENTS')
+            _cf_section('PRINCIPAL - REPAYMENTS (scheduled)')
             _cf_line('Repayments Received (IC Loans)', 'cf_repay_in')
             _cf_line('Repayments Paid (Facilities)', 'cf_repay_out', -1.0)
             _cf_computed_line('Net Repayments',
                 [a['cf_repay_in'] - a['cf_repay_out'] for a in annual_model] +
                 [sum(a['cf_repay_in'] - a['cf_repay_out'] for a in annual_model)],
                 'sub')
+
+            # ACCELERATION PASS-THROUGH (entity waterfall → facility prepayment)
+            _has_accel = any(a.get('cf_accel_total', 0) > 0.01 for a in annual_model)
+            if _has_accel:
+                _cf_spacer()
+                _cf_section('ACCELERATION (pass-through)')
+                _cf_line('Sr Acceleration Received (IC)', 'cf_sr_accel_fac')
+                _cf_line('Mz Acceleration Received (IC)', 'cf_mz_accel_fac')
+                _cf_computed_line('Acceleration Paid (Facilities)',
+                    [-a.get('cf_accel_total', 0) for a in annual_model] +
+                    [-sum(a.get('cf_accel_total', 0) for a in annual_model)])
+                _cf_computed_line('Net Acceleration',
+                    [0.0 for _ in annual_model] + [0.0],
+                    'sub')
 
             # INTEREST
             _cf_spacer()

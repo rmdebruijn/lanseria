@@ -279,6 +279,23 @@ class EntityResult:
         )
         dfs.update(ops_tables)
 
+        # Totals row: 10-year cumulative sums for summary views
+        if self.annual:
+            _totals = {
+                "rev_total": sum(a.get("rev_total", 0) for a in self.annual),
+                "ebitda": sum(a.get("ebitda", 0) for a in self.annual),
+                "pat": sum(a.get("pat", 0) for a in self.annual),
+                "ie": sum(a.get("ie", 0) for a in self.annual),
+                "cf_ops": sum(a.get("cf_ops", 0) for a in self.annual),
+                "cf_ds": sum(a.get("cf_ds", 0) for a in self.annual),
+                "cf_net": sum(a.get("cf_net", 0) for a in self.annual),
+                "dscr_min": self.dscr_min,
+                "dscr_avg": self.dscr_avg,
+                "ebitda_margin": self.ebitda_margin,
+                "net_margin": self.net_margin,
+            }
+            dfs["totals"] = pd.DataFrame([_totals])
+
         # Tag all DataFrames with value types and units
         dfs = tag_all_dataframes(dfs)
 
