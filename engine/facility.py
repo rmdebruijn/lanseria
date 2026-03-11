@@ -269,14 +269,17 @@ class FacilityState:
                 row["Movement"] = row["Draw Down"] + row["IDC"] - accel
                 row["Closing"] = row["Opening"] + row["Movement"]
 
+                # Sync balance before rebuilding — rebuild reads self.balance as opening
+                self.balance = row["Closing"]
+
                 # Rebuild subsequent construction periods (lower balance → lower IDC)
                 for rebuild_idx in range(hi + 1, len(self.construction_periods)):
                     self._rebuild_construction_period(rebuild_idx)
 
                 # Re-init repayment profile with new end-of-construction balance
                 self._init_repayment_profile()
-            # Always sync balance to this period's closing
-            self.balance = row["Closing"]
+            else:
+                self.balance = row["Closing"]
             return
 
         fp = precomputed if precomputed is not None else self.compute_period(hi)
